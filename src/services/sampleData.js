@@ -38,7 +38,7 @@ export const generateSampleContacts = () => {
     email: item.email,
     secondaryEmail: idx % 4 === 0 ? `${item.first.toLowerCase()}.${item.last.toLowerCase()}@work.com` : '',
     phone: item.phone,
-    group: item.group,
+    categories: [item.group],
     status: item.status,
     address: `${100 + idx} Elm Street, Suite ${idx + 1}, Springfield, IL`,
     notes: idx % 3 === 0 ? 'Sends annual holiday card & eNews' : 'Regular eNews recipient',

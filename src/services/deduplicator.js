@@ -82,7 +82,7 @@ export const mergeContacts = (existing, incoming) => {
     email: existing.email || incoming.email,
     secondaryEmail: incoming.secondaryEmail || existing.secondaryEmail,
     phone: incoming.phone || existing.phone,
-    group: incoming.group !== 'Friends & Family' ? incoming.group : existing.group,
+    categories: [...new Set([...(existing.categories || []), ...(incoming.categories || [])])],
     status: existing.status || incoming.status,
     address: incoming.address || existing.address,
     notes: [existing.notes, incoming.notes].filter(Boolean).join(' | '),

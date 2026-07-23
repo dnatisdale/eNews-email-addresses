@@ -3,12 +3,14 @@ import { Header } from './components/Header';
 import { ContactTable } from './components/ContactTable';
 import { ContactModal } from './components/ContactModal';
 import { ImportExportModal } from './components/ImportExportModal';
+import { MagicImportModal } from './components/MagicImportModal';
 import { DuplicateResolverModal } from './components/DuplicateResolverModal';
 import { PrintView } from './components/PrintView';
 import { SecurityModal } from './components/SecurityModal';
 import { SettingsModal } from './components/SettingsModal';
 import { TrashModal } from './components/TrashModal';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
+import { CategoryManagerModal } from './components/CategoryManagerModal';
 import { generateSampleContacts } from './services/sampleData';
 import { findDuplicates } from './services/deduplicator';
 import { cleanDatabase } from './services/dbCleaner';
@@ -18,7 +20,7 @@ import { isSecurityLockEnabled } from './services/authService';
 const STORAGE_KEY = 'eNews_Contacts_List_v1';
 const TRASH_STORAGE_KEY = 'eNews_Trash_Contacts_v1';
 const THEME_KEY = 'eNews_Theme_Preference';
-
+const MASTER_CATEGORIES_KEY = 'eNews_master_categories';
 const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000;
 
 export default function App() {
@@ -58,10 +60,25 @@ export default function App() {
     return [];
   });
 
+  // Master Categories State
+  const [masterCategories, setMasterCategories] = useState(() => {
+    const saved = localStorage.getItem(MASTER_CATEGORIES_KEY);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to load master categories', e);
+      }
+    }
+    // Default categories if none exist
+    return ['Family', 'Close Friends', 'Newsletter', 'Holiday List'];
+  });
+
   // Security Lock & Authentication State
   const [isEditingUnlocked, setIsEditingUnlocked] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isCategoryManagerModalOpen, setIsCategoryManagerModalOpen] = useState(false);
   const [isTrashModalOpen, setIsTrashModalOpen] = useState(false);
   const pendingActionRef = useRef(null);
   const [securityActionTitle, setSecurityActionTitle] = useState('Edit Contacts');
@@ -111,7 +128,16 @@ export default function App() {
     }
   });
 
-  const availableColumns = [
+  const [columnOrder, setColumnOrder] = useState(() => {
+    try {
+      const stored = localStorage.getItem('eNews_Column_Order_v2');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const baseAvailableColumns = [
     ...STANDARD_COLUMNS,
     ...Array.from(customKeysSet).map((key) => ({
       id: key,
@@ -120,10 +146,73 @@ export default function App() {
     }))
   ];
 
+  const availableColumns = [...baseAvailableColumns].sort((a, b) => {
+    const idxA = columnOrder.indexOf(a.id);
+    const idxB = columnOrder.indexOf(b.id);
+    if (idxA === -1 && idxB === -1) return 0;
+    if (idxA === -1) return 1;
+    if (idxB === -1) return -1;
+    return idxA - idxB;
+  });
+
+  const handleReorderColumns = (newColumns) => {
+    const newOrder = newColumns.map(c => c.id);
+    setColumnOrder(newOrder);
+    localStorage.setItem('eNews_Column_Order_v2', JSON.stringify(newOrder));
+  };
+
   // Selected column visibility state
-  const [visibleColumns, setVisibleColumns] = useState(() => 
-    STANDARD_COLUMNS.filter(c => c.default).map(c => c.id)
-  );
+  const [visibleColumns, setVisibleColumns] = useState(() => {
+    try {
+      const stored = localStorage.getItem('eNews_Visible_Columns_v2');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return STANDARD_COLUMNS.filter(c => c.default).map(c => c.id);
+  });
+
+  // Save visible columns when they change
+  useEffect(() => {
+    localStorage.setItem('eNews_Visible_Columns_v2', JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
+
+  // Track column widths
+  const [columnWidths, setColumnWidths] = useState(() => {
+    try {
+      const stored = localStorage.getItem('eNews_Column_Widths_v1');
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const handleExportCSV = () => {
+    const activeCols = availableColumns.filter(c => visibleColumns.includes(c.id));
+    const exportCols = activeCols.filter(c => !['checkbox', 'index', 'score', 'actions'].includes(c.id));
+    
+    let csv = exportCols.map(c => c.label).join(',') + '\n';
+    
+    contacts.forEach(contact => {
+      const row = exportCols.map(col => {
+        let val = contact[col.id] || '';
+        if (col.id === 'categories' && Array.isArray(val)) val = val.join('; ');
+        if (col.id === 'name') val = `${contact.firstName || ''} ${contact.lastName || ''}`.trim();
+        if (contact.customFields && contact.customFields[col.id]) val = contact.customFields[col.id];
+        
+        const escaped = String(val).replace(/"/g, '""');
+        return `"${escaped}"`;
+      });
+      csv += row.join(',') + '\n';
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `eNews_Directory_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Auto-enable newly discovered custom columns when imported
   useEffect(() => {
@@ -141,6 +230,7 @@ export default function App() {
   const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
   const [contactToEdit, setContactToEdit] = useState(null);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isMagicImportModalOpen, setIsMagicImportModalOpen] = useState(false);
   const [isPrintViewOpen, setIsPrintViewOpen] = useState(false);
   
   // Duplicates state
@@ -163,9 +253,33 @@ export default function App() {
     localStorage.setItem(TRASH_STORAGE_KEY, JSON.stringify(trashContacts));
   }, [trashContacts]);
 
+  // Sync masterCategories to LocalStorage
+  useEffect(() => {
+    localStorage.setItem(MASTER_CATEGORIES_KEY, JSON.stringify(masterCategories));
+  }, [masterCategories]);
+
+  // Auto-discover categories from imported or legacy contacts
+  useEffect(() => {
+    const uniqueCategories = new Set(masterCategories);
+    let added = false;
+    contacts.forEach(c => {
+      if (Array.isArray(c.categories)) {
+        c.categories.forEach(cat => {
+          if (cat && !uniqueCategories.has(cat)) {
+            uniqueCategories.add(cat);
+            added = true;
+          }
+        });
+      }
+    });
+    if (added) {
+      setMasterCategories(Array.from(uniqueCategories));
+    }
+  }, [contacts, masterCategories]);
+
   // Derived counts & lists
   const activeCount = contacts.filter(c => c.status === 'Active').length;
-  const groups = Array.from(new Set(contacts.map(c => c.group).filter(Boolean)));
+  // groups replaced by masterCategories usage where applicable
   
   // Identify blank / invalid contacts
   const blankContacts = contacts.filter(
@@ -251,15 +365,19 @@ export default function App() {
     });
   };
 
-  // Bulk Assign Selected Contacts to a Collection / Group
-  const handleBulkAssignGroup = (idsToAssign, targetGroup) => {
+  // Bulk Assign Selected Contacts to Categories
+  const handleBulkAssignCategories = (idsToAssign, categoriesToAdd) => {
     requireAuth(() => {
-      setContacts((prev) =>
-        prev.map((c) => (idsToAssign.includes(c.id) ? { ...c, group: targetGroup } : c))
-      );
-      alert(`Moved ${idsToAssign.length} contacts to collection: "${targetGroup}"`);
+      setContacts((prev) => prev.map((c) => {
+        if (idsToAssign.includes(c.id)) {
+          const newCategories = [...new Set([...(c.categories || []), ...categoriesToAdd])];
+          return { ...c, categories: newCategories };
+        }
+        return c;
+      }));
       setSelectedIds([]);
-    }, 'Move Contacts to Collection');
+      alert(`Added ${idsToAssign.length} contacts to categories: ${categoriesToAdd.join(', ')}`);
+    }, 'Assign Contacts to Categories');
   };
 
   // Thorough Database Cleanup
@@ -363,6 +481,20 @@ export default function App() {
     setIsDuplicateModalOpen(false);
   };
 
+  const handleClearSampleData = () => {
+    requireAuth(() => {
+      const remaining = contacts.filter(c => !c.id.startsWith('sample_'));
+      const removedCount = contacts.length - remaining.length;
+      if (removedCount > 0) {
+        setContacts(remaining);
+        setSelectedIds(prev => prev.filter(id => !id.startsWith('sample_')));
+        alert(`Cleared ${removedCount} sample contacts.`);
+      } else {
+        alert('No sample contacts found.');
+      }
+    }, 'Clear Sample Data');
+  };
+
   return (
     <div className="app-layout">
       {/* Header Bar */}
@@ -377,16 +509,19 @@ export default function App() {
         isEditingUnlocked={isEditingUnlocked}
         onToggleLock={handleToggleLock}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
+        onOpenCategoryManager={() => setIsCategoryManagerModalOpen(true)}
         onOpenAddModal={() => requireAuth(() => {
           setContactToEdit(null);
           setIsAddEditModalOpen(true);
         }, 'Add New Contact')}
         onOpenImportModal={() => requireAuth(() => setIsImportModalOpen(true), 'Import CSV File')}
+        onOpenMagicImport={() => requireAuth(() => setIsMagicImportModalOpen(true), 'Magic AI Import')}
         onLoadSampleData={() => requireAuth(() => {
           const samples = generateSampleContacts();
           setContacts(samples);
         }, 'Load Sample Contacts')}
         onPrintDirectory={() => setIsPrintViewOpen(true)}
+        onExportCSV={handleExportCSV}
         onScanDuplicates={() => {
           const dups = findDuplicates(contacts, contacts);
           setDuplicates(dups);
@@ -396,23 +531,27 @@ export default function App() {
         onOpenTrashModal={() => setIsTrashModalOpen(true)}
         onCleanDatabase={handleCleanDatabase}
         duplicateCount={duplicates.length}
+        onClearSampleData={handleClearSampleData}
       />
 
       {/* Main Content View */}
       <main className="main-content">
         <ContactTable 
           contacts={contacts}
-          groups={groups}
+          masterCategories={masterCategories}
           availableColumns={availableColumns}
           visibleColumns={visibleColumns}
           setVisibleColumns={setVisibleColumns}
+          columnWidths={columnWidths}
+          setColumnWidths={setColumnWidths}
+          onReorderColumns={handleReorderColumns}
           selectedIds={selectedIds}
           setSelectedIds={setSelectedIds}
           onEditContact={handleEditContact}
           onDeleteContact={handleDeleteContact}
           onBulkDelete={handleBulkDelete}
           onBulkCopyEmails={handleBulkCopyEmails}
-          onBulkAssignGroup={handleBulkAssignGroup}
+          onBulkAssignCategories={handleBulkAssignCategories}
           onOpenAddModal={() => requireAuth(() => {
             setContactToEdit(null);
             setIsAddEditModalOpen(true);
@@ -430,12 +569,18 @@ export default function App() {
         onClose={() => setIsAddEditModalOpen(false)}
         onSave={handleSaveContact}
         contactToEdit={contactToEdit}
-        groups={groups}
+        masterCategories={masterCategories}
       />
 
       <ImportExportModal 
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
+        onImport={handleImportContacts}
+      />
+
+      <MagicImportModal
+        isOpen={isMagicImportModalOpen}
+        onClose={() => setIsMagicImportModalOpen(false)}
         onImport={handleImportContacts}
       />
 
@@ -451,7 +596,21 @@ export default function App() {
         isOpen={isPrintViewOpen}
         onClose={() => setIsPrintViewOpen(false)}
         contacts={contacts}
+        availableColumns={availableColumns}
         visibleColumns={visibleColumns}
+        columnWidths={columnWidths}
+      />
+
+      <CategoryManagerModal
+        isOpen={isCategoryManagerModalOpen}
+        onClose={() => setIsCategoryManagerModalOpen(false)}
+        masterCategories={masterCategories}
+        setMasterCategories={(newCategories) => {
+          // Sync changes down to contacts if categories were deleted or renamed
+          // Simple logic: if a category is missing, remove it from contacts. If renamed, we can't easily tell which was renamed from just the new array unless we do complex diffing. 
+          // The CategoryManagerModal actually handles renaming and deleting. We can pass a callback to handle updates.
+          setMasterCategories(newCategories);
+        }}
       />
 
       <SecurityModal

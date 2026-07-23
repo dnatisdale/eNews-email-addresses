@@ -48,7 +48,7 @@ if (isFirebaseConfigured) {
   }
 }
 
-export { auth, db };
+export { app, auth, db };
 
 // Auth helpers
 export const loginWithGoogle = async () => {

@@ -153,14 +153,21 @@ const normalizeImportedContacts = (records) => {
       const rawPhone = getVal('phone 1 - value', 'mobile phone', 'home phone', 'business phone', 'phone', 'cell phone', 'telephone', 'phone 1');
       const phone = extractPhoneFromRow(row, rawPhone);
 
-      // 4. Group / Tag Parsing
-      let group = getVal('group membership', 'categories', 'group', 'category', 'tag', 'tags');
-      if (group && group.includes(':::')) {
-        const parts = group.split(':::');
-        group = parts[parts.length - 1].replace(/\*/g, '').trim();
+      // 4. Group / Tag Parsing -> Categories Array
+      let rawGroups = getVal('group membership', 'categories', 'group', 'category', 'tag', 'tags');
+      let categories = [];
+      if (rawGroups) {
+        categories = rawGroups.split(',').map(g => {
+          if (g.includes(':::')) {
+            const parts = g.split(':::');
+            return parts[parts.length - 1].replace(/\*/g, '').trim();
+          }
+          return g.replace(/\*/g, '').trim();
+        }).filter(Boolean);
       }
-      if (!group) {
-        group = smartName.isHousehold ? 'Family & Household' : 'Friends & Family';
+      
+      if (categories.length === 0) {
+        categories = [smartName.isHousehold ? 'Family & Household' : 'Friends & Family'];
       }
 
       // 5. Address & Notes
@@ -204,7 +211,7 @@ const normalizeImportedContacts = (records) => {
         email: cleanEmail,
         secondaryEmail: secondaryEmail.trim(),
         phone: cleanPhone,
-        group: group.trim(),
+        categories: categories,
         status: status,
         address: address.trim(),
         notes: notes.trim(),
@@ -250,7 +257,7 @@ export const exportToCSV = (contacts) => {
       escapeCSV(c.email),
       escapeCSV(c.secondaryEmail),
       escapeCSV(c.phone),
-      escapeCSV(c.group),
+      escapeCSV(c.categories ? c.categories.join(', ') : ''),
       escapeCSV(c.status),
       escapeCSV(c.address),
       escapeCSV(c.notes)

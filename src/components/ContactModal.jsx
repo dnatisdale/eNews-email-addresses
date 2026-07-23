@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, User, Mail, Phone, Tag, MapPin, FileText, CheckCircle } from 'lucide-react';
 
-export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, groups = [] }) => {
+export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCategories = [] }) => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     secondaryEmail: '',
     phone: '',
-    group: 'Friends & Family',
+    categories: ['Friends & Family'],
     status: 'Active',
     address: '',
     notes: ''
   });
 
-  const [customGroup, setCustomGroup] = useState('');
-  const [showCustomGroup, setShowCustomGroup] = useState(false);
+  const [customCategory, setCustomCategory] = useState('');
+  const [showCustomCategory, setShowCustomCategory] = useState(false);
 
   useEffect(() => {
     if (contactToEdit) {
@@ -25,7 +25,7 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, groups = 
         email: contactToEdit.email || '',
         secondaryEmail: contactToEdit.secondaryEmail || '',
         phone: contactToEdit.phone || '',
-        group: contactToEdit.group || 'Friends & Family',
+        categories: contactToEdit.categories && contactToEdit.categories.length > 0 ? contactToEdit.categories : ['Friends & Family'],
         status: contactToEdit.status || 'Active',
         address: contactToEdit.address || '',
         notes: contactToEdit.notes || ''
@@ -37,36 +37,43 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, groups = 
         email: '',
         secondaryEmail: '',
         phone: '',
-        group: 'Friends & Family',
+        categories: ['Friends & Family'],
         status: 'Active',
         address: '',
         notes: ''
       });
     }
-    setShowCustomGroup(false);
+    setShowCustomCategory(false);
+    setCustomCategory('');
   }, [contactToEdit, isOpen]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const finalGroup = showCustomGroup && customGroup.trim() ? customGroup.trim() : formData.group;
+    let finalCategories = [...formData.categories];
+    if (showCustomCategory && customCategory.trim()) {
+      if (!finalCategories.includes(customCategory.trim())) {
+        finalCategories.push(customCategory.trim());
+      }
+    }
     onSave({
       ...formData,
-      group: finalGroup,
+      categories: finalCategories,
       id: contactToEdit ? contactToEdit.id : undefined
     });
     onClose();
   };
 
-  const handleGroupSelectChange = (e) => {
-    const val = e.target.value;
-    if (val === '__ADD_NEW__') {
-      setShowCustomGroup(true);
-    } else {
-      setShowCustomGroup(false);
-      setFormData({ ...formData, group: val });
-    }
+  const toggleCategory = (cat) => {
+    setFormData((prev) => {
+      const current = prev.categories || [];
+      if (current.includes(cat)) {
+        return { ...prev, categories: current.filter((c) => c !== cat) };
+      } else {
+        return { ...prev, categories: [...current, cat] };
+      }
+    });
   };
 
   return (
@@ -109,9 +116,9 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, groups = 
               />
             </div>
 
-            {/* Primary Email */}
+            {/* Email */}
             <div className="form-group">
-              <label>Primary Email *</label>
+              <label>Email *</label>
               <div className="input-with-icon">
                 <Mail size={16} className="input-icon" />
                 <input
@@ -155,35 +162,44 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, groups = 
               </div>
             </div>
 
-            {/* Group / Category */}
+            {/* Categories */}
             <div className="form-group">
-              <label>Group / Tag</label>
-              {!showCustomGroup ? (
-                <select
-                  className="input-control"
-                  value={formData.group}
-                  onChange={handleGroupSelectChange}
-                >
-                  <option value="Family">Family</option>
-                  <option value="Friends & Family">Friends & Family</option>
-                  <option value="Close Friends">Close Friends</option>
-                  <option value="Newsletter">Newsletter List</option>
-                  <option value="Holiday List">Holiday List</option>
-                  {groups.filter(g => !['Family', 'Friends & Family', 'Close Friends', 'Newsletter', 'Holiday List'].includes(g)).map(g => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                  <option value="__ADD_NEW__">+ Create Custom Group...</option>
-                </select>
-              ) : (
-                <input
-                  type="text"
-                  autoFocus
-                  className="input-control"
-                  placeholder="Type new group name..."
-                  value={customGroup}
-                  onChange={(e) => setCustomGroup(e.target.value)}
-                />
-              )}
+              <label>Categories (Select multiple)</label>
+              <div className="categories-checkbox-list">
+                {masterCategories.map((cat) => (
+                  <label key={cat} className="category-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={(formData.categories || []).includes(cat)}
+                      onChange={() => toggleCategory(cat)}
+                    />
+                    <span>{cat}</span>
+                  </label>
+                ))}
+              </div>
+              
+              <div className="add-category-inline">
+                {!showCustomCategory ? (
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setShowCustomCategory(true)}
+                  >
+                    + Add New Category
+                  </button>
+                ) : (
+                  <div className="input-with-button">
+                    <input
+                      type="text"
+                      autoFocus
+                      className="input-control"
+                      placeholder="Type new category..."
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Status */}

@@ -12,7 +12,8 @@ import {
   Sparkles,
   FolderPlus,
   Pin,
-  ShieldCheck
+  ShieldCheck,
+  SlidersHorizontal
 } from 'lucide-react';
 import { ColumnSelector, STANDARD_COLUMNS } from './ColumnSelector';
 import { getContactAccuracy } from '../services/accuracyEvaluator';
@@ -29,7 +30,7 @@ const DEFAULT_WIDTHS = {
   email: 230,
   secondaryEmail: 180,
   phone: 150,
-  group: 140,
+  categories: 160,
   status: 120,
   address: 200,
   notes: 220,
@@ -38,26 +39,30 @@ const DEFAULT_WIDTHS = {
 
 export const ContactTable = ({
   contacts = [],
-  groups = [],
+  masterCategories = [],
   availableColumns = STANDARD_COLUMNS,
   visibleColumns = [],
   setVisibleColumns,
+  columnWidths,
+  setColumnWidths,
+  onReorderColumns,
   selectedIds = [],
   setSelectedIds,
   onEditContact,
   onDeleteContact,
   onBulkDelete,
   onBulkCopyEmails,
-  onBulkAssignGroup,
+  onBulkAssignCategories,
   onOpenAddModal,
   onLoadSampleData
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedGroup, setSelectedGroup] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('All');
   const [accuracyFilter, setAccuracyFilter] = useState('All');
   const [activeLetter, setActiveLetter] = useState('All');
   const [sortField, setSortField] = useState('score'); // Default sort by Score!
+  const [showFilters, setShowFilters] = useState(false);
   const [sortAsc, setSortAsc] = useState(false); // Default Green -> Yellow -> Red
   const [copiedId, setCopiedId] = useState(null);
 
@@ -67,30 +72,10 @@ export const ContactTable = ({
   // Range Selection (Shift+Click) State
   const [lastSelectedIndex, setLastSelectedIndex] = useState(null);
 
-  // Sticky Header Toggle State
-  const [isStickyHeader, setIsStickyHeader] = useState(() => {
-    const saved = localStorage.getItem(STICKY_STORAGE_KEY);
-    return saved === null ? true : saved === 'true';
-  });
+
 
   // Column Widths State (Resizable Columns)
-  const [columnWidths, setColumnWidths] = useState(() => {
-    const saved = localStorage.getItem(WIDTHS_STORAGE_KEY);
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
-    }
-    return DEFAULT_WIDTHS;
-  });
-
-  // Save sticky header preference
-  useEffect(() => {
-    localStorage.setItem(STICKY_STORAGE_KEY, isStickyHeader ? 'true' : 'false');
-  }, [isStickyHeader]);
-
-  // Save column widths preference
-  useEffect(() => {
-    localStorage.setItem(WIDTHS_STORAGE_KEY, JSON.stringify(columnWidths));
-  }, [columnWidths]);
+  // columnWidths and setColumnWidths are now props
 
   // Column resizing drag handler
   const startResizing = (colId, e) => {
@@ -101,7 +86,7 @@ export const ContactTable = ({
 
     const onMouseMove = (moveEvent) => {
       const deltaX = moveEvent.clientX - startX;
-      const newWidth = Math.max(45, startWidth + deltaX);
+      const newWidth = Math.max(20, startWidth + deltaX);
       setColumnWidths((prev) => ({
         ...prev,
         [colId]: newWidth
@@ -131,7 +116,7 @@ export const ContactTable = ({
     const fullName = `${contact.firstName || ''} ${contact.lastName || ''}`.toLowerCase();
     const email = (contact.email || '').toLowerCase();
     const secondaryEmail = (contact.secondaryEmail || '').toLowerCase();
-    const group = (contact.group || '').toLowerCase();
+    const categoriesStr = (Array.isArray(contact.categories) ? contact.categories.join(' ') : '').toLowerCase();
     const notes = (contact.notes || '').toLowerCase();
     const customVals = contact.customFields ? Object.values(contact.customFields).join(' ').toLowerCase() : '';
     const query = searchTerm.toLowerCase();
@@ -141,11 +126,15 @@ export const ContactTable = ({
       fullName.includes(query) ||
       email.includes(query) ||
       secondaryEmail.includes(query) ||
-      group.includes(query) ||
+      categoriesStr.includes(query) ||
       notes.includes(query) ||
       customVals.includes(query);
 
-    const matchesGroup = selectedGroup === 'All' || contact.group === selectedGroup;
+    // Category filter
+    let matchesCategory = true;
+    if (selectedCategory !== 'All') {
+      matchesCategory = Array.isArray(contact.categories) && contact.categories.includes(selectedCategory);
+    }
     const matchesStatus = selectedStatus === 'All' || contact.status === selectedStatus;
 
     // Accuracy Rating Filter
@@ -166,7 +155,7 @@ export const ContactTable = ({
       }
     }
 
-    return matchesSearch && matchesGroup && matchesStatus && matchesAccuracy && matchesLetter;
+    return matchesSearch && matchesCategory && matchesStatus && matchesAccuracy && matchesLetter;
   });
 
   // Sort contacts
@@ -230,15 +219,16 @@ export const ContactTable = ({
     setLastSelectedIndex(index);
   };
 
-  // Move Selected Contacts to Collection / Group
-  const handleMoveToCollection = () => {
+  // Assign Selected Contacts to Categories
+  const handleAssignCategories = () => {
     if (selectedIds.length === 0) return;
-    const targetGroup = window.prompt(
-      `Enter Collection / Group name for the ${selectedIds.length} selected contacts:`,
-      'Family & Friends'
+    const targetCategoriesRaw = window.prompt(
+      `Enter Categories for the ${selectedIds.length} selected contacts (comma separated):`,
+      'Friends & Family'
     );
-    if (targetGroup && targetGroup.trim()) {
-      onBulkAssignGroup(selectedIds, targetGroup.trim());
+    if (targetCategoriesRaw && targetCategoriesRaw.trim()) {
+      const categoriesToAdd = targetCategoriesRaw.split(',').map(c => c.trim()).filter(Boolean);
+      onBulkAssignCategories(selectedIds, categoriesToAdd);
     }
   };
 
@@ -267,7 +257,7 @@ export const ContactTable = ({
         contacts={contacts}
       />
 
-      {/* Control Bar: Search, Group Filters, Accuracy Filters, Column Selector & Sticky Header Toggle */}
+      {/* Control Bar: Search, Category Filters, Accuracy Filters, Column Selector & Sticky Header Toggle */}
       <div className="control-bar">
         {/* Search Box */}
         <div className="search-box">
@@ -286,77 +276,86 @@ export const ContactTable = ({
           )}
         </div>
 
-        {/* Group Filter Pills */}
-        <div className="filter-group-pills">
-          <button 
-            className={`pill ${selectedGroup === 'All' ? 'pill-active' : ''}`}
-            onClick={() => setSelectedGroup('All')}
-          >
-            All Collections ({contacts.length})
-          </button>
-          {groups.map((grp) => {
-            const grpCount = contacts.filter((c) => c.group === grp).length;
-            return (
-              <button 
-                key={grp}
-                className={`pill ${selectedGroup === grp ? 'pill-active' : ''}`}
-                onClick={() => setSelectedGroup(grp)}
-              >
-                {grp} ({grpCount})
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Status, Score Filter, Sticky Header & Column Selector */}
         <div className="toolbar-controls">
-          {/* Score Light Filter */}
-          <div className="status-filter-wrap">
-            <ShieldCheck size={14} className="filter-icon text-primary" />
-            <select
-              className="select-control-sm"
-              value={accuracyFilter}
-              onChange={(e) => setAccuracyFilter(e.target.value)}
-              title="Filter by Score Light Rating"
-            >
-              <option value="All">All Score Lights</option>
-              <option value="green">🟢 Green Lights Only</option>
-              <option value="yellow">🟡 Yellow Lights Only</option>
-              <option value="red">🔴 Red Lights Only</option>
-            </select>
-          </div>
-
-          {/* Sticky Header Toggle */}
-          <button
-            className={`btn btn-sm ${isStickyHeader ? 'btn-outline' : 'btn-secondary'}`}
-            onClick={() => setIsStickyHeader(!isStickyHeader)}
-            title={`Toggle Sticky Column Headings (${isStickyHeader ? 'Enabled' : 'Disabled'})`}
+          <button 
+            className={`btn btn-sm ${showFilters ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setShowFilters(!showFilters)}
+            title="Toggle Filters"
           >
-            <Pin size={14} className={isStickyHeader ? 'text-primary' : ''} />
-            <span className="desktop-only">Sticky Header: {isStickyHeader ? 'ON' : 'OFF'}</span>
+            <SlidersHorizontal size={14} />
+            <span>Filters</span>
+            {(selectedCategory !== 'All' || accuracyFilter !== 'All' || selectedStatus !== 'All') && (
+              <span className="badge-pill bg-danger" style={{ marginLeft: '4px', fontSize: '10px', padding: '2px 6px', borderRadius: '10px' }}>!</span>
+            )}
           </button>
-
-          <div className="status-filter-wrap">
-            <Filter size={14} className="filter-icon" />
-            <select 
-              className="select-control-sm"
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-            >
-              <option value="All">All Statuses</option>
-              <option value="Active">Active Only</option>
-              <option value="Inactive">Inactive</option>
-              <option value="Unsubscribed">Unsubscribed</option>
-            </select>
-          </div>
 
           <ColumnSelector 
             availableColumns={availableColumns}
-            visibleColumns={visibleColumns} 
-            setVisibleColumns={setVisibleColumns} 
+            visibleColumns={visibleColumns}
+            setVisibleColumns={setVisibleColumns}
+            onReorderColumns={onReorderColumns} 
           />
         </div>
       </div>
+
+      {/* Expandable Filters Panel */}
+      {showFilters && (
+        <div className="active-filters-panel" style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', padding: '0.75rem 1rem', backgroundColor: 'var(--bg-panel)', borderBottom: '1px solid var(--border-color)', alignItems: 'center' }}>
+          <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Filters:</div>
+          
+          <div className="filter-group-pills" style={{ margin: 0 }}>
+            <button 
+              className={`pill ${selectedCategory === 'All' ? 'pill-active' : ''}`}
+              onClick={() => setSelectedCategory('All')}
+            >
+              All Categories ({contacts.length})
+            </button>
+            {masterCategories.map((cat) => {
+              const catCount = contacts.filter((c) => Array.isArray(c.categories) && c.categories.includes(cat)).length;
+              return (
+                <button 
+                  key={cat}
+                  className={`pill ${selectedCategory === cat ? 'pill-active' : ''}`}
+                  onClick={() => setSelectedCategory(cat)}
+                >
+                  {cat} ({catCount})
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{ display: 'flex', gap: '1rem', marginLeft: 'auto' }}>
+            <div className="status-filter-wrap" style={{ margin: 0 }}>
+              <ShieldCheck size={14} className="filter-icon text-primary" />
+              <select
+                className="select-control-sm"
+                value={accuracyFilter}
+                onChange={(e) => setAccuracyFilter(e.target.value)}
+                title="Filter by Score Light Rating"
+              >
+                <option value="All">All Score Lights</option>
+                <option value="green">🟢 Green Lights Only</option>
+                <option value="yellow">🟡 Yellow Lights Only</option>
+                <option value="red">🔴 Red Lights Only</option>
+              </select>
+            </div>
+
+            <div className="status-filter-wrap" style={{ margin: 0 }}>
+              <Filter size={14} className="filter-icon" />
+              <select 
+                className="select-control-sm"
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+              >
+                <option value="All">All Statuses</option>
+                <option value="Active">Active Only</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Unsubscribed">Unsubscribed</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bulk Action Strip (When items selected) */}
       {selectedIds.length > 0 && (
@@ -367,11 +366,11 @@ export const ContactTable = ({
           <div className="bulk-btn-group">
             <button 
               className="btn btn-primary btn-sm"
-              onClick={handleMoveToCollection}
-              title="Add or move selected contacts to a Collection / Group"
+              onClick={handleAssignCategories}
+              title="Add selected contacts to Categories"
             >
               <FolderPlus size={14} />
-              <span>Add to Collection</span>
+              <span>Assign Categories</span>
             </button>
             <button 
               className="btn btn-secondary btn-sm"
@@ -423,141 +422,122 @@ export const ContactTable = ({
         <>
           {/* Desktop Table View */}
           <div className="table-responsive desktop-view">
-            <table className={`contact-table ${isStickyHeader ? 'sticky-header' : ''}`}>
+            <table className="contact-table">
               <thead>
                 <tr>
-                  <th className="th-checkbox" style={{ width: 36 }}>
-                    <input
-                      type="checkbox"
-                      checked={isAllSelected}
-                      onChange={toggleSelectAll}
-                    />
-                  </th>
-
-                  {/* Sortable Ultra-Compact Score Column Header */}
-                  <th 
-                    style={{ width: columnWidths.accuracy || 60 }}
-                    className="sortable resizable-th th-score"
-                  >
-                    <div className="th-content" onClick={() => handleSort('score')} title="Click to sort by Score Ranking (Green -> Yellow -> Red)">
-                      <span>Score</span>
-                      <ArrowUpDown size={12} className="sort-icon" />
-                    </div>
-                    <div className="col-resizer" onMouseDown={(e) => startResizing('accuracy', e)} />
-                  </th>
-
-                  {visibleColumns.includes('name') && (
-                    <th 
-                      style={{ width: columnWidths.name || 210 }}
-                      className="sortable resizable-th"
-                    >
-                      <div className="th-content" onClick={() => handleSort('name')}>
-                        <span>Name</span>
-                        <ArrowUpDown size={12} className="sort-icon" />
-                      </div>
-                      <div className="col-resizer" onMouseDown={(e) => startResizing('name', e)} />
-                    </th>
-                  )}
-                  {visibleColumns.includes('email') && (
-                    <th 
-                      style={{ width: columnWidths.email || 230 }}
-                      className="sortable resizable-th"
-                    >
-                      <div className="th-content" onClick={() => handleSort('email')}>
-                        <span>Primary Email</span>
-                        <ArrowUpDown size={12} className="sort-icon" />
-                      </div>
-                      <div className="col-resizer" onMouseDown={(e) => startResizing('email', e)} />
-                    </th>
-                  )}
-                  {visibleColumns.includes('secondaryEmail') && (
-                    <th 
-                      style={{ width: columnWidths.secondaryEmail || 180 }}
-                      className="resizable-th"
-                    >
-                      <div className="th-content">
-                        <span>Secondary Email</span>
-                      </div>
-                      <div className="col-resizer" onMouseDown={(e) => startResizing('secondaryEmail', e)} />
-                    </th>
-                  )}
-                  {visibleColumns.includes('phone') && (
-                    <th 
-                      style={{ width: columnWidths.phone || 150 }}
-                      className="resizable-th"
-                    >
-                      <div className="th-content">
-                        <span>Phone</span>
-                      </div>
-                      <div className="col-resizer" onMouseDown={(e) => startResizing('phone', e)} />
-                    </th>
-                  )}
-                  {visibleColumns.includes('group') && (
-                    <th 
-                      style={{ width: columnWidths.group || 140 }}
-                      className="sortable resizable-th"
-                    >
-                      <div className="th-content" onClick={() => handleSort('group')}>
-                        <span>Collection / Group</span>
-                        <ArrowUpDown size={12} className="sort-icon" />
-                      </div>
-                      <div className="col-resizer" onMouseDown={(e) => startResizing('group', e)} />
-                    </th>
-                  )}
-                  {visibleColumns.includes('status') && (
-                    <th 
-                      style={{ width: columnWidths.status || 120 }}
-                      className="sortable resizable-th"
-                    >
-                      <div className="th-content" onClick={() => handleSort('status')}>
-                        <span>Status</span>
-                        <ArrowUpDown size={12} className="sort-icon" />
-                      </div>
-                      <div className="col-resizer" onMouseDown={(e) => startResizing('status', e)} />
-                    </th>
-                  )}
-                  {visibleColumns.includes('address') && (
-                    <th 
-                      style={{ width: columnWidths.address || 200 }}
-                      className="resizable-th"
-                    >
-                      <div className="th-content">
-                        <span>Address</span>
-                      </div>
-                      <div className="col-resizer" onMouseDown={(e) => startResizing('address', e)} />
-                    </th>
-                  )}
-                  {visibleColumns.includes('notes') && (
-                    <th 
-                      style={{ width: columnWidths.notes || 220 }}
-                      className="resizable-th"
-                    >
-                      <div className="th-content">
-                        <span>Notes</span>
-                      </div>
-                      <div className="col-resizer" onMouseDown={(e) => startResizing('notes', e)} />
-                    </th>
-                  )}
-                  
-                  {/* Custom CSV Columns Header */}
-                  {customColumnList.map((customCol) => (
-                    visibleColumns.includes(customCol.id) && (
-                      <th 
-                        key={customCol.id}
-                        style={{ width: columnWidths[customCol.id] || 160 }}
-                        className="resizable-th"
-                      >
-                        <div className="th-content">
-                          <span>{customCol.label}</span>
-                        </div>
-                        <div className="col-resizer" onMouseDown={(e) => startResizing(customCol.id, e)} />
-                      </th>
-                    )
-                  ))}
-
-                  {visibleColumns.includes('actions') && (
-                    <th className="th-actions" style={{ width: columnWidths.actions || 100 }}>Actions</th>
-                  )}
+                  {/* Dynamic Reorderable Columns */}
+                  {availableColumns.filter(c => visibleColumns.includes(c.id)).map(col => {
+                    switch (col.id) {
+                      case 'checkbox':
+                        return (
+                          <th key="checkbox" className="th-checkbox" style={{ width: columnWidths.checkbox || 45 }}>
+                            <div className="th-content">
+                              <input
+                                type="checkbox"
+                                checked={isAllSelected}
+                                onChange={toggleSelectAll}
+                              />
+                            </div>
+                            <div className="col-resizer" onMouseDown={(e) => startResizing('checkbox', e)} />
+                          </th>
+                        );
+                      case 'index':
+                        return (
+                          <th key="index" className="th-index" style={{ width: columnWidths.index || 40 }}>
+                            <div className="th-content">
+                              <span>#</span>
+                            </div>
+                            <div className="col-resizer" onMouseDown={(e) => startResizing('index', e)} />
+                          </th>
+                        );
+                      case 'score':
+                        return (
+                          <th key="score" style={{ width: columnWidths.score || 60 }} className="sortable resizable-th th-score">
+                            <div className="th-content" onClick={() => handleSort('score')} title="Click to sort by Score Ranking (Green -> Yellow -> Red)">
+                              <span>Score</span>
+                              <ArrowUpDown size={12} className="sort-icon" />
+                            </div>
+                            <div className="col-resizer" onMouseDown={(e) => startResizing('score', e)} />
+                          </th>
+                        );
+                      case 'name':
+                        return (
+                          <th key="name" style={{ width: columnWidths.name || 210 }} className="sortable resizable-th">
+                            <div className="th-content" onClick={() => handleSort('name')}>
+                              <span>Name</span>
+                              <ArrowUpDown size={12} className="sort-icon" />
+                            </div>
+                            <div className="col-resizer" onMouseDown={(e) => startResizing('name', e)} />
+                          </th>
+                        );
+                      case 'email':
+                        return (
+                          <th key="email" style={{ width: columnWidths.email || 230 }} className="sortable resizable-th">
+                            <div className="th-content" onClick={() => handleSort('email')}>
+                              <span>Email</span>
+                              <ArrowUpDown size={12} className="sort-icon" />
+                            </div>
+                            <div className="col-resizer" onMouseDown={(e) => startResizing('email', e)} />
+                          </th>
+                        );
+                      case 'secondaryEmail':
+                        return (
+                          <th key="secondaryEmail" style={{ width: columnWidths.secondaryEmail || 180 }} className="resizable-th">
+                            <div className="th-content"><span>Secondary Email</span></div>
+                            <div className="col-resizer" onMouseDown={(e) => startResizing('secondaryEmail', e)} />
+                          </th>
+                        );
+                      case 'phone':
+                        return (
+                          <th key="phone" style={{ width: columnWidths.phone || 150 }} className="resizable-th">
+                            <div className="th-content"><span>Phone</span></div>
+                            <div className="col-resizer" onMouseDown={(e) => startResizing('phone', e)} />
+                          </th>
+                        );
+                      case 'categories':
+                        return (
+                          <th key="categories" style={{ width: columnWidths.categories || 160 }} className="resizable-th">
+                            <div className="th-content"><span>Categories</span></div>
+                            <div className="col-resizer" onMouseDown={(e) => startResizing('categories', e)} />
+                          </th>
+                        );
+                      case 'status':
+                        return (
+                          <th key="status" style={{ width: columnWidths.status || 120 }} className="sortable resizable-th">
+                            <div className="th-content" onClick={() => handleSort('status')}>
+                              <span>Status</span>
+                              <ArrowUpDown size={12} className="sort-icon" />
+                            </div>
+                            <div className="col-resizer" onMouseDown={(e) => startResizing('status', e)} />
+                          </th>
+                        );
+                      case 'address':
+                        return (
+                          <th key="address" style={{ width: columnWidths.address || 200 }} className="resizable-th">
+                            <div className="th-content"><span>Address</span></div>
+                            <div className="col-resizer" onMouseDown={(e) => startResizing('address', e)} />
+                          </th>
+                        );
+                      case 'notes':
+                        return (
+                          <th key="notes" style={{ width: columnWidths.notes || 220 }} className="resizable-th">
+                            <div className="th-content"><span>Notes</span></div>
+                            <div className="col-resizer" onMouseDown={(e) => startResizing('notes', e)} />
+                          </th>
+                        );
+                      case 'actions':
+                        return (
+                          <th key="actions" className="th-actions" style={{ width: columnWidths.actions || 100 }}>Actions</th>
+                        );
+                      default:
+                        return (
+                          <th key={col.id} style={{ width: columnWidths[col.id] || 160 }} className="resizable-th">
+                            <div className="th-content"><span>{col.label}</span></div>
+                            <div className="col-resizer" onMouseDown={(e) => startResizing(col.id, e)} />
+                          </th>
+                        );
+                    }
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -572,133 +552,140 @@ export const ContactTable = ({
                       className={isSelected ? 'row-selected' : ''}
                       onClick={(e) => handleRowSelect(contact.id, idx, e)}
                     >
-                      <td className="td-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(e) => handleRowSelect(contact.id, idx, e)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </td>
-
-                      {/* Pure Bright Glowing Signal Light Only */}
-                      <td className="td-accuracy" onClick={(e) => e.stopPropagation()}>
-                        <div 
-                          className={`score-light-only light-${accuracy.level}`}
-                          title={accuracy.tooltip}
-                        >
-                          <span className={`score-glow-dot dot-${accuracy.level}`}></span>
-                        </div>
-                      </td>
-
-                      {/* Clean Name Display */}
-                      {visibleColumns.includes('name') && (
-                        <td className="td-name">
-                          <strong className="contact-name">{contact.firstName} {contact.lastName}</strong>
-                        </td>
-                      )}
-
-                      {visibleColumns.includes('email') && (
-                        <td className="td-email">
-                          <div className="email-copy-wrap">
-                            <a href={`mailto:${contact.email}`} className="email-link" onClick={(e) => e.stopPropagation()}>
-                              {contact.email}
-                            </a>
-                            <button
-                              className="copy-badge-btn"
-                              onClick={(e) => handleCopyEmail(contact, e)}
-                              title="Copy name & email to clipboard"
-                            >
-                              {copiedId === contact.id ? <Check size={12} className="text-success" /> : <Copy size={12} />}
-                            </button>
-                          </div>
-                        </td>
-                      )}
-
-                      {visibleColumns.includes('secondaryEmail') && (
-                        <td className="td-secondary-email">
-                          {contact.secondaryEmail ? (
-                            <a href={`mailto:${contact.secondaryEmail}`} className="email-sublink" onClick={(e) => e.stopPropagation()}>
-                              {contact.secondaryEmail}
-                            </a>
-                          ) : (
-                            <span className="text-muted">-</span>
-                          )}
-                        </td>
-                      )}
-
-                      {/* Clean Single-Line Phone Button (No phone icon) */}
-                      {visibleColumns.includes('phone') && (
-                        <td className="td-phone">
-                          {contact.phone ? (
-                            <button
-                              className="btn-phone-call"
-                              onClick={(e) => handlePhoneClick(contact, e)}
-                              title={`Click to call ${contact.firstName} via Phone, WhatsApp, Skype, or FaceTime`}
-                            >
-                              <span>{formattedPhone}</span>
-                            </button>
-                          ) : (
-                            <span className="text-muted">-</span>
-                          )}
-                        </td>
-                      )}
-
-                      {visibleColumns.includes('group') && (
-                        <td>
-                          <span className={`tag-badge tag-${contact.group.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}>
-                            {contact.group}
-                          </span>
-                        </td>
-                      )}
-
-                      {visibleColumns.includes('status') && (
-                        <td>
-                          <span className={`status-badge status-${contact.status.toLowerCase()}`}>
-                            {contact.status}
-                          </span>
-                        </td>
-                      )}
-
-                      {visibleColumns.includes('address') && (
-                        <td className="td-address">{contact.address || <span className="text-muted">-</span>}</td>
-                      )}
-
-                      {visibleColumns.includes('notes') && (
-                        <td className="td-notes">{contact.notes || <span className="text-muted">-</span>}</td>
-                      )}
-
-                      {/* Custom CSV Column Cells */}
-                      {customColumnList.map((customCol) => (
-                        visibleColumns.includes(customCol.id) && (
-                          <td key={customCol.id}>
-                            {contact.customFields && contact.customFields[customCol.id] 
-                              ? contact.customFields[customCol.id] 
-                              : <span className="text-muted">-</span>}
-                          </td>
-                        )
-                      ))}
-
-                      {visibleColumns.includes('actions') && (
-                        <td className="td-actions" onClick={(e) => e.stopPropagation()}>
-                          <div className="action-row">
-                            <button
-                              className="icon-action-btn"
-                              onClick={() => onEditContact(contact)}
-                              title="Edit Contact"
-                            >
-                              <Edit2 size={15} />
-                            </button>
-                            <button
-                              className="icon-action-btn text-danger"
-                              onClick={() => onDeleteContact(contact.id)}
-                              title="Delete Contact"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          </div>
-                        </td>
-                      )}
+                      {/* Dynamic Reorderable Body Cells */}
+                      {availableColumns.filter(c => visibleColumns.includes(c.id)).map(col => {
+                        switch(col.id) {
+                          case 'checkbox':
+                            return (
+                              <td key="checkbox" className="td-checkbox">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={(e) => handleRowSelect(contact.id, idx, e)}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </td>
+                            );
+                          case 'index':
+                            return (
+                              <td key="index" className="td-index" style={{ color: 'var(--text-muted)' }}>
+                                {idx + 1}
+                              </td>
+                            );
+                          case 'score':
+                            return (
+                              <td key="score" className="td-accuracy" onClick={(e) => e.stopPropagation()}>
+                                <div 
+                                  className={`score-light-only light-${accuracy.level}`}
+                                  title={accuracy.tooltip}
+                                >
+                                  <span className={`score-glow-dot dot-${accuracy.level}`}></span>
+                                </div>
+                              </td>
+                            );
+                          case 'name':
+                            return (
+                              <td key="name" className="td-name">
+                                <strong className="contact-name">{contact.firstName} {contact.lastName}</strong>
+                              </td>
+                            );
+                          case 'email':
+                            return (
+                              <td key="email" className="td-email">
+                                <div className="email-copy-wrap">
+                                  <a href={`mailto:${contact.email}`} className="email-link" onClick={(e) => e.stopPropagation()}>
+                                    {contact.email}
+                                  </a>
+                                  <button
+                                    className="copy-badge-btn"
+                                    onClick={(e) => handleCopyEmail(contact, e)}
+                                    title="Copy name & email to clipboard"
+                                  >
+                                    {copiedId === contact.id ? <Check size={12} className="text-success" /> : <Copy size={12} />}
+                                  </button>
+                                </div>
+                              </td>
+                            );
+                          case 'secondaryEmail':
+                            return (
+                              <td key="secondaryEmail" className="td-secondary-email">
+                                {contact.secondaryEmail ? (
+                                  <a href={`mailto:${contact.secondaryEmail}`} className="email-link" onClick={(e) => e.stopPropagation()}>
+                                    {contact.secondaryEmail}
+                                  </a>
+                                ) : (
+                                  <span className="text-muted">-</span>
+                                )}
+                              </td>
+                            );
+                          case 'phone':
+                            return (
+                              <td key="phone" className="td-phone">
+                                {contact.phone ? (
+                                  <button
+                                    className="btn-phone-call"
+                                    onClick={(e) => handlePhoneClick(contact, e)}
+                                    title={`Click to call ${contact.firstName} via Phone, WhatsApp, Skype, or FaceTime`}
+                                  >
+                                    <span>{formattedPhone}</span>
+                                  </button>
+                                ) : (
+                                  <span className="text-muted">-</span>
+                                )}
+                              </td>
+                            );
+                          case 'categories':
+                            return (
+                              <td key="categories" className="td-categories">
+                                {Array.isArray(contact.categories) && contact.categories.length > 0 ? (
+                                  <div className="category-pill-group">
+                                    {contact.categories.map((cat, i) => (
+                                      <span key={i} className={`tag-badge tag-${cat.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}>
+                                        {cat}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted">-</span>
+                                )}
+                              </td>
+                            );
+                          case 'status':
+                            return (
+                              <td key="status">
+                                <span className={`status-badge status-${contact.status.toLowerCase()}`}>
+                                  {contact.status}
+                                </span>
+                              </td>
+                            );
+                          case 'address':
+                            return <td key="address" className="td-address">{contact.address || <span className="text-muted">-</span>}</td>;
+                          case 'notes':
+                            return <td key="notes" className="td-notes">{contact.notes || <span className="text-muted">-</span>}</td>;
+                          case 'actions':
+                            return (
+                              <td key="actions" className="td-actions" onClick={(e) => e.stopPropagation()}>
+                                <div className="action-row">
+                                  <button
+                                    className="icon-action-btn"
+                                    onClick={() => onEditContact(contact)}
+                                    title="Edit Contact"
+                                  >
+                                    <Edit2 size={15} />
+                                  </button>
+                                </div>
+                              </td>
+                            );
+                          default:
+                            return (
+                              <td key={col.id}>
+                                {contact.customFields && contact.customFields[col.id] 
+                                  ? contact.customFields[col.id] 
+                                  : <span className="text-muted">-</span>}
+                              </td>
+                            );
+                        }
+                      })}
                     </tr>
                   );
                 })}
@@ -749,12 +736,7 @@ export const ContactTable = ({
                       >
                         <Edit2 size={16} />
                       </button>
-                      <button
-                        className="icon-action-btn text-danger"
-                        onClick={() => onDeleteContact(contact.id)}
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      {/* Delete button removed as requested */}
                     </div>
                   </div>
 

@@ -25,7 +25,12 @@ export const cleanDatabase = (contacts = []) => {
     const email = (contact.email || '').trim().toLowerCase();
     const secondaryEmail = (contact.secondaryEmail || '').trim().toLowerCase();
     const phone = (contact.phone || '').trim();
-    const group = (contact.group || '').trim() || 'Friends & Family';
+    let categories = contact.categories;
+    if (!categories || !Array.isArray(categories)) {
+      const legacyGroup = (contact.group || '').trim();
+      categories = legacyGroup ? [legacyGroup] : ['Friends & Family'];
+    }
+    categories = [...new Set(categories.map(c => c.trim()).filter(Boolean))];
     const status = (contact.status || '').trim() || 'Active';
     const address = (contact.address || '').trim();
     const notes = (contact.notes || '').trim();
@@ -43,7 +48,7 @@ export const cleanDatabase = (contacts = []) => {
       email,
       secondaryEmail,
       phone,
-      group,
+      categories,
       status,
       address,
       notes,
@@ -54,6 +59,9 @@ export const cleanDatabase = (contacts = []) => {
     if (email && emailMap.has(email)) {
       const existing = emailMap.get(email);
       // Merge records
+      // Merge categories
+      existing.categories = [...new Set([...existing.categories, ...cleanRecord.categories])];
+      delete existing.group; // Ensure legacy group is removed
       existing.firstName = existing.firstName !== 'Unnamed' ? existing.firstName : cleanRecord.firstName;
       existing.lastName = existing.lastName || cleanRecord.lastName;
       existing.secondaryEmail = existing.secondaryEmail || cleanRecord.secondaryEmail;

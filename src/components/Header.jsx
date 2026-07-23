@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  Mail, Sun, Moon, Download, Plus, Users, Sparkles, Printer,
+  Mail, Sun, Moon, Download, Plus, Users, Sparkles, Printer, FileText,
   ShieldAlert, Lock, Unlock, Settings, Wand2, Archive, Share2,
-  Menu, X, ChevronRight
+  Menu, X, ChevronRight, Trash2, Tag
 } from 'lucide-react';
 
 export const Header = ({
@@ -16,15 +16,19 @@ export const Header = ({
   isEditingUnlocked,
   onToggleLock,
   onOpenSettings,
+  onOpenCategoryManager,
   onOpenAddModal,
   onOpenImportModal,
+  onOpenMagicImport,
   onLoadSampleData,
   onPrintDirectory,
+  onExportCSV,
   onScanDuplicates,
   onPurgeBlanks,
   onOpenTrashModal,
   onCleanDatabase,
-  duplicateCount
+  duplicateCount,
+  onClearSampleData
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -124,22 +128,16 @@ export const Header = ({
             <span className="desktop-only">{isEditingUnlocked ? 'Unlocked' : 'Locked'}</span>
           </button>
 
+
           {/* Add Contact — always prominent */}
           <button className="btn btn-primary btn-sm" onClick={onOpenAddModal}>
             <Plus size={16} />
             <span>Add Contact</span>
           </button>
+        </div>
 
-          {/* Theme toggle */}
-          <button
-            className="theme-toggle-btn"
-            onClick={toggleTheme}
-            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
-            aria-label="Toggle theme"
-          >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-
+        {/* ── Top Right Actions ─────────────────────────────── */}
+        <div className="top-right-actions">
           {/* ── Hamburger Menu ─────────────────────────────── */}
           <div className="hmenu-wrap" ref={menuRef}>
             <button
@@ -154,14 +152,17 @@ export const Header = ({
             {menuOpen && (
               <div className="hmenu-dropdown">
                 <div className="hmenu-section-label">Import &amp; Export</div>
+                {menuItem(<Sparkles size={16} className="text-primary" />, 'Magic AI Import', onOpenMagicImport)}
                 {menuItem(<Download size={16} />, 'Import CSV', onOpenImportModal)}
                 {menuItem(<Printer size={16} />, 'Print / Save PDF', onPrintDirectory)}
+                {menuItem(<FileText size={16} />, 'Export CSV', onExportCSV)}
                 {menuItem(<Share2 size={16} />, 'Share', handleShareApp)}
 
                 <div className="hmenu-divider" />
                 <div className="hmenu-section-label">Maintenance</div>
                 {contactsCount > 0 && menuItem(<Wand2 size={16} />, 'Clean & Repair DB', onCleanDatabase)}
                 {contactsCount === 0 && menuItem(<Sparkles size={16} />, 'Load 50 Sample Contacts', onLoadSampleData)}
+                {menuItem(<Trash2 size={16} />, 'Clear Sample Data', onClearSampleData)}
 
                 <div className="hmenu-divider" />
                 <div className="hmenu-section-label">Trash &amp; Recovery</div>
@@ -173,8 +174,12 @@ export const Header = ({
                 )}
 
                 <div className="hmenu-divider" />
-                <div className="hmenu-section-label">Security &amp; Settings</div>
-                {menuItem(<Settings size={16} />, 'Settings & Admin Code', onOpenSettings)}
+                <div className="hmenu-section-label">System &amp; Settings</div>
+                {menuItem(<Tag size={16} />, 'Category Manager', onOpenCategoryManager)}
+                {menuItem(<Settings size={16} />, 'App Settings', onOpenSettings)}
+                {menuItem(theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />, theme === 'dark' ? 'Light Mode' : 'Dark Mode', toggleTheme)}
+
+                <div className="hmenu-divider" />
               </div>
             )}
           </div>

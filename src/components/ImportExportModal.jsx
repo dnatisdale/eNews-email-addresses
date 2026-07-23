@@ -67,10 +67,14 @@ export const ImportExportModal = ({ isOpen, onClose, onImportContacts, contacts 
     if (parsedPreview.length > 0) {
       const finalCollection = collectionName.trim() || 'Imported List';
 
-      const updatedPreview = parsedPreview.map((contact) => ({
-        ...contact,
-        group: finalCollection
-      }));
+      const updatedPreview = parsedPreview.map((contact) => {
+        const existingCats = contact.categories || [];
+        const mergedCategories = [...new Set([...existingCats, finalCollection])];
+        return {
+          ...contact,
+          categories: mergedCategories
+        };
+      });
 
       onImportContacts(updatedPreview, finalCollection);
       onClose();
@@ -184,7 +188,7 @@ export const ImportExportModal = ({ isOpen, onClose, onImportContacts, contacts 
                       <th>Last Name</th>
                       <th>Email</th>
                       <th>Phone</th>
-                      <th>Group / Collection</th>
+                      <th>Categories</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -197,7 +201,7 @@ export const ImportExportModal = ({ isOpen, onClose, onImportContacts, contacts 
                         <td>{row.phone}</td>
                         <td>
                           <span className="group-badge">
-                            {collectionName || row.group}
+                            {collectionName || (row.categories ? row.categories.join(', ') : '')}
                           </span>
                         </td>
                       </tr>

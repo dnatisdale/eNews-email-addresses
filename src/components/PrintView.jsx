@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Printer } from 'lucide-react';
 
-export const PrintView = ({ isOpen, onClose, contacts = [] }) => {
+export const PrintView = ({ isOpen, onClose, contacts = [], availableColumns = [], visibleColumns = [], columnWidths = {} }) => {
   if (!isOpen) return null;
 
   const handlePrint = () => {
@@ -36,27 +36,36 @@ export const PrintView = ({ isOpen, onClose, contacts = [] }) => {
         <table className="printable-table">
           <thead>
             <tr>
-              <th>#</th>
-              <th>Name</th>
-              <th>Primary Email</th>
-              <th>Secondary Email</th>
-              <th>Phone</th>
-              <th>Group</th>
-              <th>Status</th>
-              <th>Notes</th>
+              {availableColumns.filter(c => visibleColumns.includes(c.id)).map(col => {
+                if (col.id === 'actions' || col.id === 'checkbox') return null;
+                return (
+                  <th key={col.id} style={{ width: columnWidths[col.id] }}>
+                    {col.label}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
             {contacts.map((c, idx) => (
               <tr key={c.id || idx}>
-                <td>{idx + 1}</td>
-                <td><strong>{c.firstName} {c.lastName}</strong></td>
-                <td><code>{c.email}</code></td>
-                <td>{c.secondaryEmail || '-'}</td>
-                <td>{c.phone || '-'}</td>
-                <td>{c.group}</td>
-                <td>{c.status}</td>
-                <td className="print-notes">{c.notes || '-'}</td>
+                {availableColumns.filter(c => visibleColumns.includes(c.id)).map(col => {
+                  if (col.id === 'actions' || col.id === 'checkbox') return null;
+                  
+                  let val;
+                  if (col.id === 'index') val = idx + 1;
+                  else if (col.id === 'name') val = <strong>{c.firstName} {c.lastName}</strong>;
+                  else if (col.id === 'email') val = <code>{c.email}</code>;
+                  else if (col.id === 'categories') val = c.categories ? c.categories.join(', ') : '';
+                  else if (c.customFields && c.customFields[col.id]) val = c.customFields[col.id];
+                  else val = c[col.id] || '-';
+                  
+                  return (
+                    <td key={col.id} className={col.id === 'notes' ? 'print-notes' : ''}>
+                      {val}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>

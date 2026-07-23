@@ -147,7 +147,7 @@ export const SecurityModal = ({
                   maxLength={6}
                   autoFocus
                   className="input-control otp-input"
-                  placeholder="e.g. 281197"
+                  placeholder="123456"
                   value={userCodeInput}
                   onChange={(e) => {
                     setUserCodeInput(e.target.value.replace(/[^0-9]/g, ''));

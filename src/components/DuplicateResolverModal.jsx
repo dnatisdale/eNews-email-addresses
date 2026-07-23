@@ -56,7 +56,7 @@ export const DuplicateResolverModal = ({
               <p className="email-text">✉️ {currentDup.existing.email || 'No email'}</p>
               {currentDup.existing.secondaryEmail && <p className="sub-text">Work: {currentDup.existing.secondaryEmail}</p>}
               <p className="sub-text">📞 {currentDup.existing.phone || 'No phone'}</p>
-              <p className="sub-text">🏷️ {currentDup.existing.group}</p>
+              <p className="sub-text">🏷️ {currentDup.existing.categories ? currentDup.existing.categories.join(', ') : ''}</p>
               {currentDup.existing.notes && <p className="notes-text">📝 {currentDup.existing.notes}</p>}
             </div>
 
@@ -71,7 +71,7 @@ export const DuplicateResolverModal = ({
               <p className="email-text">✉️ {currentDup.incoming.email || 'No email'}</p>
               {currentDup.incoming.secondaryEmail && <p className="sub-text">Work: {currentDup.incoming.secondaryEmail}</p>}
               <p className="sub-text">📞 {currentDup.incoming.phone || 'No phone'}</p>
-              <p className="sub-text">🏷️ {currentDup.incoming.group}</p>
+              <p className="sub-text">🏷️ {currentDup.incoming.categories ? currentDup.incoming.categories.join(', ') : ''}</p>
               {currentDup.incoming.notes && <p className="notes-text">📝 {currentDup.incoming.notes}</p>}
             </div>
           </div>

@@ -11,6 +11,7 @@
   --bg-primary: #0f172a;
   --bg-secondary: #1e293b;
   --bg-card: #1e293b;
+  --bg-card-transparent: rgba(30, 41, 59, 0.35);
   --bg-hover: #334155;
   --bg-input: #0f172a;
   
@@ -44,6 +45,7 @@
   --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
   --bg-card: #ffffff;
+  --bg-card-transparent: rgba(255, 255, 255, 0.35);
   --bg-hover: #f1f5f9;
   --bg-input: #ffffff;
   
@@ -117,6 +119,7 @@ html, body, #root {
   padding: 0.75rem 1rem;
   box-shadow: var(--shadow-md);
   z-index: 200;
+  position: relative;
 }
 
 .header-container {
@@ -125,6 +128,7 @@ html, body, #root {
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
+  padding-right: 90px; /* Space for absolute top-right actions */
 }
 
 .brand-section {
@@ -177,6 +181,17 @@ html, body, #root {
   color: var(--text-secondary);
 }
 
+/* Top Right Actions */
+.top-right-actions {
+  position: absolute;
+  top: 0.75rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 250;
+}
+
 .active-stat {
   border-color: rgba(16, 185, 129, 0.3);
 }
@@ -207,17 +222,19 @@ html, body, #root {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.55rem 1.1rem;
+  height: 42px;
+  padding: 0 1.25rem;
   font-size: 0.88rem;
   font-weight: 600;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   border: 1px solid transparent;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .btn-sm {
-  padding: 0.4rem 0.85rem;
+  height: 36px;
+  padding: 0 1rem;
   font-size: 0.82rem;
 }
 
@@ -260,9 +277,9 @@ html, body, #root {
 }
 
 .theme-toggle-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-md);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
   border: 1px solid var(--border-color);
   background: var(--bg-primary);
   color: var(--text-primary);
@@ -285,9 +302,9 @@ html, body, #root {
 }
 
 .hmenu-trigger {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-md);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
   border: 1px solid var(--border-color);
   background: var(--bg-primary);
   color: var(--text-primary);
@@ -528,7 +545,9 @@ html, body, #root {
   right: 0;
   top: calc(100% + 8px);
   width: 250px;
-  background: var(--bg-card);
+  background: var(--bg-card-transparent) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
@@ -571,12 +590,36 @@ html, body, #root {
   gap: 0.6rem;
   font-size: 0.84rem;
   color: var(--text-primary);
-  cursor: pointer;
-  padding: 0.25rem 0.4rem;
+  padding: 0.35rem 0.4rem;
   border-radius: var(--radius-sm);
+  transition: background 0.2s;
 }
 
 .column-checkbox-item:hover {
+  background: var(--bg-hover);
+}
+
+.drag-handle {
+  cursor: grab;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.drag-handle:hover {
+  color: var(--text-primary);
+  background: var(--border-color);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.column-checkbox-item.dragging {
+  opacity: 0.5;
   background: var(--bg-hover);
 }
 
@@ -608,6 +651,7 @@ html, body, #root {
   border-collapse: collapse;
   text-align: left;
   font-size: 0.88rem;
+  table-layout: fixed;
 }
 
 .contact-table th {
@@ -679,6 +723,9 @@ html, body, #root {
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-primary);
   vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .contact-table tr:hover {
@@ -1677,12 +1724,15 @@ html, body, #root {
   border-collapse: collapse;
   font-size: 0.85rem;
   margin-top: 1rem;
+  table-layout: fixed;
 }
 
 .printable-table th, .printable-table td {
   border: 1px solid #cbd5e1;
   padding: 0.5rem 0.75rem;
   color: #0f172a;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .printable-table th {
@@ -1703,9 +1753,15 @@ html, body, #root {
 
 /* Security Lock & Verification Code Styles */
 .btn-locked {
-  background: rgba(245, 158, 11, 0.15);
-  color: var(--warning-color);
-  border-color: var(--warning-color);
+  background: #ff7e36; /* Cheerful orange */
+  color: #ffffff;
+  border-color: #ff7e36;
+  box-shadow: 0 4px 12px rgba(255, 126, 54, 0.3);
+}
+
+.btn-locked:hover {
+  background: #f96c21;
+  transform: translateY(-1px);
 }
 
 .btn-unlocked {
