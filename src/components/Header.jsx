@@ -1,10 +1,11 @@
 import React from 'react';
-import { Mail, Sun, Moon, Download, Plus, Users, Sparkles, Printer } from 'lucide-react';
+import { Mail, Sun, Moon, Download, Plus, Users, Sparkles, Printer, Trash2, ShieldAlert } from 'lucide-react';
 
 export const Header = ({
   contactsCount,
   activeCount,
   selectedCount,
+  blankCount,
   theme,
   toggleTheme,
   onOpenAddModal,
@@ -12,6 +13,8 @@ export const Header = ({
   onLoadSampleData,
   onPrintDirectory,
   onScanDuplicates,
+  onPurgeBlanks,
+  onClearAllContacts,
   duplicateCount
 }) => {
   return (
@@ -43,6 +46,12 @@ export const Header = ({
               <span><strong>{selectedCount}</strong> Selected</span>
             </div>
           )}
+          {blankCount > 0 && (
+            <button className="stat-item warning-stat" onClick={onPurgeBlanks} title="Click to purge blank contacts">
+              <ShieldAlert size={14} />
+              <span><strong>{blankCount}</strong> Blank/Invalid (Click to Purge)</span>
+            </button>
+          )}
           {duplicateCount > 0 && (
             <button className="stat-item warning-stat" onClick={onScanDuplicates}>
               <span>⚠️ <strong>{duplicateCount}</strong> Duplicates Found</span>
@@ -52,7 +61,7 @@ export const Header = ({
 
         {/* Action Buttons */}
         <div className="header-actions">
-          {contactsCount === 0 && (
+          {contactsCount === 0 ? (
             <button 
               className="btn btn-secondary btn-sm sample-btn" 
               onClick={onLoadSampleData}
@@ -60,6 +69,15 @@ export const Header = ({
             >
               <Sparkles size={16} />
               <span>Load 50 Samples</span>
+            </button>
+          ) : (
+            <button 
+              className="btn btn-danger btn-sm"
+              onClick={onClearAllContacts}
+              title="Clear all contacts to re-import fresh"
+            >
+              <Trash2 size={15} />
+              <span className="desktop-only">Clear All</span>
             </button>
           )}
 
@@ -77,7 +95,7 @@ export const Header = ({
             onClick={onOpenImportModal}
           >
             <Download size={16} />
-            <span className="desktop-only">Import CSV</span>
+            <span>Import CSV</span>
           </button>
 
           <button 

@@ -1,83 +1,94 @@
 /**
- * CSV Parser & Generator Service for eNews Address Book
+ * RFC 4180 Compliant CSV Parser & Generator Service for eNews Address Book
  * Supports Google Contacts, Microsoft Outlook, and generic CSV formats.
+ * Correctly handles multiline quoted strings (addresses, notes, group memberships).
  */
 
-// Helper to split a CSV line properly respecting quoted values
-export const parseCSVLine = (line) => {
-  const result = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++; // skip escaped quote
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (char === ',' && !inQuotes) {
-      result.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  result.push(current.trim());
-  return result;
-};
-
-// Parse full CSV text into array of objects
-export const parseCSV = (csvText) => {
+// Parse raw CSV text into a 2D array of rows, respecting quoted multiline strings
+export const parseCSVToRows = (csvText) => {
   if (!csvText || !csvText.trim()) return [];
 
-  // Standardize line endings and split
-  const lines = csvText
-    .replace(/\r\n/g, '\n')
-    .replace(/\r/g, '\n')
-    .split('\n')
-    .filter((line) => line.trim().length > 0);
+  const rows = [];
+  let currentRow = [];
+  let currentCell = '';
+  let inQuotes = false;
 
-  if (lines.length < 2) return [];
+  for (let i = 0; i < csvText.length; i++) {
+    const char = csvText[i];
+    const nextChar = csvText[i + 1];
 
-  const headers = parseCSVLine(lines[0]).map((h) => h.replace(/^["']|["']$/g, '').trim());
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        currentCell += '"';
+        i++; // Skip escaped double quote
+      } else {
+        inQuotes = !inQuotes; // Toggle quote state
+      }
+    } else if (char === ',' && !inQuotes) {
+      currentRow.push(currentCell.trim());
+      currentCell = '';
+    } else if ((char === '\r' || char === '\n') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') {
+        i++; // Skip \n in \r\n
+      }
+      currentRow.push(currentCell.trim());
+      // Only push non-empty rows
+      if (currentRow.some((cell) => cell.length > 0)) {
+        rows.push(currentRow);
+      }
+      currentRow = [];
+      currentCell = '';
+    } else {
+      currentCell += char;
+    }
+  }
+
+  // Push final trailing row if present
+  if (currentCell.length > 0 || currentRow.length > 0) {
+    currentRow.push(currentCell.trim());
+    if (currentRow.some((cell) => cell.length > 0)) {
+      rows.push(currentRow);
+    }
+  }
+
+  return rows;
+};
+
+// Main CSV Parsing Entry Point
+export const parseCSV = (csvText) => {
+  const rows = parseCSVToRows(csvText);
+  if (rows.length < 2) return [];
+
+  // First row is headers
+  const headers = rows[0].map((h) => h.replace(/^["']|["']$/g, '').trim());
 
   const records = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const values = parseCSVLine(lines[i]).map((v) => v.replace(/^["']|["']$/g, '').trim());
-    if (values.length === 0 || (values.length === 1 && !values[0])) continue;
+  for (let i = 1; i < rows.length; i++) {
+    const values = rows[i].map((v) => v.replace(/^["']|["']$/g, '').trim());
+    
+    // Skip rows that are empty or have fewer cells than header
+    if (values.length === 0 || values.every((v) => !v)) continue;
 
     const rowObj = {};
     headers.forEach((header, index) => {
-      rowObj[header] = values[index] !== undefined ? values[index] : '';
+      if (header) {
+        rowObj[header] = values[index] !== undefined ? values[index] : '';
+      }
     });
     records.push(rowObj);
   }
 
-  return normalizeImportedContacts(records, headers);
+  return normalizeImportedContacts(records);
 };
 
 // Normalize varied CSV records into standard eNews Contact shape
-const normalizeImportedContacts = (records, headers) => {
+const normalizeImportedContacts = (records) => {
   return records
     .map((row, index) => {
-      let firstName = '';
-      let lastName = '';
-      let email = '';
-      let secondaryEmail = '';
-      let phone = '';
-      let group = 'General';
-      let status = 'Active';
-      let address = '';
-      let notes = '';
-
-      // Direct Header Matching (Case-Insensitive map)
+      // Build lowercase key lookup map
       const rowLowerKeys = {};
       Object.keys(row).forEach((k) => {
-        rowLowerKeys[k.toLowerCase()] = row[k];
+        if (k) rowLowerKeys[k.toLowerCase().trim()] = row[k];
       });
 
       const getVal = (...possibleKeys) => {
@@ -89,62 +100,70 @@ const normalizeImportedContacts = (records, headers) => {
         return '';
       };
 
-      // 1. Google Contacts / Gmail Patterns
-      firstName = getVal('First Name', 'Given Name', 'Name', 'First');
-      lastName = getVal('Last Name', 'Family Name', 'Surname', 'Last');
+      // 1. Name Parsing
+      let rawFirstName = getVal('first name', 'given name', 'first', 'forename');
+      let rawLastName = getVal('last name', 'family name', 'last', 'surname');
       
-      // If name is a single full name column
-      if (!firstName && !lastName) {
-        const fullName = getVal('Full Name', 'Name', 'Display Name', 'Contact Name');
+      // Handle combined Full Name columns if separate first/last aren't present
+      if (!rawFirstName && !rawLastName) {
+        const fullName = getVal('full name', 'name', 'display name', 'contact name');
         if (fullName) {
           const parts = fullName.split(' ');
-          firstName = parts[0] || '';
-          lastName = parts.slice(1).join(' ') || '';
+          rawFirstName = parts[0] || '';
+          rawLastName = parts.slice(1).join(' ') || '';
         }
       }
 
-      // Email field detection
-      email = getVal('E-mail 1 - Value', 'E-mail Address', 'Email Address', 'Email 1', 'Email', 'E-mail', 'Primary Email');
-      secondaryEmail = getVal('E-mail 2 - Value', 'E-mail 2 Address', 'Email 2', 'Secondary Email');
+      // 2. Email Field Parsing
+      const email = getVal('e-mail 1 - value', 'e-mail address', 'email address', 'email 1', 'email', 'e-mail', 'primary email', 'e-mail 1');
+      const secondaryEmail = getVal('e-mail 2 - value', 'e-mail 2 address', 'email 2', 'secondary email', 'e-mail 2');
 
-      // Phone field detection
-      phone = getVal('Phone 1 - Value', 'Mobile Phone', 'Home Phone', 'Business Phone', 'Phone', 'Cell Phone', 'Telephone');
+      // 3. Phone Field Parsing
+      const phone = getVal('phone 1 - value', 'mobile phone', 'home phone', 'business phone', 'phone', 'cell phone', 'telephone', 'phone 1');
 
-      // Group / Tag detection
-      group = getVal('Group Membership', 'Categories', 'Group', 'Category', 'Tag', 'Tags') || 'Friends & Family';
-      
-      // Clean up Google group membership strings like "* myContacts ::: Family"
+      // 4. Group / Tag Parsing
+      let group = getVal('group membership', 'categories', 'group', 'category', 'tag', 'tags') || 'Friends & Family';
       if (group.includes(':::')) {
         const parts = group.split(':::');
         group = parts[parts.length - 1].replace(/\*/g, '').trim();
       }
 
-      // Address & Notes
-      address = getVal('Address 1 - Formatted', 'Home Street', 'Business Street', 'Address', 'Street Address');
-      notes = getVal('Notes', 'Comment', 'Memo', 'Description');
+      // 5. Address & Notes
+      const address = getVal('address 1 - formatted', 'home street', 'business street', 'address', 'street address');
+      const notes = getVal('notes', 'comment', 'memo', 'description');
 
-      // Status override if specified in CSV
-      const customStatus = getVal('Status', 'State');
+      // 6. Status
+      let status = 'Active';
+      const customStatus = getVal('status', 'state');
       if (customStatus && ['Active', 'Inactive', 'Unsubscribed', 'Bounced'].includes(customStatus)) {
         status = customStatus;
       }
 
-      // Skip records with no email and no name
-      if (!email && !firstName && !lastName) {
-        return null;
+      // STRICT VALIDATION: Skip records that have NO email AND NO name AND NO phone
+      const cleanEmail = email.trim();
+      const cleanFirstName = rawFirstName.trim();
+      const cleanLastName = rawLastName.trim();
+      const cleanPhone = phone.trim();
+
+      if (!cleanEmail && !cleanFirstName && !cleanLastName && !cleanPhone) {
+        return null; // Skip blank / trailing fragment rows completely
       }
+
+      // Final Name Fallbacks (only if email or phone exists)
+      const finalFirstName = cleanFirstName || (cleanEmail ? cleanEmail.split('@')[0] : 'Unnamed');
+      const finalLastName = cleanLastName || '';
 
       return {
         id: 'contact_' + Date.now() + '_' + index + '_' + Math.random().toString(36).substr(2, 5),
-        firstName: firstName || 'Unnamed',
-        lastName: lastName || '',
-        email: email || '',
-        secondaryEmail: secondaryEmail || '',
-        phone: phone || '',
-        group: group || 'General',
+        firstName: finalFirstName,
+        lastName: finalLastName,
+        email: cleanEmail,
+        secondaryEmail: secondaryEmail.trim(),
+        phone: cleanPhone,
+        group: group.trim() || 'Friends & Family',
         status: status,
-        address: address || '',
-        notes: notes || '',
+        address: address.trim(),
+        notes: notes.trim(),
         createdAt: new Date().toISOString()
       };
     })

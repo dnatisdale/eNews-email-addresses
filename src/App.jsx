@@ -58,9 +58,15 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(contacts));
   }, [contacts]);
 
-  // Derived lists
+  // Derived counts & lists
   const activeCount = contacts.filter(c => c.status === 'Active').length;
   const groups = Array.from(new Set(contacts.map(c => c.group).filter(Boolean)));
+  
+  // Identify blank / invalid contacts (no email and default or empty name)
+  const blankContacts = contacts.filter(
+    (c) => !c.email && (!c.firstName || c.firstName === 'Unnamed') && !c.lastName && !c.phone
+  );
+  const blankCount = blankContacts.length;
 
   const toggleTheme = () => {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
@@ -109,6 +115,26 @@ export default function App() {
     }
   };
 
+  const handlePurgeBlanks = () => {
+    if (blankCount === 0) {
+      alert('No blank or invalid contacts to purge!');
+      return;
+    }
+
+    if (window.confirm(`Purge ${blankCount} blank/invalid contact records?`)) {
+      setContacts(prev => prev.filter(c => c.email || (c.firstName && c.firstName !== 'Unnamed') || c.lastName || c.phone));
+      alert(`Purged ${blankCount} blank records!`);
+    }
+  };
+
+  const handleClearAllContacts = () => {
+    if (window.confirm(`Are you sure you want to clear all ${contacts.length} contacts? This allows you to re-import your CSV cleanly.`)) {
+      setContacts([]);
+      setSelectedIds([]);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  };
+
   const handleBulkCopyEmails = (separator = ',', idsToCopy) => {
     const targetContacts = contacts.filter(c => idsToCopy.includes(c.id));
     const formattedEmails = targetContacts
@@ -119,7 +145,7 @@ export default function App() {
     alert(`Copied ${targetContacts.length} formatted email addresses to clipboard!`);
   };
 
-  // Import contacts from CSV
+  // Import contacts from CSV (Replaces existing if user wants or appends)
   const handleImportContacts = (importedList) => {
     // Scan imported list for duplicates against existing list
     const foundDups = findDuplicates(contacts, importedList);
@@ -177,6 +203,7 @@ export default function App() {
         contactsCount={contacts.length}
         activeCount={activeCount}
         selectedCount={selectedIds.length}
+        blankCount={blankCount}
         theme={theme}
         toggleTheme={toggleTheme}
         onOpenAddModal={() => {
@@ -187,6 +214,8 @@ export default function App() {
         onLoadSampleData={handleLoadSampleData}
         onPrintDirectory={() => setIsPrintViewOpen(true)}
         onScanDuplicates={handleScanDuplicates}
+        onPurgeBlanks={handlePurgeBlanks}
+        onClearAllContacts={handleClearAllContacts}
         duplicateCount={duplicates.length}
       />
 
