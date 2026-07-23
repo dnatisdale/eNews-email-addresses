@@ -48,22 +48,28 @@ export const SecurityModal = ({
 
   const handleVerifyCode = (e) => {
     e.preventDefault();
-    if (userCodeInput.trim() === otpCode) {
+    const adminPin = getAdminPIN();
+    const inputClean = userCodeInput.trim();
+
+    // Verify if input matches either OTP code OR 6-Digit Admin Code
+    if (inputClean === otpCode.trim() || inputClean === adminPin.trim()) {
       onUnlockSuccess();
       onClose();
     } else {
-      setErrorMsg('Incorrect 6-digit verification code. Please check the code sent or click Resend Code.');
+      setErrorMsg('Incorrect 6-digit verification code. Please check the code sent or enter your 6-digit Admin Code.');
     }
   };
 
   const handleVerifyPIN = (e) => {
     e.preventDefault();
     const adminPin = getAdminPIN();
-    if (pinInput.trim() === adminPin) {
+    const inputClean = pinInput.trim();
+
+    if (inputClean === adminPin.trim() || inputClean === otpCode.trim()) {
       onUnlockSuccess();
       onClose();
     } else {
-      setErrorMsg('Incorrect 6-Digit Admin Code (Default: 050763).');
+      setErrorMsg('Incorrect 6-Digit Admin Passcode.');
     }
   };
 
@@ -148,7 +154,7 @@ export const SecurityModal = ({
                     maxLength={6}
                     autoFocus
                     className="input-control otp-input"
-                    placeholder="123456"
+                    placeholder="Enter 6 digits"
                     value={userCodeInput}
                     onChange={(e) => setUserCodeInput(e.target.value.replace(/[^0-9]/g, ''))}
                   />
@@ -179,11 +185,11 @@ export const SecurityModal = ({
                   maxLength={6}
                   autoFocus
                   className="input-control code-input-lg"
-                  placeholder="Default: 050763"
+                  placeholder="Enter 6-digit passcode"
                   value={pinInput}
                   onChange={(e) => setPinInput(e.target.value)}
                 />
-                <p className="help-text">Default Admin Passcode is <code>050763</code> (Can be changed in Settings ⚙️).</p>
+                <p className="help-text">Enter your private 6-digit Admin Passcode (Configured in Settings ⚙️).</p>
               </div>
 
               <div className="modal-footer">

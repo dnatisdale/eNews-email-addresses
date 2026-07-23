@@ -80,12 +80,13 @@ export const DeleteConfirmModal = ({
             <div className="admin-code-verify-box">
               <label className="input-label font-bold flex-align-gap">
                 <Lock size={15} className="text-danger" />
-                <span>Enter Admin Security Code (050763) to Authorize Deletion:</span>
+                <span>Enter 6-Digit Admin Security Code to Authorize Deletion:</span>
               </label>
               <input
                 type="password"
+                maxLength={6}
                 className="input-control code-input-lg"
-                placeholder="Enter Admin Code (e.g. 050763)"
+                placeholder="Enter 6-digit Admin Code"
                 value={adminCodeInput}
                 onChange={(e) => {
                   setAdminCodeInput(e.target.value);

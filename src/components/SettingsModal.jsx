@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Settings, Shield, KeyRound, Save, Check, Lock, Unlock } from 'lucide-react';
+import { X, Settings, KeyRound, Save, Check, Lock, Unlock } from 'lucide-react';
 import { getAdminPIN, setAdminPIN, isSecurityLockEnabled, setSecurityLockEnabled } from '../services/authService';
 
 export const SettingsModal = ({ isOpen, onClose }) => {
@@ -31,11 +31,11 @@ export const SettingsModal = ({ isOpen, onClose }) => {
     if (newPin.trim()) {
       const activePin = getAdminPIN();
       if (currentPin.trim() !== activePin) {
-        setErrorMsg('Current Admin Code is incorrect. Default code is 050763.');
+        setErrorMsg('Current Admin Code is incorrect.');
         return;
       }
       if (newPin.trim().length !== 6 || !/^\d{6}$/.test(newPin.trim())) {
-        setErrorMsg('New Admin Code must be exactly 6 numeric digits (e.g. 050763).');
+        setErrorMsg('New Admin Code must be exactly 6 numeric digits.');
         return;
       }
       if (newPin.trim() !== confirmPin.trim()) {
@@ -85,7 +85,7 @@ export const SettingsModal = ({ isOpen, onClose }) => {
                   <span>Require Security Passcode for Editing & Deleting</span>
                 </h4>
                 <p className="setting-desc">
-                  When enabled, visitors must enter a 6-digit text/email code or 6-digit Admin Passcode (050763) to edit, add, delete, or import contacts.
+                  When enabled, visitors must enter a 6-digit text/email code or 6-digit Admin Passcode to edit, add, delete, or import contacts.
                 </p>
               </div>
               <label className="toggle-switch">
@@ -105,7 +105,7 @@ export const SettingsModal = ({ isOpen, onClose }) => {
               <KeyRound size={16} className="text-primary" />
               <span>Change 6-Digit Admin Security Code</span>
             </h4>
-            <p className="setting-desc mb-2">Default Admin Code is <code>050763</code>.</p>
+            <p className="setting-desc mb-2">Configure your private 6-digit Admin Code below.</p>
 
             <div className="form-group mt-2">
               <label>Current Admin Code</label>
@@ -113,7 +113,7 @@ export const SettingsModal = ({ isOpen, onClose }) => {
                 type="password"
                 maxLength={6}
                 className="input-control"
-                placeholder="Current Code (Default: 050763)"
+                placeholder="Enter current 6-digit code"
                 value={currentPin}
                 onChange={(e) => setCurrentPin(e.target.value)}
               />
@@ -124,7 +124,7 @@ export const SettingsModal = ({ isOpen, onClose }) => {
                 type="password"
                 maxLength={6}
                 className="input-control"
-                placeholder="Enter 6 digits (e.g. 050763)"
+                placeholder="Enter new 6 digits"
                 value={newPin}
                 onChange={(e) => setNewPin(e.target.value)}
               />

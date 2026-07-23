@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, Sun, Moon, Download, Plus, Users, Sparkles, Printer, ShieldAlert, Lock, Unlock, Settings, Wand2, Archive } from 'lucide-react';
+import { Mail, Sun, Moon, Download, Plus, Users, Sparkles, Printer, ShieldAlert, Lock, Unlock, Settings, Wand2, Archive, Share2 } from 'lucide-react';
 
 export const Header = ({
   contactsCount,
@@ -22,6 +22,29 @@ export const Header = ({
   onCleanDatabase,
   duplicateCount
 }) => {
+
+  const handleShareApp = async () => {
+    const shareData = {
+      title: 'eNews Address Book PWA',
+      text: 'Family & Friends Email Directory and Address Book Manager PWA',
+      url: window.location.href
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          navigator.clipboard.writeText(window.location.href);
+          alert('PWA Link copied to clipboard!');
+        }
+      }
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      alert('PWA Link copied to clipboard!');
+    }
+  };
+
   return (
     <header className="app-header">
       <div className="header-container">
@@ -66,6 +89,16 @@ export const Header = ({
 
         {/* Action Buttons */}
         <div className="header-actions">
+          {/* Share PWA Link Button */}
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={handleShareApp}
+            title="Share PWA Link with family and friends"
+          >
+            <Share2 size={16} />
+            <span className="desktop-only">Share PWA</span>
+          </button>
+
           {/* Trash & 60-Day Recovery Bin Button */}
           <button
             className={`btn btn-sm ${trashCount > 0 ? 'btn-outline-warning' : 'btn-secondary'}`}
@@ -90,7 +123,7 @@ export const Header = ({
           <button
             className="btn btn-secondary btn-sm"
             onClick={onOpenSettings}
-            title="App & Admin Security Settings (Configure 050763 Admin Code)"
+            title="App & Admin Security Settings"
           >
             <Settings size={16} />
             <span>Settings</span>
