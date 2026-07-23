@@ -88,6 +88,7 @@ body {
 html, body, #root {
   height: 100%;
   overflow: hidden;
+  overscroll-behavior-y: none;
 }
 
 .app-layout {
@@ -96,6 +97,10 @@ html, body, #root {
   height: 100vh;
   overflow: hidden;
   padding: 0.75rem;
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+  padding-right: max(0.75rem, env(safe-area-inset-right));
   gap: 0.75rem;
   background: var(--bg-primary);
 }
