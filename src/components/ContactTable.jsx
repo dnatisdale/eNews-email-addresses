@@ -718,16 +718,20 @@ export const ContactTable = ({
                       <div>
                         <h4 className="card-name">{contact.firstName} {contact.lastName}</h4>
                         <div className="card-badges-wrap">
-                          <span className={`status-badge status-${contact.status.toLowerCase()}`}>
-                            {contact.status}
-                          </span>
-                          <div 
-                            className={`score-grade grade-${accuracy.grade}`}
-                            title={accuracy.tooltip}
-                            style={{ fontWeight: 'bold', fontSize: '1.1rem', color: accuracy.color, textAlign: 'center' }}
-                          >
-                            {accuracy.grade}
-                          </div>
+                          {visibleColumns.includes('status') && (
+                            <span className={`status-badge status-${contact.status.toLowerCase()}`}>
+                              {contact.status}
+                            </span>
+                          )}
+                          {visibleColumns.includes('score') && (
+                            <div 
+                              className={`score-grade grade-${accuracy.grade}`}
+                              title={accuracy.tooltip}
+                              style={{ fontWeight: 'bold', fontSize: '1.1rem', color: accuracy.color, textAlign: 'center' }}
+                            >
+                              {accuracy.grade}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -769,11 +773,15 @@ export const ContactTable = ({
                       </div>
                     )}
 
-                    {visibleColumns.includes('group') && (
+                    {visibleColumns.includes('categories') && Array.isArray(contact.categories) && contact.categories.length > 0 && (
                       <div className="card-field">
-                        <span className={`tag-badge tag-${contact.group.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}>
-                          {contact.group}
-                        </span>
+                        <div className="td-categories">
+                          {contact.categories.map((cat, i) => (
+                            <span key={i} className={`tag-badge tag-${cat.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}>
+                              {cat}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     )}
 
