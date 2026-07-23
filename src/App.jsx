@@ -248,8 +248,32 @@ export default function App() {
   // Sync theme attribute to HTML tag
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem(THEME_KEY, theme);
   }, [theme]);
+
+  // PWA Installation State
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    // Show the install prompt
+    deferredPrompt.prompt();
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice;
+    // We've used the prompt, and can't use it again, throw it away
+    setDeferredPrompt(null);
+  };
 
   // Sync contacts to LocalStorage
   useEffect(() => {
@@ -540,6 +564,8 @@ export default function App() {
         onCleanDatabase={handleCleanDatabase}
         duplicateCount={duplicates.length}
         onClearSampleData={handleClearSampleData}
+        deferredPrompt={deferredPrompt}
+        onInstallClick={handleInstallClick}
       />
 
       {/* Main Content View */}

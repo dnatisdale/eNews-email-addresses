@@ -28,7 +28,9 @@ export const Header = ({
   onOpenTrashModal,
   onCleanDatabase,
   duplicateCount,
-  onClearSampleData
+  onClearSampleData,
+  deferredPrompt,
+  onInstallClick
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -180,6 +182,18 @@ export const Header = ({
                 {menuItem(theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />, theme === 'dark' ? 'Light Mode' : 'Dark Mode', toggleTheme)}
 
                 <div className="hmenu-divider" />
+                
+                {deferredPrompt && (
+                  <>
+                    <div className="hmenu-section-label">App</div>
+                    {menuItem(<Download size={16} className="text-primary" />, 'Install App', onInstallClick)}
+                    <div className="hmenu-divider" />
+                  </>
+                )}
+                
+                <div style={{ padding: '8px 12px', fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                  Version: {typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'Local Dev'}
+                </div>
               </div>
             )}
           </div>
