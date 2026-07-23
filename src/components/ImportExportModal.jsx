@@ -22,7 +22,6 @@ export const ImportExportModal = ({ isOpen, onClose, onImportContacts, contacts 
   const [parsedPreview, setParsedPreview] = useState([]);
   const [fileName, setFileName] = useState('');
   const [collectionName, setCollectionName] = useState('');
-  const [assignCollection, setAssignCollection] = useState(true);
 
   if (!isOpen) return null;
 
@@ -66,12 +65,11 @@ export const ImportExportModal = ({ isOpen, onClose, onImportContacts, contacts 
 
   const handleConfirmImport = () => {
     if (parsedPreview.length > 0) {
-      // Apply Collection Name if checked
-      const finalCollection = assignCollection && collectionName.trim() ? collectionName.trim() : null;
+      const finalCollection = collectionName.trim() || 'Imported List';
 
       const updatedPreview = parsedPreview.map((contact) => ({
         ...contact,
-        group: finalCollection || contact.group || 'Friends & Family'
+        group: finalCollection
       }));
 
       onImportContacts(updatedPreview, finalCollection);
@@ -157,18 +155,13 @@ export const ImportExportModal = ({ isOpen, onClose, onImportContacts, contacts 
                 </button>
               </div>
 
-              {/* Automatic Collection Name Option */}
+              {/* Collection Name — auto-filled from filename, always editable */}
               <div className="collection-assign-box">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={assignCollection}
-                    onChange={(e) => setAssignCollection(e.target.checked)}
-                  />
-                  <span>Create Collection / Group from CSV Filename</span>
-                </label>
-                {assignCollection && (
-                  <div className="input-with-icon mt-2">
+                <label className="form-group" style={{ marginBottom: 0 }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
+                    Collection / Group Name
+                  </span>
+                  <div className="input-with-icon">
                     <FolderPlus size={16} className="input-icon" />
                     <input
                       type="text"
@@ -178,7 +171,7 @@ export const ImportExportModal = ({ isOpen, onClose, onImportContacts, contacts 
                       onChange={(e) => setCollectionName(e.target.value)}
                     />
                   </div>
-                )}
+                </label>
               </div>
 
               {/* CSV Preview Table */}
@@ -204,7 +197,7 @@ export const ImportExportModal = ({ isOpen, onClose, onImportContacts, contacts 
                         <td>{row.phone}</td>
                         <td>
                           <span className="group-badge">
-                            {assignCollection && collectionName ? collectionName : row.group}
+                            {collectionName || row.group}
                           </span>
                         </td>
                       </tr>
