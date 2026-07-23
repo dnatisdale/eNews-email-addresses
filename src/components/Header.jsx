@@ -1,5 +1,9 @@
-import React from 'react';
-import { Mail, Sun, Moon, Download, Plus, Users, Sparkles, Printer, ShieldAlert, Lock, Unlock, Settings, Wand2, Archive, Share2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  Mail, Sun, Moon, Download, Plus, Users, Sparkles, Printer,
+  ShieldAlert, Lock, Unlock, Settings, Wand2, Archive, Share2,
+  Menu, X, ChevronRight
+} from 'lucide-react';
 
 export const Header = ({
   contactsCount,
@@ -22,168 +26,158 @@ export const Header = ({
   onCleanDatabase,
   duplicateCount
 }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [menuOpen]);
 
   const handleShareApp = async () => {
+    setMenuOpen(false);
     const shareData = {
       title: 'eNews Address Book PWA',
-      text: 'Family & Friends Email Directory and Address Book Manager PWA',
+      text: 'Family & Friends Email Directory',
       url: window.location.href
     };
-
     if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          navigator.clipboard.writeText(window.location.href);
-          alert('PWA Link copied to clipboard!');
-        }
-      }
+      try { await navigator.share(shareData); } catch (e) {}
     } else {
       navigator.clipboard.writeText(window.location.href);
       alert('PWA Link copied to clipboard!');
     }
   };
 
+  const menuItem = (icon, label, onClick, badge, danger) => (
+    <button
+      className={`hmenu-item${danger ? ' hmenu-item-danger' : ''}`}
+      onClick={() => { setMenuOpen(false); onClick(); }}
+    >
+      <span className="hmenu-icon">{icon}</span>
+      <span className="hmenu-label">{label}</span>
+      {badge != null && badge > 0 && <span className="hmenu-badge">{badge}</span>}
+      <ChevronRight size={14} className="hmenu-chevron" />
+    </button>
+  );
+
   return (
     <header className="app-header">
       <div className="header-container">
-        {/* Brand & Logo */}
+
+        {/* ── Brand ────────────────────────────────────────── */}
         <div className="brand-section">
           <div className="logo-badge">
-            <Mail className="logo-icon" />
+            <Mail className="logo-icon" size={20} />
           </div>
           <div>
             <h1 className="brand-title">eNews Address Book</h1>
-            <p className="brand-subtitle">Family & Friends Email Directory</p>
+            <p className="brand-subtitle">Family &amp; Friends Directory</p>
           </div>
         </div>
 
-        {/* Stats Badges */}
+        {/* ── Stats ────────────────────────────────────────── */}
         <div className="stats-strip">
           <div className="stat-item">
-            <Users className="stat-icon" />
+            <Users size={14} className="stat-icon" />
             <span><strong>{contactsCount}</strong> Contacts</span>
           </div>
           <div className="stat-item active-stat">
-            <span className="dot-indicator"></span>
+            <span className="dot-indicator" />
             <span><strong>{activeCount}</strong> Active</span>
           </div>
           {selectedCount > 0 && (
             <div className="stat-item selected-stat">
-              <span><strong>{selectedCount}</strong> Selected</span>
+              <strong>{selectedCount}</strong>&nbsp;Selected
             </div>
           )}
           {blankCount > 0 && (
-            <button className="stat-item warning-stat" onClick={onPurgeBlanks} title="Click to move blank contacts to Trash">
-              <ShieldAlert size={14} />
-              <span><strong>{blankCount}</strong> Blank/Invalid</span>
+            <button className="stat-item warning-stat" onClick={onPurgeBlanks} title="Move blank contacts to Trash">
+              <ShieldAlert size={13} />
+              <strong>{blankCount}</strong> Blank
             </button>
           )}
           {duplicateCount > 0 && (
             <button className="stat-item warning-stat" onClick={onScanDuplicates}>
-              <span>⚠️ <strong>{duplicateCount}</strong> Duplicates</span>
+              ⚠️ <strong>{duplicateCount}</strong> Dupes
             </button>
           )}
         </div>
 
-        {/* Action Buttons */}
+        {/* ── Right Actions ────────────────────────────────── */}
         <div className="header-actions">
-          {/* Share PWA Link Button */}
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={handleShareApp}
-            title="Share PWA Link with family and friends"
-          >
-            <Share2 size={16} />
-            <span className="desktop-only">Share PWA</span>
-          </button>
 
-          {/* Trash & 60-Day Recovery Bin Button */}
+          {/* Lock / Unlock */}
           <button
-            className={`btn btn-sm ${trashCount > 0 ? 'btn-outline-warning' : 'btn-secondary'}`}
-            onClick={onOpenTrashModal}
-            title="View 60-Day Trash & Recovery Bin"
-          >
-            <Archive size={15} />
-            <span>Trash ({trashCount})</span>
-          </button>
-
-          {/* Security Lock Indicator Button */}
-          <button 
             className={`btn btn-sm ${isEditingUnlocked ? 'btn-unlocked' : 'btn-locked'}`}
             onClick={onToggleLock}
-            title={isEditingUnlocked ? 'Editing unlocked (Click to Lock)' : 'Editing protected (Click to unlock with Code/PIN)'}
+            title={isEditingUnlocked ? 'Click to lock editing' : 'Click to unlock editing'}
           >
             {isEditingUnlocked ? <Unlock size={15} /> : <Lock size={15} />}
-            <span>{isEditingUnlocked ? 'Unlocked' : 'Locked'}</span>
+            <span className="desktop-only">{isEditingUnlocked ? 'Unlocked' : 'Locked'}</span>
           </button>
 
-          {/* Prominent Admin & Security Settings Button */}
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={onOpenSettings}
-            title="App & Admin Security Settings"
-          >
-            <Settings size={16} />
-            <span>Settings</span>
-          </button>
-
-          {contactsCount > 0 && (
-            <button 
-              className="btn btn-secondary btn-sm" 
-              onClick={onCleanDatabase}
-              title="Clean & Repair Database: Trim spaces, fix invalid fields, & merge duplicates"
-            >
-              <Wand2 size={16} />
-              <span className="desktop-only">Clean DB</span>
-            </button>
-          )}
-
-          {contactsCount === 0 && (
-            <button 
-              className="btn btn-secondary btn-sm sample-btn" 
-              onClick={onLoadSampleData}
-              title="Populate 50 sample contacts for instant testing"
-            >
-              <Sparkles size={16} />
-              <span>Load 50 Samples</span>
-            </button>
-          )}
-
-          <button 
-            className="btn btn-secondary btn-sm"
-            onClick={onPrintDirectory}
-            title="Print clean contact list or save as PDF"
-          >
-            <Printer size={16} />
-            <span className="desktop-only">Print List</span>
-          </button>
-
-          <button 
-            className="btn btn-secondary btn-sm"
-            onClick={onOpenImportModal}
-          >
-            <Download size={16} />
-            <span>Import CSV</span>
-          </button>
-
-          <button 
-            className="btn btn-primary btn-sm"
-            onClick={onOpenAddModal}
-          >
+          {/* Add Contact — always prominent */}
+          <button className="btn btn-primary btn-sm" onClick={onOpenAddModal}>
             <Plus size={16} />
             <span>Add Contact</span>
           </button>
 
-          <button 
+          {/* Theme toggle */}
+          <button
             className="theme-toggle-btn"
             onClick={toggleTheme}
-            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Theme`}
-            aria-label="Toggle Theme"
+            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+            aria-label="Toggle theme"
           >
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
+
+          {/* ── Hamburger Menu ─────────────────────────────── */}
+          <div className="hmenu-wrap" ref={menuRef}>
+            <button
+              className={`hmenu-trigger ${menuOpen ? 'hmenu-trigger-open' : ''}`}
+              onClick={() => setMenuOpen(v => !v)}
+              aria-label="Open menu"
+              title="Menu"
+            >
+              {menuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+
+            {menuOpen && (
+              <div className="hmenu-dropdown">
+                <div className="hmenu-section-label">Import &amp; Export</div>
+                {menuItem(<Download size={16} />, 'Import CSV', onOpenImportModal)}
+                {menuItem(<Printer size={16} />, 'Print / Save PDF', onPrintDirectory)}
+                {menuItem(<Share2 size={16} />, 'Share', handleShareApp)}
+
+                <div className="hmenu-divider" />
+                <div className="hmenu-section-label">Maintenance</div>
+                {contactsCount > 0 && menuItem(<Wand2 size={16} />, 'Clean & Repair DB', onCleanDatabase)}
+                {contactsCount === 0 && menuItem(<Sparkles size={16} />, 'Load 50 Sample Contacts', onLoadSampleData)}
+
+                <div className="hmenu-divider" />
+                <div className="hmenu-section-label">Trash &amp; Recovery</div>
+                {menuItem(
+                  <Archive size={16} className={trashCount > 0 ? 'text-warning' : ''} />,
+                  '60-Day Trash Bin',
+                  onOpenTrashModal,
+                  trashCount
+                )}
+
+                <div className="hmenu-divider" />
+                <div className="hmenu-section-label">Security &amp; Settings</div>
+                {menuItem(<Settings size={16} />, 'Settings & Admin Code', onOpenSettings)}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>
