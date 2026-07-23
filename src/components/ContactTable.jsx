@@ -737,15 +737,16 @@ export const ContactTable = ({
                         </div>
                       </div>
                     </div>
-                    <div className="card-actions" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        className="icon-action-btn"
-                        onClick={() => onEditContact(contact)}
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      {/* Delete button removed as requested */}
-                    </div>
+                    {visibleColumns.includes('actions') && (
+                      <div className="card-actions" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          className="icon-action-btn"
+                          onClick={() => onEditContact(contact)}
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="card-body">
