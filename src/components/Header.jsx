@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, Sun, Moon, Download, Plus, Users, Sparkles, Printer, Trash2, ShieldAlert } from 'lucide-react';
+import { Mail, Sun, Moon, Download, Plus, Users, Sparkles, Printer, Trash2, ShieldAlert, Lock, Unlock, Settings } from 'lucide-react';
 
 export const Header = ({
   contactsCount,
@@ -8,6 +8,9 @@ export const Header = ({
   blankCount,
   theme,
   toggleTheme,
+  isEditingUnlocked,
+  onToggleLock,
+  onOpenSettings,
   onOpenAddModal,
   onOpenImportModal,
   onLoadSampleData,
@@ -49,18 +52,36 @@ export const Header = ({
           {blankCount > 0 && (
             <button className="stat-item warning-stat" onClick={onPurgeBlanks} title="Click to purge blank contacts">
               <ShieldAlert size={14} />
-              <span><strong>{blankCount}</strong> Blank/Invalid (Click to Purge)</span>
+              <span><strong>{blankCount}</strong> Blank/Invalid</span>
             </button>
           )}
           {duplicateCount > 0 && (
             <button className="stat-item warning-stat" onClick={onScanDuplicates}>
-              <span>⚠️ <strong>{duplicateCount}</strong> Duplicates Found</span>
+              <span>⚠️ <strong>{duplicateCount}</strong> Duplicates</span>
             </button>
           )}
         </div>
 
         {/* Action Buttons */}
         <div className="header-actions">
+          {/* Security Lock Indicator Button */}
+          <button 
+            className={`btn btn-sm ${isEditingUnlocked ? 'btn-unlocked' : 'btn-locked'}`}
+            onClick={onToggleLock}
+            title={isEditingUnlocked ? 'Editing unlocked (Click to Lock)' : 'Editing protected (Click to unlock with Code/PIN)'}
+          >
+            {isEditingUnlocked ? <Unlock size={15} /> : <Lock size={15} />}
+            <span>{isEditingUnlocked ? 'Unlocked' : 'Locked'}</span>
+          </button>
+
+          <button
+            className="theme-toggle-btn"
+            onClick={onOpenSettings}
+            title="App & Security Settings"
+          >
+            <Settings size={18} />
+          </button>
+
           {contactsCount === 0 ? (
             <button 
               className="btn btn-secondary btn-sm sample-btn" 

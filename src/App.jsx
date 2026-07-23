@@ -5,9 +5,12 @@ import { ContactModal } from './components/ContactModal';
 import { ImportExportModal } from './components/ImportExportModal';
 import { DuplicateResolverModal } from './components/DuplicateResolverModal';
 import { PrintView } from './components/PrintView';
+import { SecurityModal } from './components/SecurityModal';
+import { SettingsModal } from './components/SettingsModal';
 import { generateSampleContacts } from './services/sampleData';
 import { findDuplicates } from './services/deduplicator';
 import { STANDARD_COLUMNS } from './components/ColumnSelector';
+import { isSecurityLockEnabled } from './services/authService';
 
 const STORAGE_KEY = 'eNews_Contacts_List_v1';
 const THEME_KEY = 'eNews_Theme_Preference';
@@ -28,6 +31,40 @@ export default function App() {
     }
     return [];
   });
+
+  // Security Lock & Authentication State
+  const [isEditingUnlocked, setIsEditingUnlocked] = useState(false);
+  const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
+  const [securityActionTitle, setSecurityActionTitle] = useState('Edit Contacts');
+
+  // Require Security Verification Helper
+  const requireAuth = (callback, title = 'Modify Contacts') => {
+    if (!isSecurityLockEnabled() || isEditingUnlocked) {
+      callback();
+    } else {
+      setPendingAction(() => callback);
+      setSecurityActionTitle(title);
+      setIsSecurityModalOpen(true);
+    }
+  };
+
+  const handleUnlockSuccess = () => {
+    setIsEditingUnlocked(true);
+    if (pendingAction) {
+      pendingAction();
+      setPendingAction(null);
+    }
+  };
+
+  const handleToggleLock = () => {
+    if (isEditingUnlocked) {
+      setIsEditingUnlocked(false);
+    } else {
+      requireAuth(() => setIsEditingUnlocked(true), 'Unlock Editing Session');
+    }
+  };
 
   // Dynamically compute available columns (Standard + all custom headers from imported CSVs)
   const customKeysSet = new Set();
@@ -88,7 +125,7 @@ export default function App() {
   const activeCount = contacts.filter(c => c.status === 'Active').length;
   const groups = Array.from(new Set(contacts.map(c => c.group).filter(Boolean)));
   
-  // Identify blank / invalid contacts (no email and default or empty name)
+  // Identify blank / invalid contacts
   const blankContacts = contacts.filter(
     (c) => !c.email && (!c.firstName || c.firstName === 'Unnamed') && !c.lastName && !c.phone
   );
@@ -98,20 +135,17 @@ export default function App() {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  // Add / Edit contact
+  // Add / Edit contact with Security Check
   const handleSaveContact = (formData) => {
     if (formData.id) {
-      // Edit existing
       setContacts(prev => prev.map(c => c.id === formData.id ? { ...c, ...formData } : c));
     } else {
-      // Add new
       const newContact = {
         ...formData,
         id: 'contact_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
         createdAt: new Date().toISOString()
       };
 
-      // Check if new contact is a duplicate
       const foundDups = findDuplicates(contacts, [newContact]);
       if (foundDups.length > 0) {
         setDuplicates(foundDups);
@@ -123,42 +157,51 @@ export default function App() {
   };
 
   const handleEditContact = (contact) => {
-    setContactToEdit(contact);
-    setIsAddEditModalOpen(true);
+    requireAuth(() => {
+      setContactToEdit(contact);
+      setIsAddEditModalOpen(true);
+    }, 'Edit Contact Details');
   };
 
   const handleDeleteContact = (id) => {
-    if (window.confirm('Are you sure you want to remove this contact?')) {
-      setContacts(prev => prev.filter(c => c.id !== id));
-      setSelectedIds(prev => prev.filter(item => item !== id));
-    }
+    requireAuth(() => {
+      if (window.confirm('Are you sure you want to remove this contact?')) {
+        setContacts(prev => prev.filter(c => c.id !== id));
+        setSelectedIds(prev => prev.filter(item => item !== id));
+      }
+    }, 'Delete Contact');
   };
 
   const handleBulkDelete = (idsToDelete) => {
-    if (window.confirm(`Delete ${idsToDelete.length} selected contacts?`)) {
-      setContacts(prev => prev.filter(c => !idsToDelete.includes(c.id)));
-      setSelectedIds([]);
-    }
+    requireAuth(() => {
+      if (window.confirm(`Delete ${idsToDelete.length} selected contacts?`)) {
+        setContacts(prev => prev.filter(c => !idsToDelete.includes(c.id)));
+        setSelectedIds([]);
+      }
+    }, 'Bulk Delete Contacts');
   };
 
   const handlePurgeBlanks = () => {
-    if (blankCount === 0) {
-      alert('No blank or invalid contacts to purge!');
-      return;
-    }
-
-    if (window.confirm(`Purge ${blankCount} blank/invalid contact records?`)) {
-      setContacts(prev => prev.filter(c => c.email || (c.firstName && c.firstName !== 'Unnamed') || c.lastName || c.phone));
-      alert(`Purged ${blankCount} blank records!`);
-    }
+    requireAuth(() => {
+      if (blankCount === 0) {
+        alert('No blank or invalid contacts to purge!');
+        return;
+      }
+      if (window.confirm(`Purge ${blankCount} blank/invalid contact records?`)) {
+        setContacts(prev => prev.filter(c => c.email || (c.firstName && c.firstName !== 'Unnamed') || c.lastName || c.phone));
+        alert(`Purged ${blankCount} blank records!`);
+      }
+    }, 'Purge Invalid Records');
   };
 
   const handleClearAllContacts = () => {
-    if (window.confirm(`Are you sure you want to clear all ${contacts.length} contacts? This allows you to re-import your CSV cleanly.`)) {
-      setContacts([]);
-      setSelectedIds([]);
-      localStorage.removeItem(STORAGE_KEY);
-    }
+    requireAuth(() => {
+      if (window.confirm(`Are you sure you want to clear all ${contacts.length} contacts? This allows you to re-import your CSV cleanly.`)) {
+        setContacts([]);
+        setSelectedIds([]);
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }, 'Clear Entire Address Book');
   };
 
   const handleBulkCopyEmails = (separator = ',', idsToCopy) => {
@@ -173,7 +216,6 @@ export default function App() {
 
   // Import contacts from CSV
   const handleImportContacts = (importedList) => {
-    // Scan imported list for duplicates against existing list
     const foundDups = findDuplicates(contacts, importedList);
 
     if (foundDups.length > 0) {
@@ -232,11 +274,18 @@ export default function App() {
         blankCount={blankCount}
         theme={theme}
         toggleTheme={toggleTheme}
+        isEditingUnlocked={isEditingUnlocked}
+        onToggleLock={handleToggleLock}
+        onOpenSettings={() => requireAuth(() => setIsSettingsModalOpen(true), 'Access Settings')}
         onOpenAddModal={() => {
-          setContactToEdit(null);
-          setIsAddEditModalOpen(true);
+          requireAuth(() => {
+            setContactToEdit(null);
+            setIsAddEditModalOpen(true);
+          }, 'Add New Contact');
         }}
-        onOpenImportModal={() => setIsImportModalOpen(true)}
+        onOpenImportModal={() => {
+          requireAuth(() => setIsImportModalOpen(true), 'Import CSV File');
+        }}
         onLoadSampleData={handleLoadSampleData}
         onPrintDirectory={() => setIsPrintViewOpen(true)}
         onScanDuplicates={handleScanDuplicates}
@@ -260,14 +309,29 @@ export default function App() {
           onBulkDelete={handleBulkDelete}
           onBulkCopyEmails={handleBulkCopyEmails}
           onOpenAddModal={() => {
-            setContactToEdit(null);
-            setIsAddEditModalOpen(true);
+            requireAuth(() => {
+              setContactToEdit(null);
+              setIsAddEditModalOpen(true);
+            }, 'Add New Contact');
           }}
           onLoadSampleData={handleLoadSampleData}
         />
       </main>
 
-      {/* Modals */}
+      {/* Security Verification & Settings Modals */}
+      <SecurityModal
+        isOpen={isSecurityModalOpen}
+        onClose={() => setIsSecurityModalOpen(false)}
+        onUnlockSuccess={handleUnlockSuccess}
+        actionTitle={securityActionTitle}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+      />
+
+      {/* Contact Modals */}
       <ContactModal
         isOpen={isAddEditModalOpen}
         onClose={() => setIsAddEditModalOpen(false)}
