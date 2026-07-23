@@ -1,9 +1,11 @@
 /**
  * RFC 4180 Compliant CSV Parser & Generator Service for eNews Address Book
  * Supports Google Contacts, Microsoft Outlook, and generic CSV formats.
- * Correctly handles multiline quoted strings (addresses, notes, group memberships)
- * and extracts custom CSV columns into customFields.
+ * Correctly handles multiline quoted strings, custom CSV headers,
+ * and Smart Household/Couple & Nickname Parsing.
  */
+
+import { parseSmartName } from './smartNameParser';
 
 // Parse raw CSV text into a 2D array of rows, respecting quoted multiline strings
 export const parseCSVToRows = (csvText) => {
@@ -86,7 +88,7 @@ export const parseCSV = (csvText) => {
 const STANDARD_KEYS = new Set([
   'first name', 'given name', 'first', 'forename', 
   'last name', 'family name', 'last', 'surname',
-  'full name', 'name', 'display name', 'contact name',
+  'full name', 'name', 'display name', 'contact name', 'nickname',
   'e-mail 1 - value', 'e-mail address', 'email address', 'email 1', 'email', 'e-mail', 'primary email', 'e-mail 1',
   'e-mail 2 - value', 'e-mail 2 address', 'email 2', 'secondary email', 'e-mail 2',
   'phone 1 - value', 'mobile phone', 'home phone', 'business phone', 'phone', 'cell phone', 'telephone', 'phone 1',
@@ -114,19 +116,14 @@ const normalizeImportedContacts = (records) => {
         return '';
       };
 
-      // 1. Name Parsing
-      let rawFirstName = getVal('first name', 'given name', 'first', 'forename');
-      let rawLastName = getVal('last name', 'family name', 'last', 'surname');
-      
-      // Handle combined Full Name columns if separate first/last aren't present
-      if (!rawFirstName && !rawLastName) {
-        const fullName = getVal('full name', 'name', 'display name', 'contact name');
-        if (fullName) {
-          const parts = fullName.split(' ');
-          rawFirstName = parts[0] || '';
-          rawLastName = parts.slice(1).join(' ') || '';
-        }
-      }
+      // 1. Raw Name Extraction
+      const rawFirstName = getVal('first name', 'given name', 'first', 'forename');
+      const rawLastName = getVal('last name', 'family name', 'last', 'surname');
+      const rawFullName = getVal('full name', 'name', 'display name', 'contact name');
+      const csvNickname = getVal('nickname');
+
+      // Smart Name Parsing for Couples ("Tom & Mary"), Nicknames, and Suffixes
+      const smartName = parseSmartName(rawFirstName, rawLastName, rawFullName);
 
       // 2. Email Field Parsing
       const email = getVal('e-mail 1 - value', 'e-mail address', 'email address', 'email 1', 'email', 'e-mail', 'primary email', 'e-mail 1');
@@ -136,15 +133,23 @@ const normalizeImportedContacts = (records) => {
       const phone = getVal('phone 1 - value', 'mobile phone', 'home phone', 'business phone', 'phone', 'cell phone', 'telephone', 'phone 1');
 
       // 4. Group / Tag Parsing
-      let group = getVal('group membership', 'categories', 'group', 'category', 'tag', 'tags') || 'Friends & Family';
-      if (group.includes(':::')) {
+      let group = getVal('group membership', 'categories', 'group', 'category', 'tag', 'tags');
+      if (group && group.includes(':::')) {
         const parts = group.split(':::');
         group = parts[parts.length - 1].replace(/\*/g, '').trim();
+      }
+      if (!group) {
+        group = smartName.isHousehold ? 'Family & Household' : 'Friends & Family';
       }
 
       // 5. Address & Notes
       const address = getVal('address 1 - formatted', 'home street', 'business street', 'address', 'street address');
-      const notes = getVal('notes', 'comment', 'memo', 'description');
+      let notes = getVal('notes', 'comment', 'memo', 'description');
+
+      const foundNickname = csvNickname || smartName.nickname;
+      if (foundNickname && !notes.toLowerCase().includes(foundNickname.toLowerCase())) {
+        notes = notes ? `Nickname: "${foundNickname}" | ${notes}` : `Nickname: "${foundNickname}"`;
+      }
 
       // 6. Status
       let status = 'Active';
@@ -163,26 +168,22 @@ const normalizeImportedContacts = (records) => {
 
       // STRICT VALIDATION: Skip records that have NO email AND NO name AND NO phone
       const cleanEmail = email.trim();
-      const cleanFirstName = rawFirstName.trim();
-      const cleanLastName = rawLastName.trim();
+      const cleanFirstName = smartName.firstName.trim();
+      const cleanLastName = smartName.lastName.trim();
       const cleanPhone = phone.trim();
 
-      if (!cleanEmail && !cleanFirstName && !cleanLastName && !cleanPhone) {
+      if (!cleanEmail && (!cleanFirstName || cleanFirstName === 'Unnamed') && !cleanLastName && !cleanPhone) {
         return null; // Skip blank / trailing fragment rows completely
       }
 
-      // Final Name Fallbacks (only if email or phone exists)
-      const finalFirstName = cleanFirstName || (cleanEmail ? cleanEmail.split('@')[0] : 'Unnamed');
-      const finalLastName = cleanLastName || '';
-
       return {
         id: 'contact_' + Date.now() + '_' + index + '_' + Math.random().toString(36).substr(2, 5),
-        firstName: finalFirstName,
-        lastName: finalLastName,
+        firstName: cleanFirstName || (cleanEmail ? cleanEmail.split('@')[0] : 'Unnamed'),
+        lastName: cleanLastName,
         email: cleanEmail,
         secondaryEmail: secondaryEmail.trim(),
         phone: cleanPhone,
-        group: group.trim() || 'Friends & Family',
+        group: group.trim(),
         status: status,
         address: address.trim(),
         notes: notes.trim(),
