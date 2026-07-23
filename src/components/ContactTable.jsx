@@ -26,7 +26,7 @@ const WIDTHS_STORAGE_KEY = 'eNews_Column_Widths_v1';
 const STICKY_STORAGE_KEY = 'eNews_Sticky_Header_v1';
 
 const DEFAULT_WIDTHS = {
-  accuracy: 75,
+  accuracy: 60,
   name: 210,
   email: 230,
   secondaryEmail: 180,
@@ -99,11 +99,11 @@ export const ContactTable = ({
     e.preventDefault();
     e.stopPropagation();
     const startX = e.clientX;
-    const startWidth = columnWidths[colId] || 100;
+    const startWidth = columnWidths[colId] || 80;
 
     const onMouseMove = (moveEvent) => {
       const deltaX = moveEvent.clientX - startX;
-      const newWidth = Math.max(50, startWidth + deltaX);
+      const newWidth = Math.max(45, startWidth + deltaX);
       setColumnWidths((prev) => ({
         ...prev,
         [colId]: newWidth
@@ -304,7 +304,7 @@ export const ContactTable = ({
           })}
         </div>
 
-        {/* Status, Accuracy Filter, A-Z Slideout, Sticky Header & Column Selector */}
+        {/* Status, Score Filter, A-Z Slideout, Sticky Header & Column Selector */}
         <div className="toolbar-controls">
           {/* A-Z Slideout Jump Button */}
           <AZIndexBar 
@@ -313,19 +313,19 @@ export const ContactTable = ({
             contacts={contacts}
           />
 
-          {/* Score Rating Filter */}
+          {/* Score Light Filter */}
           <div className="status-filter-wrap">
             <ShieldCheck size={14} className="filter-icon text-primary" />
             <select
               className="select-control-sm"
               value={accuracyFilter}
               onChange={(e) => setAccuracyFilter(e.target.value)}
-              title="Filter by Contact Score Card Rating"
+              title="Filter by Score Light Rating"
             >
-              <option value="All">All Scores</option>
-              <option value="green">🟢 Green (100% Complete)</option>
-              <option value="yellow">🟡 Yellow (Partial Info)</option>
-              <option value="red">🔴 Red (Needs Info)</option>
+              <option value="All">All Score Lights</option>
+              <option value="green">🟢 Green Lights Only</option>
+              <option value="yellow">🟡 Yellow Lights Only</option>
+              <option value="red">🔴 Red Lights Only</option>
             </select>
           </div>
 
@@ -437,12 +437,12 @@ export const ContactTable = ({
                     />
                   </th>
 
-                  {/* Sortable Compact Score Card Column Header */}
+                  {/* Sortable Ultra-Compact Score Column Header */}
                   <th 
-                    style={{ width: columnWidths.accuracy || 75 }}
+                    style={{ width: columnWidths.accuracy || 60 }}
                     className="sortable resizable-th th-score"
                   >
-                    <div className="th-content" onClick={() => handleSort('score')} title="Sort by Score (Green -> Yellow -> Red)">
+                    <div className="th-content" onClick={() => handleSort('score')} title="Click to sort by Score Ranking (Green -> Yellow -> Red)">
                       <span>Score</span>
                       <ArrowUpDown size={12} className="sort-icon" />
                     </div>
@@ -584,14 +584,13 @@ export const ContactTable = ({
                         />
                       </td>
 
-                      {/* Ultra-Compact Score Dot Indicator with Rich Hover Explanation */}
+                      {/* Pure Bright Glowing Signal Light Only (No Percentage) */}
                       <td className="td-accuracy" onClick={(e) => e.stopPropagation()}>
                         <div 
-                          className={`score-dot-pill score-${accuracy.level}`}
+                          className={`score-light-only light-${accuracy.level}`}
                           title={accuracy.tooltip}
                         >
                           <span className={`score-glow-dot dot-${accuracy.level}`}></span>
-                          <span className="score-percent-label">{accuracy.scorePercent}</span>
                         </div>
                       </td>
 
@@ -754,9 +753,11 @@ export const ContactTable = ({
                           <span className={`status-badge status-${contact.status.toLowerCase()}`}>
                             {contact.status}
                           </span>
-                          <div className={`score-dot-pill score-${accuracy.level}`} title={accuracy.tooltip}>
+                          <div 
+                            className={`score-light-only light-${accuracy.level}`}
+                            title={accuracy.tooltip}
+                          >
                             <span className={`score-glow-dot dot-${accuracy.level}`}></span>
-                            <span className="score-percent-label">{accuracy.scorePercent}</span>
                           </div>
                         </div>
                       </div>
