@@ -709,12 +709,14 @@ export const ContactTable = ({
                 >
                   <div className="card-top">
                     <div className="card-user">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={(e) => handleRowSelect(contact.id, idx, e)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
+                      {visibleColumns.includes('checkbox') && (
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => handleRowSelect(contact.id, idx, e)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      )}
                       <div>
                         <h4 className="card-name">{contact.firstName} {contact.lastName}</h4>
                         <div className="card-badges-wrap">
