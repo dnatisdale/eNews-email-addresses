@@ -458,9 +458,9 @@ export default function App() {
         isOpen={isSecurityModalOpen}
         onClose={() => {
           setIsSecurityModalOpen(false);
-          setPendingAction(null);
+          pendingActionRef.current = null;
         }}
-        onSuccess={handleUnlockSuccess}
+        onUnlockSuccess={handleUnlockSuccess}
         actionTitle={securityActionTitle}
       />
 
