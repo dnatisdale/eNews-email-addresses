@@ -274,7 +274,7 @@ export const exportToCSV = (contacts) => {
 };
 
 // Download CSV file directly in browser
-export const downloadCSVFile = (contacts, filename = 'eNews_Email_List.csv') => {
+export const downloadCSVFile = (contacts, filename = `eNews Family & Friends Contact Directory - ${new Date().toISOString().slice(0, 10)}.csv`) => {
   const csvContent = exportToCSV(contacts);
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);

@@ -443,7 +443,7 @@ export const ContactTable = ({
                         );
                       case 'index':
                         return (
-                          <th key="index" className="th-index" style={{ width: columnWidths.index || 40 }}>
+                          <th key="index" className="th-index" style={{ width: columnWidths.index || 50 }}>
                             <div className="th-content">
                               <span>#</span>
                             </div>
@@ -472,7 +472,7 @@ export const ContactTable = ({
                         );
                       case 'email':
                         return (
-                          <th key="email" style={{ width: columnWidths.email || 230 }} className="sortable resizable-th">
+                          <th key="email" style={{ width: columnWidths.email || 260 }} className="sortable resizable-th">
                             <div className="th-content" onClick={() => handleSort('email')}>
                               <span>Email</span>
                               <ArrowUpDown size={12} className="sort-icon" />
@@ -482,14 +482,14 @@ export const ContactTable = ({
                         );
                       case 'secondaryEmail':
                         return (
-                          <th key="secondaryEmail" style={{ width: columnWidths.secondaryEmail || 180 }} className="resizable-th">
+                          <th key="secondaryEmail" style={{ width: columnWidths.secondaryEmail || 200 }} className="resizable-th">
                             <div className="th-content"><span>Secondary Email</span></div>
                             <div className="col-resizer" onMouseDown={(e) => startResizing('secondaryEmail', e)} />
                           </th>
                         );
                       case 'phone':
                         return (
-                          <th key="phone" style={{ width: columnWidths.phone || 150 }} className="resizable-th">
+                          <th key="phone" style={{ width: columnWidths.phone || 220 }} className="resizable-th">
                             <div className="th-content"><span>Phone</span></div>
                             <div className="col-resizer" onMouseDown={(e) => startResizing('phone', e)} />
                           </th>
@@ -513,14 +513,14 @@ export const ContactTable = ({
                         );
                       case 'address':
                         return (
-                          <th key="address" style={{ width: columnWidths.address || 200 }} className="resizable-th">
+                          <th key="address" style={{ width: columnWidths.address || 250 }} className="resizable-th">
                             <div className="th-content"><span>Address</span></div>
                             <div className="col-resizer" onMouseDown={(e) => startResizing('address', e)} />
                           </th>
                         );
                       case 'notes':
                         return (
-                          <th key="notes" style={{ width: columnWidths.notes || 220 }} className="resizable-th">
+                          <th key="notes" style={{ width: columnWidths.notes || 250 }} className="resizable-th">
                             <div className="th-content"><span>Notes</span></div>
                             <div className="col-resizer" onMouseDown={(e) => startResizing('notes', e)} />
                           </th>

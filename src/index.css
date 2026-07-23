@@ -103,7 +103,7 @@ html, body, #root {
 .main-content {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   border-radius: var(--radius-lg);
   /* Smooth momentum scroll on iOS */
@@ -641,7 +641,7 @@ html, body, #root {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  overflow-x: auto;
+  overflow-x: visible;
   overflow-y: visible;
   box-shadow: var(--shadow-sm);
 }
@@ -654,6 +654,13 @@ html, body, #root {
   table-layout: fixed;
 }
 
+.contact-table thead {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 25;
+}
+
 .contact-table th {
   background: var(--bg-primary);
   padding: 0.85rem 1rem;
@@ -661,12 +668,22 @@ html, body, #root {
   color: var(--text-secondary);
   border-bottom: 2px solid var(--border-color);
   white-space: nowrap;
-  position: relative;
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 25;
+}
+
+.contact-table .th-index .th-content {
+  justify-content: center;
+}
+
+.contact-table .td-index {
+  text-align: center;
 }
 
 /* Resizable Columns & Resizer Handle */
 .resizable-th {
-  position: relative;
   user-select: none;
 }
 
@@ -1695,6 +1712,7 @@ html, body, #root {
   padding: 0;
   overflow-y: auto;
   align-items: flex-start;
+  flex-direction: column;
 }
 
 .printable-page-container {
@@ -1704,6 +1722,8 @@ html, body, #root {
   background: #ffffff;
   color: #000000;
   padding: 2rem;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .print-toolbar {
@@ -1721,14 +1741,18 @@ html, body, #root {
 
 .printable-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.85rem;
   margin-top: 1rem;
   table-layout: fixed;
+  border-top: 1px solid #cbd5e1;
+  border-left: 1px solid #cbd5e1;
 }
 
 .printable-table th, .printable-table td {
-  border: 1px solid #cbd5e1;
+  border-bottom: 1px solid #cbd5e1;
+  border-right: 1px solid #cbd5e1;
   padding: 0.5rem 0.75rem;
   color: #0f172a;
   word-wrap: break-word;
@@ -1744,10 +1768,20 @@ html, body, #root {
   .no-print, .app-header, .control-bar, .bulk-actions-strip, .mobile-cards-view, .desktop-view {
     display: none !important;
   }
+  
+  .printable-table {
+    border-collapse: collapse !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+  
+  .printable-table th, .printable-table td {
+    border: 1px solid #cbd5e1 !important;
+  }
   .printable-page-container {
-    padding: 0 !important;
     margin: 0 !important;
     max-width: 100% !important;
+    border-radius: 0;
+    box-shadow: none;
   }
 }
 
