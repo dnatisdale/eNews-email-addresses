@@ -1,11 +1,12 @@
 import React from 'react';
-import { Mail, Sun, Moon, Download, Plus, Users, Sparkles, Printer, Trash2, ShieldAlert, Lock, Unlock, Settings, Wand2 } from 'lucide-react';
+import { Mail, Sun, Moon, Download, Plus, Users, Sparkles, Printer, ShieldAlert, Lock, Unlock, Settings, Wand2, Archive } from 'lucide-react';
 
 export const Header = ({
   contactsCount,
   activeCount,
   selectedCount,
   blankCount,
+  trashCount = 0,
   theme,
   toggleTheme,
   isEditingUnlocked,
@@ -17,7 +18,7 @@ export const Header = ({
   onPrintDirectory,
   onScanDuplicates,
   onPurgeBlanks,
-  onClearAllContacts,
+  onOpenTrashModal,
   onCleanDatabase,
   duplicateCount
 }) => {
@@ -51,7 +52,7 @@ export const Header = ({
             </div>
           )}
           {blankCount > 0 && (
-            <button className="stat-item warning-stat" onClick={onPurgeBlanks} title="Click to purge blank contacts">
+            <button className="stat-item warning-stat" onClick={onPurgeBlanks} title="Click to move blank contacts to Trash">
               <ShieldAlert size={14} />
               <span><strong>{blankCount}</strong> Blank/Invalid</span>
             </button>
@@ -65,6 +66,16 @@ export const Header = ({
 
         {/* Action Buttons */}
         <div className="header-actions">
+          {/* Trash & 60-Day Recovery Bin Button */}
+          <button
+            className={`btn btn-sm ${trashCount > 0 ? 'btn-outline-warning' : 'btn-secondary'}`}
+            onClick={onOpenTrashModal}
+            title="View 60-Day Trash & Recovery Bin"
+          >
+            <Archive size={15} />
+            <span>Trash ({trashCount})</span>
+          </button>
+
           {/* Security Lock Indicator Button */}
           <button 
             className={`btn btn-sm ${isEditingUnlocked ? 'btn-unlocked' : 'btn-locked'}`}
@@ -94,7 +105,7 @@ export const Header = ({
             </button>
           )}
 
-          {contactsCount === 0 ? (
+          {contactsCount === 0 && (
             <button 
               className="btn btn-secondary btn-sm sample-btn" 
               onClick={onLoadSampleData}
@@ -102,15 +113,6 @@ export const Header = ({
             >
               <Sparkles size={16} />
               <span>Load 50 Samples</span>
-            </button>
-          ) : (
-            <button 
-              className="btn btn-danger btn-sm"
-              onClick={onClearAllContacts}
-              title="Clear all contacts to re-import fresh"
-            >
-              <Trash2 size={15} />
-              <span className="desktop-only">Clear All</span>
             </button>
           )}
 

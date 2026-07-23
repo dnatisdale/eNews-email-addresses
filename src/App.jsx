@@ -7,6 +7,7 @@ import { DuplicateResolverModal } from './components/DuplicateResolverModal';
 import { PrintView } from './components/PrintView';
 import { SecurityModal } from './components/SecurityModal';
 import { SettingsModal } from './components/SettingsModal';
+import { TrashModal } from './components/TrashModal';
 import { generateSampleContacts } from './services/sampleData';
 import { findDuplicates } from './services/deduplicator';
 import { cleanDatabase } from './services/dbCleaner';
@@ -14,7 +15,10 @@ import { STANDARD_COLUMNS } from './components/ColumnSelector';
 import { isSecurityLockEnabled } from './services/authService';
 
 const STORAGE_KEY = 'eNews_Contacts_List_v1';
+const TRASH_STORAGE_KEY = 'eNews_Trash_Contacts_v1';
 const THEME_KEY = 'eNews_Theme_Preference';
+
+const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000;
 
 export default function App() {
   // Theme state
@@ -26,7 +30,6 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Lightweight auto-clean on initial load
         const { cleanedContacts } = cleanDatabase(parsed);
         return cleanedContacts;
       } catch (e) {
@@ -36,10 +39,30 @@ export default function App() {
     return [];
   });
 
+  // Trash Contacts State (60-Day Recovery Bin)
+  const [trashContacts, setTrashContacts] = useState(() => {
+    const saved = localStorage.getItem(TRASH_STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Auto-purge any items older than 60 days
+        const now = Date.now();
+        return parsed.filter((c) => {
+          const deletedTime = c.deletedAt ? new Date(c.deletedAt).getTime() : now;
+          return now - deletedTime < SIXTY_DAYS_MS;
+        });
+      } catch (e) {
+        console.error('Failed to load trash contacts', e);
+      }
+    }
+    return [];
+  });
+
   // Security Lock & Authentication State
   const [isEditingUnlocked, setIsEditingUnlocked] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isTrashModalOpen, setIsTrashModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const [securityActionTitle, setSecurityActionTitle] = useState('Edit Contacts');
 
@@ -125,6 +148,11 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(contacts));
   }, [contacts]);
 
+  // Sync trashContacts to LocalStorage
+  useEffect(() => {
+    localStorage.setItem(TRASH_STORAGE_KEY, JSON.stringify(trashContacts));
+  }, [trashContacts]);
+
   // Derived counts & lists
   const activeCount = contacts.filter(c => c.status === 'Active').length;
   const groups = Array.from(new Set(contacts.map(c => c.group).filter(Boolean)));
@@ -167,19 +195,47 @@ export default function App() {
     }, 'Edit Contact Details');
   };
 
+  // Single Contact Deletion (Moved to 60-Day Trash with Confirmation)
   const handleDeleteContact = (id) => {
     requireAuth(() => {
-      if (window.confirm('Are you sure you want to remove this contact?')) {
-        setContacts(prev => prev.filter(c => c.id !== id));
-        setSelectedIds(prev => prev.filter(item => item !== id));
+      const target = contacts.find((c) => c.id === id);
+      if (!target) return;
+
+      const confirmed = window.confirm(
+        `Are you sure you want to delete "${target.firstName} ${target.lastName}"?\n\n` +
+        `This contact will be moved to the Trash & Recovery Bin for 60 days before permanent deletion.`
+      );
+
+      if (confirmed) {
+        const deletedRecord = {
+          ...target,
+          deletedAt: new Date().toISOString()
+        };
+        setTrashContacts((prev) => [deletedRecord, ...prev]);
+        setContacts((prev) => prev.filter((c) => c.id !== id));
+        setSelectedIds((prev) => prev.filter((item) => item !== id));
       }
     }, 'Delete Contact');
   };
 
+  // Bulk Contact Deletion (Moved to 60-Day Trash with Exact Count Confirmation)
   const handleBulkDelete = (idsToDelete) => {
     requireAuth(() => {
-      if (window.confirm(`Delete ${idsToDelete.length} selected contacts?`)) {
-        setContacts(prev => prev.filter(c => !idsToDelete.includes(c.id)));
+      if (idsToDelete.length === 0) return;
+
+      const confirmed = window.confirm(
+        `Are you sure you want to delete ${idsToDelete.length} selected contact(s)?\n\n` +
+        `They will be moved to the Trash & Recovery Bin where you can restore them anytime within the next 60 days.`
+      );
+
+      if (confirmed) {
+        const timestamp = new Date().toISOString();
+        const deletedRecords = contacts
+          .filter((c) => idsToDelete.includes(c.id))
+          .map((c) => ({ ...c, deletedAt: timestamp }));
+
+        setTrashContacts((prev) => [...deletedRecords, ...prev]);
+        setContacts((prev) => prev.filter((c) => !idsToDelete.includes(c.id)));
         setSelectedIds([]);
       }
     }, 'Bulk Delete Contacts');
@@ -210,27 +266,59 @@ export default function App() {
     }, 'Clean & Repair Database');
   };
 
+  // Purge Blank Records (Moved to Trash)
   const handlePurgeBlanks = () => {
     requireAuth(() => {
       if (blankCount === 0) {
         alert('No blank or invalid contacts to purge!');
         return;
       }
-      if (window.confirm(`Purge ${blankCount} blank/invalid contact records?`)) {
-        setContacts(prev => prev.filter(c => c.email || (c.firstName && c.firstName !== 'Unnamed') || c.lastName || c.phone));
-        alert(`Purged ${blankCount} blank records!`);
+
+      const confirmed = window.confirm(
+        `Move ${blankCount} blank/invalid contact record(s) to Trash?\n\nThey will be stored in Trash for 60 days before permanent deletion.`
+      );
+
+      if (confirmed) {
+        const timestamp = new Date().toISOString();
+        const deletedRecords = blankContacts.map((c) => ({ ...c, deletedAt: timestamp }));
+        setTrashContacts((prev) => [...deletedRecords, ...prev]);
+        setContacts((prev) => prev.filter((c) => c.email || (c.firstName && c.firstName !== 'Unnamed') || c.lastName || c.phone));
+        alert(`Moved ${blankCount} blank records to Trash!`);
       }
     }, 'Purge Invalid Records');
   };
 
-  const handleClearAllContacts = () => {
-    requireAuth(() => {
-      if (window.confirm(`Are you sure you want to clear all ${contacts.length} contacts? This allows you to re-import your CSV cleanly.`)) {
-        setContacts([]);
-        setSelectedIds([]);
-        localStorage.removeItem(STORAGE_KEY);
-      }
-    }, 'Clear Entire Address Book');
+  // Trash & Recovery Bin Action Handlers
+  const handleRestoreContact = (id) => {
+    const item = trashContacts.find((c) => c.id === id);
+    if (!item) return;
+
+    // Clean up trash properties
+    const { deletedAt, ...restoredContact } = item;
+
+    setContacts((prev) => [restoredContact, ...prev]);
+    setTrashContacts((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  const handleRestoreAll = () => {
+    if (trashContacts.length === 0) return;
+    const restored = trashContacts.map(({ deletedAt, ...c }) => c);
+    setContacts((prev) => [...restored, ...prev]);
+    setTrashContacts([]);
+    setIsTrashModalOpen(false);
+    alert(`Restored all ${restored.length} contacts back to address book!`);
+  };
+
+  const handlePermanentlyDelete = (id) => {
+    if (window.confirm('Permanently delete this contact? This action CANNOT be undone.')) {
+      setTrashContacts((prev) => prev.filter((c) => c.id !== id));
+    }
+  };
+
+  const handleEmptyTrash = () => {
+    if (window.confirm(`Permanently empty all ${trashContacts.length} items from Trash? This action CANNOT be undone.`)) {
+      setTrashContacts([]);
+    }
   };
 
   const handleBulkCopyEmails = (separator = ',', idsToCopy) => {
@@ -253,80 +341,57 @@ export default function App() {
     }
 
     setContacts(prev => [...importedList, ...prev]);
-  };
 
-  // Duplicate Resolution Callback
-  const handleResolveDuplicate = ({ action, merged, newContact, existingId, incomingId }) => {
-    if (action === 'merge' && merged) {
-      setContacts(prev => prev.map(c => c.id === existingId ? merged : c).filter(c => c.id !== incomingId));
-    } else if (action === 'overwrite' && newContact) {
-      setContacts(prev => prev.map(c => c.id === existingId ? { ...newContact, id: existingId } : c));
-    } else if (action === 'keep_existing') {
-      setContacts(prev => prev.filter(c => c.id !== incomingId));
-    } else if (action === 'skip_all') {
-      setIsDuplicateModalOpen(false);
-      setDuplicates([]);
-      return;
-    }
-
-    const nextDups = duplicates.slice(1);
-    setDuplicates(nextDups);
-    if (nextDups.length === 0) {
-      setIsDuplicateModalOpen(false);
+    if (collectionName) {
+      alert(`Imported ${importedList.length} contacts into collection: "${collectionName}"!`);
     }
   };
 
-  // Manual Duplicate Scan
-  const handleScanDuplicates = () => {
-    const foundDups = findDuplicates(contacts);
-    if (foundDups.length > 0) {
-      setDuplicates(foundDups);
-      setIsDuplicateModalOpen(true);
-    } else {
-      alert('No duplicate contacts found in your list!');
-    }
-  };
-
-  // Load 50 Sample Contacts
-  const handleLoadSampleData = () => {
-    const samples = generateSampleContacts();
-    setContacts(samples);
+  // Resolve duplicate merge
+  const handleResolveDuplicates = (resolvedList) => {
+    setContacts(resolvedList);
+    setDuplicates([]);
+    setIsDuplicateModalOpen(false);
   };
 
   return (
-    <div className="app-container">
+    <div className="app-layout">
       {/* Header Bar */}
-      <Header
+      <Header 
         contactsCount={contacts.length}
         activeCount={activeCount}
         selectedCount={selectedIds.length}
         blankCount={blankCount}
+        trashCount={trashContacts.length}
         theme={theme}
         toggleTheme={toggleTheme}
         isEditingUnlocked={isEditingUnlocked}
         onToggleLock={handleToggleLock}
-        onOpenSettings={() => requireAuth(() => setIsSettingsModalOpen(true), 'Access Settings')}
-        onOpenAddModal={() => {
-          requireAuth(() => {
-            setContactToEdit(null);
-            setIsAddEditModalOpen(true);
-          }, 'Add New Contact');
-        }}
-        onOpenImportModal={() => {
-          requireAuth(() => setIsImportModalOpen(true), 'Import CSV File');
-        }}
-        onLoadSampleData={handleLoadSampleData}
+        onOpenSettings={() => setIsSettingsModalOpen(true)}
+        onOpenAddModal={() => requireAuth(() => {
+          setContactToEdit(null);
+          setIsAddEditModalOpen(true);
+        }, 'Add New Contact')}
+        onOpenImportModal={() => requireAuth(() => setIsImportModalOpen(true), 'Import CSV File')}
+        onLoadSampleData={() => requireAuth(() => {
+          const samples = generateSampleContacts();
+          setContacts(samples);
+        }, 'Load Sample Contacts')}
         onPrintDirectory={() => setIsPrintViewOpen(true)}
-        onScanDuplicates={handleScanDuplicates}
+        onScanDuplicates={() => {
+          const dups = findDuplicates(contacts, contacts);
+          setDuplicates(dups);
+          setIsDuplicateModalOpen(true);
+        }}
         onPurgeBlanks={handlePurgeBlanks}
-        onClearAllContacts={handleClearAllContacts}
+        onOpenTrashModal={() => setIsTrashModalOpen(true)}
         onCleanDatabase={handleCleanDatabase}
         duplicateCount={duplicates.length}
       />
 
-      {/* Main Contact Management & Table Component */}
-      <main>
-        <ContactTable
+      {/* Main Content View */}
+      <main className="main-content">
+        <ContactTable 
           contacts={contacts}
           groups={groups}
           availableColumns={availableColumns}
@@ -339,21 +404,54 @@ export default function App() {
           onBulkDelete={handleBulkDelete}
           onBulkCopyEmails={handleBulkCopyEmails}
           onBulkAssignGroup={handleBulkAssignGroup}
-          onOpenAddModal={() => {
-            requireAuth(() => {
-              setContactToEdit(null);
-              setIsAddEditModalOpen(true);
-            }, 'Add New Contact');
-          }}
-          onLoadSampleData={handleLoadSampleData}
+          onOpenAddModal={() => requireAuth(() => {
+            setContactToEdit(null);
+            setIsAddEditModalOpen(true);
+          }, 'Add New Contact')}
+          onLoadSampleData={() => requireAuth(() => {
+            const samples = generateSampleContacts();
+            setContacts(samples);
+          }, 'Load Sample Contacts')}
         />
       </main>
 
-      {/* Security Verification & Settings Modals */}
+      {/* Modals & Dialogs */}
+      <ContactModal 
+        isOpen={isAddEditModalOpen}
+        onClose={() => setIsAddEditModalOpen(false)}
+        onSave={handleSaveContact}
+        contactToEdit={contactToEdit}
+        groups={groups}
+      />
+
+      <ImportExportModal 
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={handleImportContacts}
+      />
+
+      <DuplicateResolverModal 
+        isOpen={isDuplicateModalOpen}
+        onClose={() => setIsDuplicateModalOpen(false)}
+        duplicates={duplicates}
+        allContacts={contacts}
+        onResolve={handleResolveDuplicates}
+      />
+
+      <PrintView 
+        isOpen={isPrintViewOpen}
+        onClose={() => setIsPrintViewOpen(false)}
+        contacts={contacts}
+        visibleColumns={visibleColumns}
+      />
+
       <SecurityModal
         isOpen={isSecurityModalOpen}
-        onClose={() => setIsSecurityModalOpen(false)}
-        onUnlockSuccess={handleUnlockSuccess}
+        onClose={() => {
+          setIsSecurityModalOpen(false);
+          setPendingAction(null);
+        }}
+        onSuccess={handleUnlockSuccess}
         actionTitle={securityActionTitle}
       />
 
@@ -362,33 +460,14 @@ export default function App() {
         onClose={() => setIsSettingsModalOpen(false)}
       />
 
-      {/* Contact Modals */}
-      <ContactModal
-        isOpen={isAddEditModalOpen}
-        onClose={() => setIsAddEditModalOpen(false)}
-        onSave={handleSaveContact}
-        contactToEdit={contactToEdit}
-        groups={groups}
-      />
-
-      <ImportExportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onImportContacts={handleImportContacts}
-        contacts={contacts}
-      />
-
-      <DuplicateResolverModal
-        isOpen={isDuplicateModalOpen}
-        onClose={() => setIsDuplicateModalOpen(false)}
-        duplicates={duplicates}
-        onResolveDuplicate={handleResolveDuplicate}
-      />
-
-      <PrintView
-        isOpen={isPrintViewOpen}
-        onClose={() => setIsPrintViewOpen(false)}
-        contacts={contacts}
+      <TrashModal
+        isOpen={isTrashModalOpen}
+        onClose={() => setIsTrashModalOpen(false)}
+        trashContacts={trashContacts}
+        onRestoreContact={handleRestoreContact}
+        onRestoreAll={handleRestoreAll}
+        onPermanentlyDelete={handlePermanentlyDelete}
+        onEmptyTrash={handleEmptyTrash}
       />
     </div>
   );
