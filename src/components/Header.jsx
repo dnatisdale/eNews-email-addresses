@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, Sun, Moon, Download, Plus, Users, Sparkles, Printer, Trash2, ShieldAlert, Lock, Unlock, Settings, Broom } from 'lucide-react';
+import { Mail, Sun, Moon, Download, Plus, Users, Sparkles, Printer, Trash2, ShieldAlert, Lock, Unlock, Settings, Wand2 } from 'lucide-react';
 
 export const Header = ({
   contactsCount,
@@ -89,7 +89,7 @@ export const Header = ({
               onClick={onCleanDatabase}
               title="Clean & Repair Database: Trim spaces, fix invalid fields, & merge duplicates"
             >
-              <Broom size={16} />
+              <Wand2 size={16} />
               <span className="desktop-only">Clean DB</span>
             </button>
           )}
