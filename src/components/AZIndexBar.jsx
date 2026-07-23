@@ -8,6 +8,26 @@ export const AZIndexBar = ({ activeLetter, onSelectLetter, contacts = [] }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState('EN'); // 'EN' or 'TH'
 
+  // Compute set of letters present in current contact list
+  const presentLetters = new Set();
+  let hasSymbolOrNumber = false;
+
+  contacts.forEach((c) => {
+    const firstChar = (c.firstName[0] || c.lastName[0] || '').toUpperCase();
+    if (firstChar) {
+      presentLetters.add(firstChar);
+      if (!ENGLISH_ALPHABET.includes(firstChar) && !THAI_ALPHABET.includes(firstChar)) {
+        hasSymbolOrNumber = true;
+      }
+    }
+  });
+
+  // Filter alphabets to ONLY include letters that have contacts
+  const availableEn = ENGLISH_ALPHABET.filter((letter) => presentLetters.has(letter));
+  const availableTh = THAI_ALPHABET.filter((letter) => presentLetters.has(letter));
+
+  const currentAlphabetList = activeTab === 'EN' ? availableEn : availableTh;
+
   return (
     <div className={`rolodex-container ${isExpanded ? 'rolodex-expanded' : 'rolodex-collapsed'}`}>
       {/* Right Edge Collapsed Caret Handle (Poking out) */}
@@ -15,7 +35,7 @@ export const AZIndexBar = ({ activeLetter, onSelectLetter, contacts = [] }) => {
         <button
           className="rolodex-caret-btn"
           onClick={() => setIsExpanded(true)}
-          title="Open Alphabet Directory (English / Thai)"
+          title="Open Alphabet Directory"
         >
           <ChevronLeft size={20} className="caret-icon" />
           {activeLetter !== 'All' && <span className="active-letter-dot">{activeLetter}</span>}
@@ -32,13 +52,13 @@ export const AZIndexBar = ({ activeLetter, onSelectLetter, contacts = [] }) => {
                 className={`lang-tab ${activeTab === 'EN' ? 'lang-tab-active' : ''}`}
                 onClick={() => setActiveTab('EN')}
               >
-                A-Z
+                A-Z {availableEn.length > 0 ? `(${availableEn.length})` : ''}
               </button>
               <button
                 className={`lang-tab ${activeTab === 'TH' ? 'lang-tab-active' : ''}`}
                 onClick={() => setActiveTab('TH')}
               >
-                ก-ฮ
+                ก-ฮ {availableTh.length > 0 ? `(${availableTh.length})` : ''}
               </button>
             </div>
             <button
@@ -61,8 +81,8 @@ export const AZIndexBar = ({ activeLetter, onSelectLetter, contacts = [] }) => {
               ALL
             </button>
 
-            {/* Render English or Thai Alphabet */}
-            {(activeTab === 'EN' ? ENGLISH_ALPHABET : THAI_ALPHABET).map((letter) => {
+            {/* Render ONLY letters that have contacts */}
+            {currentAlphabetList.map((letter) => {
               const isActive = activeLetter === letter;
               return (
                 <button
@@ -78,15 +98,17 @@ export const AZIndexBar = ({ activeLetter, onSelectLetter, contacts = [] }) => {
               );
             })}
 
-            <button
-              className={`rolodex-item ${activeLetter === '#' ? 'rolodex-item-active' : ''}`}
-              onClick={() => {
-                onSelectLetter('#');
-                setIsExpanded(false);
-              }}
-            >
-              #
-            </button>
+            {hasSymbolOrNumber && (
+              <button
+                className={`rolodex-item ${activeLetter === '#' ? 'rolodex-item-active' : ''}`}
+                onClick={() => {
+                  onSelectLetter('#');
+                  setIsExpanded(false);
+                }}
+              >
+                #
+              </button>
+            )}
           </div>
         </div>
       )}

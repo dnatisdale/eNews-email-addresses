@@ -9,12 +9,10 @@ import {
   ArrowUpDown, 
   UserCheck, 
   Mail, 
-  Phone, 
   Sparkles,
   FolderPlus,
   Pin,
-  ShieldCheck,
-  PhoneCall
+  ShieldCheck
 } from 'lucide-react';
 import { ColumnSelector, STANDARD_COLUMNS } from './ColumnSelector';
 import { getContactAccuracy } from '../services/accuracyEvaluator';
@@ -30,7 +28,7 @@ const DEFAULT_WIDTHS = {
   name: 210,
   email: 230,
   secondaryEmail: 180,
-  phone: 160,
+  phone: 150,
   group: 140,
   status: 120,
   address: 200,
@@ -162,7 +160,7 @@ export const ContactTable = ({
     if (activeLetter !== 'All') {
       const firstChar = (contact.firstName[0] || contact.lastName[0] || '').toUpperCase();
       if (activeLetter === '#') {
-        matchesLetter = !(firstChar >= 'A' && firstChar <= 'Z');
+        matchesLetter = !('A' <= firstChar && firstChar <= 'Z');
       } else {
         matchesLetter = firstChar === activeLetter;
       }
@@ -485,7 +483,7 @@ export const ContactTable = ({
                   )}
                   {visibleColumns.includes('phone') && (
                     <th 
-                      style={{ width: columnWidths.phone || 160 }}
+                      style={{ width: columnWidths.phone || 150 }}
                       className="resizable-th"
                     >
                       <div className="th-content">
@@ -583,7 +581,7 @@ export const ContactTable = ({
                         />
                       </td>
 
-                      {/* Pure Bright Glowing Signal Light Only (No Percentage) */}
+                      {/* Pure Bright Glowing Signal Light Only */}
                       <td className="td-accuracy" onClick={(e) => e.stopPropagation()}>
                         <div 
                           className={`score-light-only light-${accuracy.level}`}
@@ -593,7 +591,7 @@ export const ContactTable = ({
                         </div>
                       </td>
 
-                      {/* Clean Name Display (No Blue Initial Avatar Circle) */}
+                      {/* Clean Name Display */}
                       {visibleColumns.includes('name') && (
                         <td className="td-name">
                           <strong className="contact-name">{contact.firstName} {contact.lastName}</strong>
@@ -629,7 +627,7 @@ export const ContactTable = ({
                         </td>
                       )}
 
-                      {/* Phone Column with Click-to-Call Confirmation & App Launcher */}
+                      {/* Clean Single-Line Phone Button (No phone icon) */}
                       {visibleColumns.includes('phone') && (
                         <td className="td-phone">
                           {contact.phone ? (
@@ -638,7 +636,6 @@ export const ContactTable = ({
                               onClick={(e) => handlePhoneClick(contact, e)}
                               title={`Click to call ${contact.firstName} via Phone, WhatsApp, Skype, or FaceTime`}
                             >
-                              <PhoneCall size={13} className="phone-icon-btn" />
                               <span>{formattedPhone}</span>
                             </button>
                           ) : (
@@ -709,7 +706,7 @@ export const ContactTable = ({
             </table>
           </div>
 
-          {/* Mobile Cards View (Clean Name without initial circle) */}
+          {/* Mobile Cards View */}
           <div className="mobile-cards-view">
             {sortedContacts.map((contact, idx) => {
               const isSelected = selectedIds.includes(contact.id);
@@ -783,7 +780,6 @@ export const ContactTable = ({
                           className="btn-phone-call"
                           onClick={(e) => handlePhoneClick(contact, e)}
                         >
-                          <PhoneCall size={14} className="field-icon text-success" />
                           <span>{formattedPhone}</span>
                         </button>
                       </div>

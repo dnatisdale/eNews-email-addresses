@@ -736,9 +736,10 @@ body {
   color: var(--text-primary);
   font-size: 0.86rem;
   font-weight: 500;
-  padding: 0.2rem 0.4rem;
+  padding: 0.15rem 0.35rem;
   border-radius: var(--radius-sm);
   cursor: pointer;
+  white-space: nowrap;
   transition: all 0.2s ease;
 }
 
