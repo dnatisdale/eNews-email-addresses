@@ -465,6 +465,56 @@ body {
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-color);
   white-space: nowrap;
+  position: relative;
+}
+
+/* Resizable Columns & Resizer Handle */
+.resizable-th {
+  position: relative;
+  user-select: none;
+}
+
+.th-content {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.col-resizer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  user-select: none;
+  z-index: 5;
+  transition: background-color 0.2s ease;
+}
+
+.col-resizer:hover, .col-resizer:active {
+  background-color: var(--accent-primary);
+  opacity: 0.85;
+}
+
+/* Sticky Headers Option */
+.sticky-header th {
+  position: sticky;
+  top: 0;
+  z-index: 25;
+  background-color: var(--bg-secondary) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.collection-assign-box {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.85rem;
+  margin-bottom: 1rem;
 }
 
 .sortable {

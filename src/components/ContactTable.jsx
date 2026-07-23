@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Search, 
   Copy, 
@@ -10,9 +10,26 @@ import {
   UserCheck, 
   Mail, 
   Phone, 
-  Sparkles
+  Sparkles,
+  FolderPlus,
+  Pin
 } from 'lucide-react';
 import { ColumnSelector, STANDARD_COLUMNS } from './ColumnSelector';
+
+const WIDTHS_STORAGE_KEY = 'eNews_Column_Widths_v1';
+const STICKY_STORAGE_KEY = 'eNews_Sticky_Header_v1';
+
+const DEFAULT_WIDTHS = {
+  name: 210,
+  email: 230,
+  secondaryEmail: 180,
+  phone: 150,
+  group: 140,
+  status: 120,
+  address: 200,
+  notes: 220,
+  actions: 100
+};
 
 export const ContactTable = ({
   contacts = [],
@@ -26,6 +43,7 @@ export const ContactTable = ({
   onDeleteContact,
   onBulkDelete,
   onBulkCopyEmails,
+  onBulkAssignGroup,
   onOpenAddModal,
   onLoadSampleData
 }) => {
@@ -35,6 +53,65 @@ export const ContactTable = ({
   const [sortField, setSortField] = useState('firstName');
   const [sortAsc, setSortAsc] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
+
+  // Range Selection (Shift+Click) State
+  const [lastSelectedIndex, setLastSelectedIndex] = useState(null);
+
+  // Sticky Header Toggle State
+  const [isStickyHeader, setIsStickyHeader] = useState(() => {
+    const saved = localStorage.getItem(STICKY_STORAGE_KEY);
+    return saved === null ? true : saved === 'true';
+  });
+
+  // Column Widths State (Resizable Columns)
+  const [columnWidths, setColumnWidths] = useState(() => {
+    const saved = localStorage.getItem(WIDTHS_STORAGE_KEY);
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return DEFAULT_WIDTHS;
+  });
+
+  // Save sticky header preference
+  useEffect(() => {
+    localStorage.setItem(STICKY_STORAGE_KEY, isStickyHeader ? 'true' : 'false');
+  }, [isStickyHeader]);
+
+  // Save column widths preference
+  useEffect(() => {
+    localStorage.setItem(WIDTHS_STORAGE_KEY, JSON.stringify(columnWidths));
+  }, [columnWidths]);
+
+  // Column resizing drag handler
+  const resizingRef = useRef(null);
+
+  const startResizing = (colId, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startWidth = columnWidths[colId] || 150;
+
+    const onMouseMove = (moveEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const newWidth = Math.max(70, startWidth + deltaX);
+      setColumnWidths((prev) => ({
+        ...prev,
+        [colId]: newWidth
+      }));
+    };
+
+    const onMouseUp = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = 'default';
+      document.body.style.userSelect = 'auto';
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
 
   // Identify custom columns (columns not in standard list)
   const customColumnList = availableColumns.filter(
@@ -90,7 +167,7 @@ export const ContactTable = ({
     }
   };
 
-  // Selection toggle
+  // Selection toggle with Shift+Click Range Selection
   const isAllSelected = sortedContacts.length > 0 && sortedContacts.every((c) => selectedIds.includes(c.id));
 
   const toggleSelectAll = () => {
@@ -101,11 +178,36 @@ export const ContactTable = ({
     }
   };
 
-  const toggleSelectOne = (id) => {
-    if (selectedIds.includes(id)) {
-      setSelectedIds(selectedIds.filter((item) => item !== id));
+  const handleRowSelect = (contactId, index, e) => {
+    if (e.shiftKey && lastSelectedIndex !== null) {
+      // Range selection between lastSelectedIndex and current index
+      const start = Math.min(lastSelectedIndex, index);
+      const end = Math.max(lastSelectedIndex, index);
+      const rangeIds = sortedContacts.slice(start, end + 1).map((c) => c.id);
+
+      // Merge range with existing selection
+      const newSelection = Array.from(new Set([...selectedIds, ...rangeIds]));
+      setSelectedIds(newSelection);
     } else {
-      setSelectedIds([...selectedIds, id]);
+      // Single toggle
+      if (selectedIds.includes(contactId)) {
+        setSelectedIds(selectedIds.filter((id) => id !== contactId));
+      } else {
+        setSelectedIds([...selectedIds, contactId]);
+      }
+    }
+    setLastSelectedIndex(index);
+  };
+
+  // Move Selected Contacts to Collection / Group
+  const handleMoveToCollection = () => {
+    if (selectedIds.length === 0) return;
+    const targetGroup = window.prompt(
+      `Enter Collection / Group name for the ${selectedIds.length} selected contacts:`,
+      'Family & Friends'
+    );
+    if (targetGroup && targetGroup.trim()) {
+      onBulkAssignGroup(selectedIds, targetGroup.trim());
     }
   };
 
@@ -120,7 +222,7 @@ export const ContactTable = ({
 
   return (
     <div className="contact-manager-wrap">
-      {/* Control Bar: Search, Group Filters, Column Selector */}
+      {/* Control Bar: Search, Group Filters, Column Selector & Sticky Header Toggle */}
       <div className="control-bar">
         {/* Search Box */}
         <div className="search-box">
@@ -145,21 +247,34 @@ export const ContactTable = ({
             className={`pill ${selectedGroup === 'All' ? 'pill-active' : ''}`}
             onClick={() => setSelectedGroup('All')}
           >
-            All Groups
+            All Collections ({contacts.length})
           </button>
-          {groups.map((grp) => (
-            <button 
-              key={grp}
-              className={`pill ${selectedGroup === grp ? 'pill-active' : ''}`}
-              onClick={() => setSelectedGroup(grp)}
-            >
-              {grp}
-            </button>
-          ))}
+          {groups.map((grp) => {
+            const grpCount = contacts.filter((c) => c.group === grp).length;
+            return (
+              <button 
+                key={grp}
+                className={`pill ${selectedGroup === grp ? 'pill-active' : ''}`}
+                onClick={() => setSelectedGroup(grp)}
+              >
+                {grp} ({grpCount})
+              </button>
+            );
+          })}
         </div>
 
-        {/* Status Filter Dropdown & Column Selector */}
+        {/* Status Filter, Sticky Header Toggle, and Column Selector */}
         <div className="toolbar-controls">
+          {/* Sticky Header Toggle */}
+          <button
+            className={`btn btn-sm ${isStickyHeader ? 'btn-outline' : 'btn-secondary'}`}
+            onClick={() => setIsStickyHeader(!isStickyHeader)}
+            title={`Toggle Sticky Column Headings (${isStickyHeader ? 'Enabled' : 'Disabled'})`}
+          >
+            <Pin size={14} className={isStickyHeader ? 'text-primary' : ''} />
+            <span className="desktop-only">Sticky Header: {isStickyHeader ? 'ON' : 'OFF'}</span>
+          </button>
+
           <div className="status-filter-wrap">
             <Filter size={14} className="filter-icon" />
             <select 
@@ -185,15 +300,25 @@ export const ContactTable = ({
       {/* Bulk Action Strip (When items selected) */}
       {selectedIds.length > 0 && (
         <div className="bulk-actions-strip">
-          <span className="bulk-count"><strong>{selectedIds.length}</strong> contacts selected</span>
+          <span className="bulk-count">
+            <strong>{selectedIds.length}</strong> contacts highlighted (Hold <code>Shift</code> + Click to range-select)
+          </span>
           <div className="bulk-btn-group">
+            <button 
+              className="btn btn-primary btn-sm"
+              onClick={handleMoveToCollection}
+              title="Add or move selected contacts to a Collection / Group"
+            >
+              <FolderPlus size={14} />
+              <span>Add to Collection</span>
+            </button>
             <button 
               className="btn btn-secondary btn-sm"
               onClick={() => onBulkCopyEmails(',', selectedIds)}
               title="Copy emails as comma-separated list for Gmail"
             >
               <Copy size={14} />
-              <span>Copy for Gmail (,)</span>
+              <span>Copy Gmail (,)</span>
             </button>
             <button 
               className="btn btn-secondary btn-sm"
@@ -201,14 +326,14 @@ export const ContactTable = ({
               title="Copy emails as semicolon-separated list for Outlook"
             >
               <Copy size={14} />
-              <span>Copy for Outlook (;)</span>
+              <span>Copy Outlook (;)</span>
             </button>
             <button 
               className="btn btn-danger btn-sm"
               onClick={() => onBulkDelete(selectedIds)}
             >
               <Trash2 size={14} />
-              <span>Delete Selected</span>
+              <span>Delete</span>
             </button>
           </div>
         </div>
@@ -237,10 +362,10 @@ export const ContactTable = ({
         <>
           {/* Desktop Table View */}
           <div className="table-responsive desktop-view">
-            <table className="contact-table">
+            <table className={`contact-table ${isStickyHeader ? 'sticky-header' : ''}`}>
               <thead>
                 <tr>
-                  <th className="th-checkbox">
+                  <th className="th-checkbox" style={{ width: 40 }}>
                     <input
                       type="checkbox"
                       checked={isAllSelected}
@@ -248,54 +373,134 @@ export const ContactTable = ({
                     />
                   </th>
                   {visibleColumns.includes('name') && (
-                    <th onClick={() => handleSort('name')} className="sortable">
-                      <span>Name</span>
-                      <ArrowUpDown size={12} className="sort-icon" />
+                    <th 
+                      style={{ width: columnWidths.name || 210 }}
+                      className="sortable resizable-th"
+                    >
+                      <div className="th-content" onClick={() => handleSort('name')}>
+                        <span>Name</span>
+                        <ArrowUpDown size={12} className="sort-icon" />
+                      </div>
+                      <div className="col-resizer" onMouseDown={(e) => startResizing('name', e)} />
                     </th>
                   )}
                   {visibleColumns.includes('email') && (
-                    <th onClick={() => handleSort('email')} className="sortable">
-                      <span>Primary Email</span>
-                      <ArrowUpDown size={12} className="sort-icon" />
+                    <th 
+                      style={{ width: columnWidths.email || 230 }}
+                      className="sortable resizable-th"
+                    >
+                      <div className="th-content" onClick={() => handleSort('email')}>
+                        <span>Primary Email</span>
+                        <ArrowUpDown size={12} className="sort-icon" />
+                      </div>
+                      <div className="col-resizer" onMouseDown={(e) => startResizing('email', e)} />
                     </th>
                   )}
-                  {visibleColumns.includes('secondaryEmail') && <th>Secondary Email</th>}
-                  {visibleColumns.includes('phone') && <th>Phone</th>}
+                  {visibleColumns.includes('secondaryEmail') && (
+                    <th 
+                      style={{ width: columnWidths.secondaryEmail || 180 }}
+                      className="resizable-th"
+                    >
+                      <div className="th-content">
+                        <span>Secondary Email</span>
+                      </div>
+                      <div className="col-resizer" onMouseDown={(e) => startResizing('secondaryEmail', e)} />
+                    </th>
+                  )}
+                  {visibleColumns.includes('phone') && (
+                    <th 
+                      style={{ width: columnWidths.phone || 150 }}
+                      className="resizable-th"
+                    >
+                      <div className="th-content">
+                        <span>Phone</span>
+                      </div>
+                      <div className="col-resizer" onMouseDown={(e) => startResizing('phone', e)} />
+                    </th>
+                  )}
                   {visibleColumns.includes('group') && (
-                    <th onClick={() => handleSort('group')} className="sortable">
-                      <span>Group</span>
-                      <ArrowUpDown size={12} className="sort-icon" />
+                    <th 
+                      style={{ width: columnWidths.group || 140 }}
+                      className="sortable resizable-th"
+                    >
+                      <div className="th-content" onClick={() => handleSort('group')}>
+                        <span>Collection / Group</span>
+                        <ArrowUpDown size={12} className="sort-icon" />
+                      </div>
+                      <div className="col-resizer" onMouseDown={(e) => startResizing('group', e)} />
                     </th>
                   )}
                   {visibleColumns.includes('status') && (
-                    <th onClick={() => handleSort('status')} className="sortable">
-                      <span>Status</span>
-                      <ArrowUpDown size={12} className="sort-icon" />
+                    <th 
+                      style={{ width: columnWidths.status || 120 }}
+                      className="sortable resizable-th"
+                    >
+                      <div className="th-content" onClick={() => handleSort('status')}>
+                        <span>Status</span>
+                        <ArrowUpDown size={12} className="sort-icon" />
+                      </div>
+                      <div className="col-resizer" onMouseDown={(e) => startResizing('status', e)} />
                     </th>
                   )}
-                  {visibleColumns.includes('address') && <th>Address</th>}
-                  {visibleColumns.includes('notes') && <th>Notes</th>}
+                  {visibleColumns.includes('address') && (
+                    <th 
+                      style={{ width: columnWidths.address || 200 }}
+                      className="resizable-th"
+                    >
+                      <div className="th-content">
+                        <span>Address</span>
+                      </div>
+                      <div className="col-resizer" onMouseDown={(e) => startResizing('address', e)} />
+                    </th>
+                  )}
+                  {visibleColumns.includes('notes') && (
+                    <th 
+                      style={{ width: columnWidths.notes || 220 }}
+                      className="resizable-th"
+                    >
+                      <div className="th-content">
+                        <span>Notes</span>
+                      </div>
+                      <div className="col-resizer" onMouseDown={(e) => startResizing('notes', e)} />
+                    </th>
+                  )}
                   
-                  {/* Render Headers for any Custom CSV Columns */}
+                  {/* Custom CSV Columns Header */}
                   {customColumnList.map((customCol) => (
                     visibleColumns.includes(customCol.id) && (
-                      <th key={customCol.id}>{customCol.label}</th>
+                      <th 
+                        key={customCol.id}
+                        style={{ width: columnWidths[customCol.id] || 160 }}
+                        className="resizable-th"
+                      >
+                        <div className="th-content">
+                          <span>{customCol.label}</span>
+                        </div>
+                        <div className="col-resizer" onMouseDown={(e) => startResizing(customCol.id, e)} />
+                      </th>
                     )
                   ))}
 
-                  {visibleColumns.includes('actions') && <th className="th-actions">Actions</th>}
+                  {visibleColumns.includes('actions') && (
+                    <th className="th-actions" style={{ width: columnWidths.actions || 100 }}>Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
-                {sortedContacts.map((contact) => {
+                {sortedContacts.map((contact, idx) => {
                   const isSelected = selectedIds.includes(contact.id);
                   return (
-                    <tr key={contact.id} className={isSelected ? 'row-selected' : ''}>
+                    <tr 
+                      key={contact.id} 
+                      className={isSelected ? 'row-selected' : ''}
+                      onClick={(e) => handleRowSelect(contact.id, idx, e)}
+                    >
                       <td className="td-checkbox">
                         <input
                           type="checkbox"
                           checked={isSelected}
-                          onChange={() => toggleSelectOne(contact.id)}
+                          onChange={(e) => handleRowSelect(contact.id, idx, e)}
+                          onClick={(e) => e.stopPropagation()}
                         />
                       </td>
 
@@ -315,7 +520,7 @@ export const ContactTable = ({
                       {visibleColumns.includes('email') && (
                         <td className="td-email">
                           <div className="email-copy-wrap">
-                            <a href={`mailto:${contact.email}`} className="email-link">
+                            <a href={`mailto:${contact.email}`} className="email-link" onClick={(e) => e.stopPropagation()}>
                               {contact.email}
                             </a>
                             <button
@@ -332,7 +537,7 @@ export const ContactTable = ({
                       {visibleColumns.includes('secondaryEmail') && (
                         <td className="td-secondary-email">
                           {contact.secondaryEmail ? (
-                            <a href={`mailto:${contact.secondaryEmail}`} className="email-sublink">
+                            <a href={`mailto:${contact.secondaryEmail}`} className="email-sublink" onClick={(e) => e.stopPropagation()}>
                               {contact.secondaryEmail}
                             </a>
                           ) : (
@@ -369,7 +574,7 @@ export const ContactTable = ({
                         <td className="td-notes">{contact.notes || <span className="text-muted">-</span>}</td>
                       )}
 
-                      {/* Render Cells for Custom CSV Columns */}
+                      {/* Custom CSV Column Cells */}
                       {customColumnList.map((customCol) => (
                         visibleColumns.includes(customCol.id) && (
                           <td key={customCol.id}>
@@ -381,7 +586,7 @@ export const ContactTable = ({
                       ))}
 
                       {visibleColumns.includes('actions') && (
-                        <td className="td-actions">
+                        <td className="td-actions" onClick={(e) => e.stopPropagation()}>
                           <div className="action-row">
                             <button
                               className="icon-action-btn"
@@ -409,16 +614,21 @@ export const ContactTable = ({
 
           {/* Mobile Cards View */}
           <div className="mobile-cards-view">
-            {sortedContacts.map((contact) => {
+            {sortedContacts.map((contact, idx) => {
               const isSelected = selectedIds.includes(contact.id);
               return (
-                <div key={contact.id} className={`contact-card ${isSelected ? 'card-selected' : ''}`}>
+                <div 
+                  key={contact.id} 
+                  className={`contact-card ${isSelected ? 'card-selected' : ''}`}
+                  onClick={(e) => handleRowSelect(contact.id, idx, e)}
+                >
                   <div className="card-top">
                     <div className="card-user">
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={() => toggleSelectOne(contact.id)}
+                        onChange={(e) => handleRowSelect(contact.id, idx, e)}
+                        onClick={(e) => e.stopPropagation()}
                       />
                       <span className="avatar-circle-sm">
                         {(contact.firstName[0] || 'U').toUpperCase()}
@@ -430,7 +640,7 @@ export const ContactTable = ({
                         </span>
                       </div>
                     </div>
-                    <div className="card-actions">
+                    <div className="card-actions" onClick={(e) => e.stopPropagation()}>
                       <button
                         className="icon-action-btn"
                         onClick={() => onEditContact(contact)}
@@ -450,7 +660,7 @@ export const ContactTable = ({
                     {visibleColumns.includes('email') && (
                       <div className="card-field">
                         <Mail size={14} className="field-icon" />
-                        <a href={`mailto:${contact.email}`} className="email-link">
+                        <a href={`mailto:${contact.email}`} className="email-link" onClick={(e) => e.stopPropagation()}>
                           {contact.email}
                         </a>
                         <button
@@ -465,7 +675,7 @@ export const ContactTable = ({
                     {visibleColumns.includes('phone') && contact.phone && (
                       <div className="card-field">
                         <Phone size={14} className="field-icon" />
-                        <a href={`tel:${contact.phone}`}>{contact.phone}</a>
+                        <a href={`tel:${contact.phone}`} onClick={(e) => e.stopPropagation()}>{contact.phone}</a>
                       </div>
                     )}
 

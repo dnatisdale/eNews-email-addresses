@@ -9,6 +9,7 @@ import { SecurityModal } from './components/SecurityModal';
 import { SettingsModal } from './components/SettingsModal';
 import { generateSampleContacts } from './services/sampleData';
 import { findDuplicates } from './services/deduplicator';
+import { cleanDatabase } from './services/dbCleaner';
 import { STANDARD_COLUMNS } from './components/ColumnSelector';
 import { isSecurityLockEnabled } from './services/authService';
 
@@ -24,7 +25,10 @@ export default function App() {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Lightweight auto-clean on initial load
+        const { cleanedContacts } = cleanDatabase(parsed);
+        return cleanedContacts;
       } catch (e) {
         console.error('Failed to load contacts from storage', e);
       }
@@ -181,6 +185,31 @@ export default function App() {
     }, 'Bulk Delete Contacts');
   };
 
+  // Bulk Assign Selected Contacts to a Collection / Group
+  const handleBulkAssignGroup = (idsToAssign, targetGroup) => {
+    requireAuth(() => {
+      setContacts((prev) =>
+        prev.map((c) => (idsToAssign.includes(c.id) ? { ...c, group: targetGroup } : c))
+      );
+      alert(`Moved ${idsToAssign.length} contacts to collection: "${targetGroup}"`);
+      setSelectedIds([]);
+    }, 'Move Contacts to Collection');
+  };
+
+  // Thorough Database Cleanup
+  const handleCleanDatabase = () => {
+    requireAuth(() => {
+      const { cleanedContacts, stats } = cleanDatabase(contacts);
+      setContacts(cleanedContacts);
+      alert(
+        `🧹 Database Cleanup Complete!\n\n` +
+        `• Removed ${stats.removedCount} blank/invalid records.\n` +
+        `• Merged ${stats.mergedCount} duplicate email entries.\n` +
+        `• Total clean contacts: ${stats.totalRemaining}`
+      );
+    }, 'Clean & Repair Database');
+  };
+
   const handlePurgeBlanks = () => {
     requireAuth(() => {
       if (blankCount === 0) {
@@ -215,7 +244,7 @@ export default function App() {
   };
 
   // Import contacts from CSV
-  const handleImportContacts = (importedList) => {
+  const handleImportContacts = (importedList, collectionName) => {
     const foundDups = findDuplicates(contacts, importedList);
 
     if (foundDups.length > 0) {
@@ -291,6 +320,7 @@ export default function App() {
         onScanDuplicates={handleScanDuplicates}
         onPurgeBlanks={handlePurgeBlanks}
         onClearAllContacts={handleClearAllContacts}
+        onCleanDatabase={handleCleanDatabase}
         duplicateCount={duplicates.length}
       />
 
@@ -308,6 +338,7 @@ export default function App() {
           onDeleteContact={handleDeleteContact}
           onBulkDelete={handleBulkDelete}
           onBulkCopyEmails={handleBulkCopyEmails}
+          onBulkAssignGroup={handleBulkAssignGroup}
           onOpenAddModal={() => {
             requireAuth(() => {
               setContactToEdit(null);

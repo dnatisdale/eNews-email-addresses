@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, Sun, Moon, Download, Plus, Users, Sparkles, Printer, Trash2, ShieldAlert, Lock, Unlock, Settings } from 'lucide-react';
+import { Mail, Sun, Moon, Download, Plus, Users, Sparkles, Printer, Trash2, ShieldAlert, Lock, Unlock, Settings, Broom } from 'lucide-react';
 
 export const Header = ({
   contactsCount,
@@ -18,6 +18,7 @@ export const Header = ({
   onScanDuplicates,
   onPurgeBlanks,
   onClearAllContacts,
+  onCleanDatabase,
   duplicateCount
 }) => {
   return (
@@ -81,6 +82,17 @@ export const Header = ({
           >
             <Settings size={18} />
           </button>
+
+          {contactsCount > 0 && (
+            <button 
+              className="btn btn-secondary btn-sm" 
+              onClick={onCleanDatabase}
+              title="Clean & Repair Database: Trim spaces, fix invalid fields, & merge duplicates"
+            >
+              <Broom size={16} />
+              <span className="desktop-only">Clean DB</span>
+            </button>
+          )}
 
           {contactsCount === 0 ? (
             <button 

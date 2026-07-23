@@ -1,12 +1,28 @@
 import React, { useState } from 'react';
-import { X, Upload, Download, FileSpreadsheet, Check, AlertCircle, HelpCircle } from 'lucide-react';
+import { X, Upload, Download, FileSpreadsheet, Check, FolderPlus, HelpCircle } from 'lucide-react';
 import { parseCSV, downloadCSVFile } from '../services/csvParser';
+
+// Helper to convert filename to a clean Collection / Group title
+const formatFileNameToCollection = (fileName) => {
+  if (!fileName) return 'Imported List';
+  const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
+  const cleanName = nameWithoutExt
+    .replace(/[-_]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  // Capitalize words
+  return cleanName
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
 
 export const ImportExportModal = ({ isOpen, onClose, onImportContacts, contacts }) => {
   const [dragActive, setDragActive] = useState(false);
   const [parsedPreview, setParsedPreview] = useState([]);
   const [fileName, setFileName] = useState('');
-  const [importSource, setImportSource] = useState('auto'); // auto, gmail, outlook
+  const [collectionName, setCollectionName] = useState('');
+  const [assignCollection, setAssignCollection] = useState(true);
 
   if (!isOpen) return null;
 
@@ -17,6 +33,9 @@ export const ImportExportModal = ({ isOpen, onClose, onImportContacts, contacts 
 
   const processFile = (file) => {
     setFileName(file.name);
+    const defaultCollName = formatFileNameToCollection(file.name);
+    setCollectionName(defaultCollName);
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const csvText = event.target.result;
@@ -47,10 +66,19 @@ export const ImportExportModal = ({ isOpen, onClose, onImportContacts, contacts 
 
   const handleConfirmImport = () => {
     if (parsedPreview.length > 0) {
-      onImportContacts(parsedPreview);
+      // Apply Collection Name if checked
+      const finalCollection = assignCollection && collectionName.trim() ? collectionName.trim() : null;
+
+      const updatedPreview = parsedPreview.map((contact) => ({
+        ...contact,
+        group: finalCollection || contact.group || 'Friends & Family'
+      }));
+
+      onImportContacts(updatedPreview, finalCollection);
       onClose();
       setParsedPreview([]);
       setFileName('');
+      setCollectionName('');
     }
   };
 
@@ -129,6 +157,30 @@ export const ImportExportModal = ({ isOpen, onClose, onImportContacts, contacts 
                 </button>
               </div>
 
+              {/* Automatic Collection Name Option */}
+              <div className="collection-assign-box">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={assignCollection}
+                    onChange={(e) => setAssignCollection(e.target.checked)}
+                  />
+                  <span>Create Collection / Group from CSV Filename</span>
+                </label>
+                {assignCollection && (
+                  <div className="input-with-icon mt-2">
+                    <FolderPlus size={16} className="input-icon" />
+                    <input
+                      type="text"
+                      className="input-control"
+                      placeholder="Collection Name..."
+                      value={collectionName}
+                      onChange={(e) => setCollectionName(e.target.value)}
+                    />
+                  </div>
+                )}
+              </div>
+
               {/* CSV Preview Table */}
               <div className="preview-table-wrap">
                 <table className="preview-table">
@@ -139,7 +191,7 @@ export const ImportExportModal = ({ isOpen, onClose, onImportContacts, contacts 
                       <th>Last Name</th>
                       <th>Email</th>
                       <th>Phone</th>
-                      <th>Group</th>
+                      <th>Group / Collection</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -150,7 +202,11 @@ export const ImportExportModal = ({ isOpen, onClose, onImportContacts, contacts 
                         <td>{row.lastName}</td>
                         <td><code>{row.email}</code></td>
                         <td>{row.phone}</td>
-                        <td><span className="group-badge">{row.group}</span></td>
+                        <td>
+                          <span className="group-badge">
+                            {assignCollection && collectionName ? collectionName : row.group}
+                          </span>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
