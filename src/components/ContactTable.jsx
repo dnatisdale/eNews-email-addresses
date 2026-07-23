@@ -10,16 +10,14 @@ import {
   UserCheck, 
   Mail, 
   Phone, 
-  MoreVertical,
-  CheckSquare,
-  Square,
   Sparkles
 } from 'lucide-react';
-import { ColumnSelector } from './ColumnSelector';
+import { ColumnSelector, STANDARD_COLUMNS } from './ColumnSelector';
 
 export const ContactTable = ({
   contacts = [],
   groups = [],
+  availableColumns = STANDARD_COLUMNS,
   visibleColumns = [],
   setVisibleColumns,
   selectedIds = [],
@@ -38,6 +36,11 @@ export const ContactTable = ({
   const [sortAsc, setSortAsc] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
 
+  // Identify custom columns (columns not in standard list)
+  const customColumnList = availableColumns.filter(
+    (col) => !STANDARD_COLUMNS.some((std) => std.id === col.id)
+  );
+
   // Filter contacts
   const filteredContacts = contacts.filter((contact) => {
     const fullName = `${contact.firstName || ''} ${contact.lastName || ''}`.toLowerCase();
@@ -45,6 +48,7 @@ export const ContactTable = ({
     const secondaryEmail = (contact.secondaryEmail || '').toLowerCase();
     const group = (contact.group || '').toLowerCase();
     const notes = (contact.notes || '').toLowerCase();
+    const customVals = contact.customFields ? Object.values(contact.customFields).join(' ').toLowerCase() : '';
     const query = searchTerm.toLowerCase();
 
     const matchesSearch = 
@@ -53,7 +57,8 @@ export const ContactTable = ({
       email.includes(query) ||
       secondaryEmail.includes(query) ||
       group.includes(query) ||
-      notes.includes(query);
+      notes.includes(query) ||
+      customVals.includes(query);
 
     const matchesGroup = selectedGroup === 'All' || contact.group === selectedGroup;
     const matchesStatus = selectedStatus === 'All' || contact.status === selectedStatus;
@@ -170,6 +175,7 @@ export const ContactTable = ({
           </div>
 
           <ColumnSelector 
+            availableColumns={availableColumns}
             visibleColumns={visibleColumns} 
             setVisibleColumns={setVisibleColumns} 
           />
@@ -269,6 +275,14 @@ export const ContactTable = ({
                   )}
                   {visibleColumns.includes('address') && <th>Address</th>}
                   {visibleColumns.includes('notes') && <th>Notes</th>}
+                  
+                  {/* Render Headers for any Custom CSV Columns */}
+                  {customColumnList.map((customCol) => (
+                    visibleColumns.includes(customCol.id) && (
+                      <th key={customCol.id}>{customCol.label}</th>
+                    )
+                  ))}
+
                   {visibleColumns.includes('actions') && <th className="th-actions">Actions</th>}
                 </tr>
               </thead>
@@ -354,6 +368,17 @@ export const ContactTable = ({
                       {visibleColumns.includes('notes') && (
                         <td className="td-notes">{contact.notes || <span className="text-muted">-</span>}</td>
                       )}
+
+                      {/* Render Cells for Custom CSV Columns */}
+                      {customColumnList.map((customCol) => (
+                        visibleColumns.includes(customCol.id) && (
+                          <td key={customCol.id}>
+                            {contact.customFields && contact.customFields[customCol.id] 
+                              ? contact.customFields[customCol.id] 
+                              : <span className="text-muted">-</span>}
+                          </td>
+                        )
+                      ))}
 
                       {visibleColumns.includes('actions') && (
                         <td className="td-actions">

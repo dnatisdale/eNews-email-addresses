@@ -7,7 +7,7 @@ import { DuplicateResolverModal } from './components/DuplicateResolverModal';
 import { PrintView } from './components/PrintView';
 import { generateSampleContacts } from './services/sampleData';
 import { findDuplicates } from './services/deduplicator';
-import { COLUMN_DEFINITIONS } from './components/ColumnSelector';
+import { STANDARD_COLUMNS } from './components/ColumnSelector';
 
 const STORAGE_KEY = 'eNews_Contacts_List_v1';
 const THEME_KEY = 'eNews_Theme_Preference';
@@ -29,10 +29,36 @@ export default function App() {
     return [];
   });
 
+  // Dynamically compute available columns (Standard + all custom headers from imported CSVs)
+  const customKeysSet = new Set();
+  contacts.forEach((c) => {
+    if (c.customFields) {
+      Object.keys(c.customFields).forEach((key) => customKeysSet.add(key));
+    }
+  });
+
+  const availableColumns = [
+    ...STANDARD_COLUMNS,
+    ...Array.from(customKeysSet).map((key) => ({
+      id: key,
+      label: key,
+      default: true
+    }))
+  ];
+
   // Selected column visibility state
   const [visibleColumns, setVisibleColumns] = useState(() => 
-    COLUMN_DEFINITIONS.filter(c => c.default).map(c => c.id)
+    STANDARD_COLUMNS.filter(c => c.default).map(c => c.id)
   );
+
+  // Auto-enable newly discovered custom columns when imported
+  useEffect(() => {
+    if (customKeysSet.size > 0) {
+      const allIds = availableColumns.map(c => c.id);
+      const newVisible = Array.from(new Set([...visibleColumns, ...allIds]));
+      setVisibleColumns(newVisible);
+    }
+  }, [contacts.length]);
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState([]);
@@ -145,7 +171,7 @@ export default function App() {
     alert(`Copied ${targetContacts.length} formatted email addresses to clipboard!`);
   };
 
-  // Import contacts from CSV (Replaces existing if user wants or appends)
+  // Import contacts from CSV
   const handleImportContacts = (importedList) => {
     // Scan imported list for duplicates against existing list
     const foundDups = findDuplicates(contacts, importedList);
@@ -224,6 +250,7 @@ export default function App() {
         <ContactTable
           contacts={contacts}
           groups={groups}
+          availableColumns={availableColumns}
           visibleColumns={visibleColumns}
           setVisibleColumns={setVisibleColumns}
           selectedIds={selectedIds}

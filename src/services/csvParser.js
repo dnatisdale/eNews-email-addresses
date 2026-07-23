@@ -1,7 +1,8 @@
 /**
  * RFC 4180 Compliant CSV Parser & Generator Service for eNews Address Book
  * Supports Google Contacts, Microsoft Outlook, and generic CSV formats.
- * Correctly handles multiline quoted strings (addresses, notes, group memberships).
+ * Correctly handles multiline quoted strings (addresses, notes, group memberships)
+ * and extracts custom CSV columns into customFields.
  */
 
 // Parse raw CSV text into a 2D array of rows, respecting quoted multiline strings
@@ -81,6 +82,19 @@ export const parseCSV = (csvText) => {
   return normalizeImportedContacts(records);
 };
 
+// Known Standard Keys for matching
+const STANDARD_KEYS = new Set([
+  'first name', 'given name', 'first', 'forename', 
+  'last name', 'family name', 'last', 'surname',
+  'full name', 'name', 'display name', 'contact name',
+  'e-mail 1 - value', 'e-mail address', 'email address', 'email 1', 'email', 'e-mail', 'primary email', 'e-mail 1',
+  'e-mail 2 - value', 'e-mail 2 address', 'email 2', 'secondary email', 'e-mail 2',
+  'phone 1 - value', 'mobile phone', 'home phone', 'business phone', 'phone', 'cell phone', 'telephone', 'phone 1',
+  'group membership', 'categories', 'group', 'category', 'tag', 'tags',
+  'address 1 - formatted', 'home street', 'business street', 'address', 'street address',
+  'notes', 'comment', 'memo', 'description', 'status', 'state'
+]);
+
 // Normalize varied CSV records into standard eNews Contact shape
 const normalizeImportedContacts = (records) => {
   return records
@@ -139,6 +153,14 @@ const normalizeImportedContacts = (records) => {
         status = customStatus;
       }
 
+      // 7. Extract Custom Fields (Any CSV column not in standard set)
+      const customFields = {};
+      Object.keys(row).forEach((colHeader) => {
+        if (colHeader && row[colHeader] && !STANDARD_KEYS.has(colHeader.toLowerCase().trim())) {
+          customFields[colHeader.trim()] = row[colHeader].trim();
+        }
+      });
+
       // STRICT VALIDATION: Skip records that have NO email AND NO name AND NO phone
       const cleanEmail = email.trim();
       const cleanFirstName = rawFirstName.trim();
@@ -164,6 +186,7 @@ const normalizeImportedContacts = (records) => {
         status: status,
         address: address.trim(),
         notes: notes.trim(),
+        customFields: customFields,
         createdAt: new Date().toISOString()
       };
     })
@@ -172,6 +195,14 @@ const normalizeImportedContacts = (records) => {
 
 // Generate CSV string from contacts array
 export const exportToCSV = (contacts) => {
+  // Collect all unique custom field headers across all contacts
+  const customHeaders = new Set();
+  contacts.forEach((c) => {
+    if (c.customFields) {
+      Object.keys(c.customFields).forEach((key) => customHeaders.add(key));
+    }
+  });
+
   const headers = [
     'First Name',
     'Last Name',
@@ -181,7 +212,8 @@ export const exportToCSV = (contacts) => {
     'Group / Category',
     'Status',
     'Address',
-    'Notes'
+    'Notes',
+    ...Array.from(customHeaders)
   ];
 
   const escapeCSV = (val) => {
@@ -190,17 +222,25 @@ export const exportToCSV = (contacts) => {
     return `"${str}"`;
   };
 
-  const rows = contacts.map((c) => [
-    escapeCSV(c.firstName),
-    escapeCSV(c.lastName),
-    escapeCSV(c.email),
-    escapeCSV(c.secondaryEmail),
-    escapeCSV(c.phone),
-    escapeCSV(c.group),
-    escapeCSV(c.status),
-    escapeCSV(c.address),
-    escapeCSV(c.notes)
-  ]);
+  const rows = contacts.map((c) => {
+    const baseCols = [
+      escapeCSV(c.firstName),
+      escapeCSV(c.lastName),
+      escapeCSV(c.email),
+      escapeCSV(c.secondaryEmail),
+      escapeCSV(c.phone),
+      escapeCSV(c.group),
+      escapeCSV(c.status),
+      escapeCSV(c.address),
+      escapeCSV(c.notes)
+    ];
+
+    const extraCols = Array.from(customHeaders).map((h) => 
+      escapeCSV(c.customFields ? c.customFields[h] : '')
+    );
+
+    return [...baseCols, ...extraCols];
+  });
 
   return [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
 };

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Columns, CheckSquare, Square, Check } from 'lucide-react';
+import { Columns, Check } from 'lucide-react';
 
-export const COLUMN_DEFINITIONS = [
+export const STANDARD_COLUMNS = [
   { id: 'name', label: 'Contact Name', default: true },
   { id: 'email', label: 'Primary Email', default: true },
   { id: 'secondaryEmail', label: 'Secondary Email', default: false },
@@ -13,7 +13,7 @@ export const COLUMN_DEFINITIONS = [
   { id: 'actions', label: 'Actions', default: true }
 ];
 
-export const ColumnSelector = ({ visibleColumns, setVisibleColumns }) => {
+export const ColumnSelector = ({ availableColumns = STANDARD_COLUMNS, visibleColumns, setVisibleColumns }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -30,7 +30,6 @@ export const ColumnSelector = ({ visibleColumns, setVisibleColumns }) => {
 
   const toggleColumn = (id) => {
     if (visibleColumns.includes(id)) {
-      // Don't allow clearing all columns completely
       if (visibleColumns.length > 1) {
         setVisibleColumns(visibleColumns.filter((col) => col !== id));
       }
@@ -40,16 +39,16 @@ export const ColumnSelector = ({ visibleColumns, setVisibleColumns }) => {
   };
 
   const handleSelectAll = () => {
-    setVisibleColumns(COLUMN_DEFINITIONS.map((c) => c.id));
+    setVisibleColumns(availableColumns.map((c) => c.id));
   };
 
   const handleClearAll = () => {
-    // Keep at least 'name' and 'email' for usability
+    // Keep at least name and email for usability
     setVisibleColumns(['name', 'email']);
   };
 
   const activeCount = visibleColumns.length;
-  const totalCount = COLUMN_DEFINITIONS.length;
+  const totalCount = availableColumns.length;
 
   return (
     <div className="column-selector-container" ref={dropdownRef}>
@@ -87,7 +86,7 @@ export const ColumnSelector = ({ visibleColumns, setVisibleColumns }) => {
           </div>
 
           <div className="column-options-list">
-            {COLUMN_DEFINITIONS.map((col) => {
+            {availableColumns.map((col) => {
               const isChecked = visibleColumns.includes(col.id);
               return (
                 <label key={col.id} className="column-checkbox-item">
