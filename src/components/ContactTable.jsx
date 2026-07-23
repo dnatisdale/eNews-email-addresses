@@ -574,12 +574,13 @@ export const ContactTable = ({
                             );
                           case 'score':
                             return (
-                              <td key="score" className="td-accuracy" onClick={(e) => e.stopPropagation()}>
+                              <td key="score" className="td-accuracy" onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
                                 <div 
-                                  className={`score-light-only light-${accuracy.level}`}
+                                  className={`score-grade grade-${accuracy.grade}`}
                                   title={accuracy.tooltip}
+                                  style={{ fontWeight: 'bold', fontSize: '1.1rem', color: accuracy.color }}
                                 >
-                                  <span className={`score-glow-dot dot-${accuracy.level}`}></span>
+                                  {accuracy.grade}
                                 </div>
                               </td>
                             );
@@ -721,10 +722,11 @@ export const ContactTable = ({
                             {contact.status}
                           </span>
                           <div 
-                            className={`score-light-only light-${accuracy.level}`}
+                            className={`score-grade grade-${accuracy.grade}`}
                             title={accuracy.tooltip}
+                            style={{ fontWeight: 'bold', fontSize: '1.1rem', color: accuracy.color, textAlign: 'center' }}
                           >
-                            <span className={`score-glow-dot dot-${accuracy.level}`}></span>
+                            {accuracy.grade}
                           </div>
                         </div>
                       </div>

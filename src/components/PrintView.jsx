@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Printer, Settings } from 'lucide-react';
+import { getContactAccuracy } from '../services/accuracyEvaluator';
 
 const DEFAULT_PRINT_WIDTHS = {
   checkbox: 45,
@@ -287,7 +288,7 @@ export const PrintView = ({ isOpen, onClose, contacts = [], availableColumns = [
                 return (
                   <th key={col.id} style={{ 
                     width: widthMode === 'proportional' ? `${widthPercent}%` : 'auto',
-                    textAlign: col.id === 'index' ? 'center' : 'left'
+                    textAlign: (col.id === 'index' || col.id === 'score') ? 'center' : 'left'
                   }}>
                     {col.label}
                   </th>
@@ -303,6 +304,10 @@ export const PrintView = ({ isOpen, onClose, contacts = [], availableColumns = [
                   
                   let val;
                   if (col.id === 'index') val = idx + 1;
+                  else if (col.id === 'score') {
+                    const accuracy = getContactAccuracy(c);
+                    val = <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: accuracy.color }}>{accuracy.grade}</span>;
+                  }
                   else if (col.id === 'name') val = <strong>{c.firstName} {c.lastName}</strong>;
                   else if (col.id === 'email') val = <span style={{ color: '#0369a1' }}>{c.email}</span>;
                   else if (col.id === 'categories') val = c.categories ? c.categories.join(', ') : '';
@@ -311,7 +316,7 @@ export const PrintView = ({ isOpen, onClose, contacts = [], availableColumns = [
                   
                   return (
                     <td key={col.id} className={col.id === 'notes' ? 'print-notes' : ''} style={{ 
-                      textAlign: col.id === 'index' ? 'center' : 'left',
+                      textAlign: (col.id === 'index' || col.id === 'score') ? 'center' : 'left',
                       whiteSpace: col.id === 'phone' ? 'nowrap' : undefined
                     }}>
                       {val}

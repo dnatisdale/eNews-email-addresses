@@ -841,6 +841,10 @@ html, body, #root {
   text-align: center;
 }
 
+.th-score .th-content {
+  justify-content: center;
+}
+
 .score-light-only {
   display: inline-flex;
   align-items: center;
