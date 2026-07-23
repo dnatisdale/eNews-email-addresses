@@ -26,7 +26,7 @@ const WIDTHS_STORAGE_KEY = 'eNews_Column_Widths_v1';
 const STICKY_STORAGE_KEY = 'eNews_Sticky_Header_v1';
 
 const DEFAULT_WIDTHS = {
-  accuracy: 110,
+  accuracy: 75,
   name: 210,
   email: 230,
   secondaryEmail: 180,
@@ -59,8 +59,8 @@ export const ContactTable = ({
   const [selectedStatus, setSelectedStatus] = useState('All');
   const [accuracyFilter, setAccuracyFilter] = useState('All');
   const [activeLetter, setActiveLetter] = useState('All');
-  const [sortField, setSortField] = useState('firstName');
-  const [sortAsc, setSortAsc] = useState(true);
+  const [sortField, setSortField] = useState('score'); // Default sort by Score!
+  const [sortAsc, setSortAsc] = useState(false); // Default Green -> Yellow -> Red
   const [copiedId, setCopiedId] = useState(null);
 
   // Call Modal State
@@ -99,11 +99,11 @@ export const ContactTable = ({
     e.preventDefault();
     e.stopPropagation();
     const startX = e.clientX;
-    const startWidth = columnWidths[colId] || 150;
+    const startWidth = columnWidths[colId] || 100;
 
     const onMouseMove = (moveEvent) => {
       const deltaX = moveEvent.clientX - startX;
-      const newWidth = Math.max(70, startWidth + deltaX);
+      const newWidth = Math.max(50, startWidth + deltaX);
       setColumnWidths((prev) => ({
         ...prev,
         [colId]: newWidth
@@ -173,6 +173,14 @@ export const ContactTable = ({
 
   // Sort contacts
   const sortedContacts = [...filteredContacts].sort((a, b) => {
+    if (sortField === 'score') {
+      const rankA = getContactAccuracy(a).scoreRank;
+      const rankB = getContactAccuracy(b).scoreRank;
+      if (rankA < rankB) return sortAsc ? -1 : 1;
+      if (rankA > rankB) return sortAsc ? 1 : -1;
+      return 0;
+    }
+
     let valA = (a[sortField] || '').toString().toLowerCase();
     let valB = (b[sortField] || '').toString().toLowerCase();
 
@@ -191,7 +199,8 @@ export const ContactTable = ({
       setSortAsc(!sortAsc);
     } else {
       setSortField(field);
-      setSortAsc(true);
+      // Default score sort to descending (Green top)
+      setSortAsc(field === 'score' ? false : true);
     }
   };
 
@@ -304,19 +313,19 @@ export const ContactTable = ({
             contacts={contacts}
           />
 
-          {/* Accuracy Rating Filter */}
+          {/* Score Rating Filter */}
           <div className="status-filter-wrap">
             <ShieldCheck size={14} className="filter-icon text-primary" />
             <select
               className="select-control-sm"
               value={accuracyFilter}
               onChange={(e) => setAccuracyFilter(e.target.value)}
-              title="Filter by Info Accuracy & Completeness"
+              title="Filter by Contact Score Card Rating"
             >
-              <option value="All">All Info Ratings</option>
-              <option value="green">🟢 High Accuracy (Complete)</option>
-              <option value="yellow">🟡 Partial Info</option>
-              <option value="red">🔴 Needs Info</option>
+              <option value="All">All Scores</option>
+              <option value="green">🟢 Green (100% Complete)</option>
+              <option value="yellow">🟡 Yellow (Partial Info)</option>
+              <option value="red">🔴 Red (Needs Info)</option>
             </select>
           </div>
 
@@ -399,7 +408,7 @@ export const ContactTable = ({
         <div className="empty-state">
           <UserCheck size={48} className="empty-icon" />
           <h3>No contacts found</h3>
-          <p>{searchTerm || activeLetter !== 'All' ? 'Try adjusting your search query, letter filter, or rating filters.' : 'Your eNews address book is currently empty.'}</p>
+          <p>{searchTerm || activeLetter !== 'All' ? 'Try adjusting your search query, letter filter, or score filters.' : 'Your eNews address book is currently empty.'}</p>
           <div className="empty-actions">
             {contacts.length === 0 && (
               <button className="btn btn-secondary" onClick={onLoadSampleData}>
@@ -420,7 +429,7 @@ export const ContactTable = ({
             <table className={`contact-table ${isStickyHeader ? 'sticky-header' : ''}`}>
               <thead>
                 <tr>
-                  <th className="th-checkbox" style={{ width: 40 }}>
+                  <th className="th-checkbox" style={{ width: 36 }}>
                     <input
                       type="checkbox"
                       checked={isAllSelected}
@@ -428,10 +437,14 @@ export const ContactTable = ({
                     />
                   </th>
 
-                  {/* Info Accuracy Rating Header */}
-                  <th style={{ width: columnWidths.accuracy || 110 }} className="resizable-th">
-                    <div className="th-content">
-                      <span>Info Rating</span>
+                  {/* Sortable Compact Score Card Column Header */}
+                  <th 
+                    style={{ width: columnWidths.accuracy || 75 }}
+                    className="sortable resizable-th th-score"
+                  >
+                    <div className="th-content" onClick={() => handleSort('score')} title="Sort by Score (Green -> Yellow -> Red)">
+                      <span>Score</span>
+                      <ArrowUpDown size={12} className="sort-icon" />
                     </div>
                     <div className="col-resizer" onMouseDown={(e) => startResizing('accuracy', e)} />
                   </th>
@@ -571,15 +584,15 @@ export const ContactTable = ({
                         />
                       </td>
 
-                      {/* Info Rating Badge Cell (Green/Yellow/Red Button) */}
-                      <td className="td-accuracy">
-                        <span 
-                          className={`accuracy-badge accuracy-${accuracy.level}`}
+                      {/* Ultra-Compact Score Dot Indicator with Rich Hover Explanation */}
+                      <td className="td-accuracy" onClick={(e) => e.stopPropagation()}>
+                        <div 
+                          className={`score-dot-pill score-${accuracy.level}`}
                           title={accuracy.tooltip}
                         >
-                          <span className={`accuracy-dot dot-${accuracy.level}`}></span>
-                          <span>{accuracy.label}</span>
-                        </span>
+                          <span className={`score-glow-dot dot-${accuracy.level}`}></span>
+                          <span className="score-percent-label">{accuracy.scorePercent}</span>
+                        </div>
                       </td>
 
                       {visibleColumns.includes('name') && (
@@ -741,10 +754,10 @@ export const ContactTable = ({
                           <span className={`status-badge status-${contact.status.toLowerCase()}`}>
                             {contact.status}
                           </span>
-                          <span className={`accuracy-badge accuracy-${accuracy.level}`} title={accuracy.tooltip}>
-                            <span className={`accuracy-dot dot-${accuracy.level}`}></span>
-                            <span>{accuracy.label}</span>
-                          </span>
+                          <div className={`score-dot-pill score-${accuracy.level}`} title={accuracy.tooltip}>
+                            <span className={`score-glow-dot dot-${accuracy.level}`}></span>
+                            <span className="score-percent-label">{accuracy.scorePercent}</span>
+                          </div>
                         </div>
                       </div>
                     </div>

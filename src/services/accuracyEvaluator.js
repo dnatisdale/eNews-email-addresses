@@ -1,19 +1,19 @@
 /**
  * Accuracy & Completeness Evaluation Service for eNews Address Book
- * Categorizes contacts into Green (High/Complete), Yellow (Partial), or Red (Needs Info/Incomplete)
- * based on Email, First Name, Last Name, and Mailing Address / Phone presence.
+ * Categorizes contacts into Green (Complete - Rank 3), Yellow (Partial - Rank 2), or Red (Needs Info - Rank 1)
  */
 
 export const getContactAccuracy = (contact) => {
   if (!contact) {
     return {
       level: 'red',
+      scoreRank: 1,
+      scorePercent: '0%',
       label: 'Needs Info',
       color: '#ef4444',
-      bg: 'rgba(239, 68, 68, 0.15)',
-      border: 'rgba(239, 68, 68, 0.3)',
-      tooltip: 'Empty or invalid record',
-      checks: { email: false, firstName: false, lastName: false, address: false, phone: false }
+      tooltip: '🔴 Incomplete: Missing critical contact details',
+      checks: { email: false, firstName: false, lastName: false, address: false, phone: false },
+      missingList: ['Email', 'Name', 'Address', 'Phone']
     };
   }
 
@@ -44,15 +44,18 @@ export const getContactAccuracy = (contact) => {
   if (!hasAddress) missingList.push('Address');
   if (!hasPhone) missingList.push('Phone');
 
+  const fieldCount = [hasEmail, hasFirstName, hasLastName, hasAddress, hasPhone].filter(Boolean).length;
+  const scorePercent = `${Math.round((fieldCount / 5) * 100)}%`;
+
   // Green: Has Valid Email + First Name + Last Name + (Mailing Address OR Phone)
   if (hasEmail && hasFirstName && hasLastName && (hasAddress || hasPhone)) {
     return {
       level: 'green',
+      scoreRank: 3,
+      scorePercent,
       label: 'Complete',
       color: '#10b981',
-      bg: 'rgba(16, 185, 129, 0.15)',
-      border: 'rgba(16, 185, 129, 0.3)',
-      tooltip: '🟢 Complete: Valid Email, First Name, Last Name & Address/Phone',
+      tooltip: `🟢 Complete Score (${scorePercent})\n✓ Email: ${email}\n✓ Name: ${firstName} ${lastName}\n${hasPhone ? '✓ Phone: ' + phone : '✗ Address: Missing'}`,
       checks,
       missingList
     };
@@ -62,11 +65,11 @@ export const getContactAccuracy = (contact) => {
   if (hasEmail && (hasFirstName || hasLastName)) {
     return {
       level: 'yellow',
+      scoreRank: 2,
+      scorePercent,
       label: 'Partial',
       color: '#f59e0b',
-      bg: 'rgba(245, 158, 11, 0.15)',
-      border: 'rgba(245, 158, 11, 0.3)',
-      tooltip: `🟡 Partial: Missing ${missingList.join(', ')}`,
+      tooltip: `🟡 Partial Score (${scorePercent})\n✓ Email: ${email}\nMissing: ${missingList.join(', ')}`,
       checks,
       missingList
     };
@@ -75,11 +78,11 @@ export const getContactAccuracy = (contact) => {
   // Red: Missing Email OR missing Name completely
   return {
     level: 'red',
+    scoreRank: 1,
+    scorePercent,
     label: 'Needs Info',
     color: '#ef4444',
-    bg: 'rgba(239, 68, 68, 0.15)',
-    border: 'rgba(239, 68, 68, 0.3)',
-    tooltip: `🔴 Incomplete: Missing ${missingList.join(', ')}`,
+    tooltip: `🔴 Incomplete Score (${scorePercent})\nMissing: ${missingList.join(', ')}`,
     checks,
     missingList
   };
