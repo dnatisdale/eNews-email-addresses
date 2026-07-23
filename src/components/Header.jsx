@@ -86,12 +86,14 @@ export const Header = ({
             <span>{isEditingUnlocked ? 'Unlocked' : 'Locked'}</span>
           </button>
 
+          {/* Prominent Admin & Security Settings Button */}
           <button
-            className="theme-toggle-btn"
+            className="btn btn-secondary btn-sm"
             onClick={onOpenSettings}
-            title="App & Security Settings"
+            title="App & Admin Security Settings (Configure 050763 Admin Code)"
           >
-            <Settings size={18} />
+            <Settings size={16} />
+            <span>Settings</span>
           </button>
 
           {contactsCount > 0 && (

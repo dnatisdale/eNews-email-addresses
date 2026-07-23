@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, X, KeyRound, Smartphone, Mail, CheckCircle2, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Lock, X, KeyRound, Smartphone, Mail, Check, ShieldCheck, RefreshCw, Copy } from 'lucide-react';
 import { getAdminPIN, generateVerificationCode } from '../services/authService';
 
 export const SecurityModal = ({
@@ -13,6 +13,7 @@ export const SecurityModal = ({
   const [userCodeInput, setUserCodeInput] = useState('');
   const [pinInput, setPinInput] = useState('');
   const [codeSent, setCodeSent] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [simulatedNotification, setSimulatedNotification] = useState(null);
 
@@ -21,7 +22,7 @@ export const SecurityModal = ({
       setErrorMsg('');
       setUserCodeInput('');
       setPinInput('');
-      // Auto-send verification code on modal open
+      setCopiedCode(false);
       handleSendCode();
     }
   }, [isOpen]);
@@ -33,12 +34,16 @@ export const SecurityModal = ({
     setOtpCode(code);
     setCodeSent(true);
     setErrorMsg('');
+    setCopiedCode(false);
 
-    // Simulate instant Email/SMS notification toast on screen
-    setSimulatedNotification(`📱 SMS / 📧 Email Code Sent: ${code}`);
-    setTimeout(() => {
-      setSimulatedNotification(null);
-    }, 10000);
+    setSimulatedNotification(`📱 SMS / 📧 Email Verification Code: ${code}`);
+  };
+
+  const handleCopyCode = () => {
+    if (!otpCode) return;
+    navigator.clipboard.writeText(otpCode);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2500);
   };
 
   const handleVerifyCode = (e) => {
@@ -47,7 +52,7 @@ export const SecurityModal = ({
       onUnlockSuccess();
       onClose();
     } else {
-      setErrorMsg('Incorrect verification code. Please check the code sent or request a new one.');
+      setErrorMsg('Incorrect 6-digit verification code. Please check the code sent or click Resend Code.');
     }
   };
 
@@ -58,7 +63,7 @@ export const SecurityModal = ({
       onUnlockSuccess();
       onClose();
     } else {
-      setErrorMsg('Incorrect Master Security PIN.');
+      setErrorMsg('Incorrect 6-Digit Admin Code (Default: 050763).');
     }
   };
 
@@ -77,18 +82,36 @@ export const SecurityModal = ({
 
         <div className="modal-body">
           <p className="security-notice">
-            🔒 Verification is required to <strong>{actionTitle}</strong>.
+            🔒 Security code is required to <strong>{actionTitle}</strong>.
           </p>
 
-          {/* Simulated SMS/Email Notification Banner */}
+          {/* Verification Code Banner with 1-Click Copy Button */}
           {simulatedNotification && (
             <div className="sms-banner">
               <div className="sms-banner-content">
-                <Smartphone size={18} className="sms-icon" />
-                <div>
-                  <strong>Verification Code Message:</strong>
+                <Smartphone size={20} className="sms-icon" />
+                <div className="sms-details">
+                  <span className="sms-title">Verification Code Message:</span>
                   <div className="code-highlight">{otpCode}</div>
                 </div>
+                <button
+                  type="button"
+                  className="btn-copy-code"
+                  onClick={handleCopyCode}
+                  title="Copy 6-Digit Verification Code"
+                >
+                  {copiedCode ? (
+                    <>
+                      <Check size={14} className="text-success" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={14} />
+                      <span>Copy Code</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           )}
@@ -96,6 +119,7 @@ export const SecurityModal = ({
           {/* Mode Switch Tabs */}
           <div className="auth-tabs">
             <button
+              type="button"
               className={`auth-tab ${authMode === 'otp' ? 'auth-tab-active' : ''}`}
               onClick={() => { setAuthMode('otp'); setErrorMsg(''); }}
             >
@@ -103,11 +127,12 @@ export const SecurityModal = ({
               <span>Email / Text Code</span>
             </button>
             <button
+              type="button"
               className={`auth-tab ${authMode === 'pin' ? 'auth-tab-active' : ''}`}
               onClick={() => { setAuthMode('pin'); setErrorMsg(''); }}
             >
               <KeyRound size={16} />
-              <span>Master Admin PIN</span>
+              <span>6-Digit Admin Code</span>
             </button>
           </div>
 
@@ -148,17 +173,17 @@ export const SecurityModal = ({
           ) : (
             <form onSubmit={handleVerifyPIN} className="auth-form">
               <div className="form-group">
-                <label>Enter Master Admin PIN</label>
+                <label>Enter 6-Digit Admin Passcode</label>
                 <input
                   type="password"
-                  maxLength={10}
+                  maxLength={6}
                   autoFocus
-                  className="input-control"
-                  placeholder="Default: 1234"
+                  className="input-control code-input-lg"
+                  placeholder="Default: 050763"
                   value={pinInput}
                   onChange={(e) => setPinInput(e.target.value)}
                 />
-                <p className="help-text">Default PIN is <code>1234</code> (Can be customized in Settings).</p>
+                <p className="help-text">Default Admin Passcode is <code>050763</code> (Can be changed in Settings ⚙️).</p>
               </div>
 
               <div className="modal-footer">
@@ -167,7 +192,7 @@ export const SecurityModal = ({
                 </button>
                 <button type="submit" className="btn btn-primary">
                   <ShieldCheck size={16} />
-                  <span>Verify PIN</span>
+                  <span>Verify Passcode</span>
                 </button>
               </div>
             </form>

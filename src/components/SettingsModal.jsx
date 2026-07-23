@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { X, Settings, Shield, KeyRound, Save, Check } from 'lucide-react';
+import { X, Settings, Shield, KeyRound, Save, Check, Lock, Unlock } from 'lucide-react';
 import { getAdminPIN, setAdminPIN, isSecurityLockEnabled, setSecurityLockEnabled } from '../services/authService';
 
 export const SettingsModal = ({ isOpen, onClose }) => {
   const [lockEnabled, setLockEnabledState] = useState(true);
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -14,6 +15,7 @@ export const SettingsModal = ({ isOpen, onClose }) => {
       setLockEnabledState(isSecurityLockEnabled());
       setCurrentPin('');
       setNewPin('');
+      setConfirmPin('');
       setSavedSuccess(false);
       setErrorMsg('');
     }
@@ -25,15 +27,19 @@ export const SettingsModal = ({ isOpen, onClose }) => {
     e.preventDefault();
     setErrorMsg('');
 
-    // If changing PIN, verify current PIN
+    // If changing Admin Passcode
     if (newPin.trim()) {
       const activePin = getAdminPIN();
       if (currentPin.trim() !== activePin) {
-        setErrorMsg('Current Master PIN is incorrect.');
+        setErrorMsg('Current Admin Code is incorrect. Default code is 050763.');
         return;
       }
-      if (newPin.trim().length < 4) {
-        setErrorMsg('New PIN must be at least 4 characters/digits.');
+      if (newPin.trim().length !== 6 || !/^\d{6}$/.test(newPin.trim())) {
+        setErrorMsg('New Admin Code must be exactly 6 numeric digits (e.g. 050763).');
+        return;
+      }
+      if (newPin.trim() !== confirmPin.trim()) {
+        setErrorMsg('New Admin Code and Confirmation do not match.');
         return;
       }
       setAdminPIN(newPin.trim());
@@ -51,8 +57,8 @@ export const SettingsModal = ({ isOpen, onClose }) => {
     <div className="modal-backdrop">
       <div className="modal-content settings-modal">
         <div className="modal-header">
-          <div className="modal-title-wrap">
-            <Settings className="modal-icon" />
+          <div className="modal-title-wrap text-primary">
+            <Settings className="modal-icon text-primary" />
             <h2>Security & App Settings</h2>
           </div>
           <button className="icon-close-btn" onClick={onClose}>
@@ -74,9 +80,12 @@ export const SettingsModal = ({ isOpen, onClose }) => {
           <div className="settings-section">
             <div className="setting-row">
               <div>
-                <h4 className="setting-title">Require Verification Code for Editing</h4>
+                <h4 className="setting-title flex-align-gap">
+                  {lockEnabled ? <Lock size={16} className="text-danger" /> : <Unlock size={16} className="text-success" />}
+                  <span>Require Security Passcode for Editing & Deleting</span>
+                </h4>
                 <p className="setting-desc">
-                  When enabled, visitors must enter a 6-digit text/email code or Master PIN to add, edit, delete, or import contacts.
+                  When enabled, visitors must enter a 6-digit text/email code or 6-digit Admin Passcode (050763) to edit, add, delete, or import contacts.
                 </p>
               </div>
               <label className="toggle-switch">
@@ -90,29 +99,49 @@ export const SettingsModal = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          {/* Change Master PIN Section */}
+          {/* Change 6-Digit Admin Code Section */}
           <div className="settings-section">
-            <h4 className="setting-title"><KeyRound size={16} /> Change Master Admin PIN</h4>
+            <h4 className="setting-title flex-align-gap">
+              <KeyRound size={16} className="text-primary" />
+              <span>Change 6-Digit Admin Security Code</span>
+            </h4>
+            <p className="setting-desc mb-2">Default Admin Code is <code>050763</code>.</p>
+
             <div className="form-group mt-2">
-              <label>Current PIN</label>
+              <label>Current Admin Code</label>
               <input
                 type="password"
+                maxLength={6}
                 className="input-control"
-                placeholder="Current PIN (Default: 1234)"
+                placeholder="Current Code (Default: 050763)"
                 value={currentPin}
                 onChange={(e) => setCurrentPin(e.target.value)}
               />
             </div>
             <div className="form-group mt-2">
-              <label>New PIN</label>
+              <label>New 6-Digit Admin Code</label>
               <input
                 type="password"
+                maxLength={6}
                 className="input-control"
-                placeholder="Enter new PIN"
+                placeholder="Enter 6 digits (e.g. 050763)"
                 value={newPin}
                 onChange={(e) => setNewPin(e.target.value)}
               />
             </div>
+            {newPin && (
+              <div className="form-group mt-2">
+                <label>Confirm New 6-Digit Admin Code</label>
+                <input
+                  type="password"
+                  maxLength={6}
+                  className="input-control"
+                  placeholder="Re-enter new 6-digit code"
+                  value={confirmPin}
+                  onChange={(e) => setConfirmPin(e.target.value)}
+                />
+              </div>
+            )}
           </div>
 
           <div className="modal-footer">
