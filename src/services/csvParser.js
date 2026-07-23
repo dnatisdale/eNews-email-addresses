@@ -1,11 +1,30 @@
 /**
  * RFC 4180 Compliant CSV Parser & Generator Service for eNews Address Book
  * Supports Google Contacts, Microsoft Outlook, and generic CSV formats.
- * Correctly handles multiline quoted strings, custom CSV headers,
- * and Smart Household/Couple & Nickname Parsing.
+ * Ignores "Display Name" system strings to avoid polluting first/last names.
+ * Automatically recognizes and extracts phone numbers from misc cells into Phone column.
  */
 
 import { parseSmartName } from './smartNameParser';
+
+// Regex for phone number detection (e.g. (555) 123-4567, 555-123-4567, +1 555 123 4567)
+const PHONE_REGEX = /(?:\+?1[-.\s]?)?\(?[2-9]\d{2}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/;
+
+// Scan row values to recognize phone numbers automatically
+export const extractPhoneFromRow = (row, existingPhone = '') => {
+  if (existingPhone && existingPhone.trim().length > 5) return existingPhone.trim();
+
+  for (const key of Object.keys(row)) {
+    const val = row[key];
+    if (typeof val === 'string' && val.length >= 7) {
+      const match = val.match(PHONE_REGEX);
+      if (match && match[0]) {
+        return match[0].trim();
+      }
+    }
+  }
+  return '';
+};
 
 // Parse raw CSV text into a 2D array of rows, respecting quoted multiline strings
 export const parseCSVToRows = (csvText) => {
@@ -88,13 +107,14 @@ export const parseCSV = (csvText) => {
 const STANDARD_KEYS = new Set([
   'first name', 'given name', 'first', 'forename', 
   'last name', 'family name', 'last', 'surname',
-  'full name', 'name', 'display name', 'contact name', 'nickname',
+  'full name', 'name', 'contact name', 'nickname',
   'e-mail 1 - value', 'e-mail address', 'email address', 'email 1', 'email', 'e-mail', 'primary email', 'e-mail 1',
   'e-mail 2 - value', 'e-mail 2 address', 'email 2', 'secondary email', 'e-mail 2',
   'phone 1 - value', 'mobile phone', 'home phone', 'business phone', 'phone', 'cell phone', 'telephone', 'phone 1',
   'group membership', 'categories', 'group', 'category', 'tag', 'tags',
   'address 1 - formatted', 'home street', 'business street', 'address', 'street address',
-  'notes', 'comment', 'memo', 'description', 'status', 'state'
+  'notes', 'comment', 'memo', 'description', 'status', 'state',
+  'display name', 'file as', 'formatted name' // Known system name strings to exclude from custom fields
 ]);
 
 // Normalize varied CSV records into standard eNews Contact shape
@@ -116,10 +136,10 @@ const normalizeImportedContacts = (records) => {
         return '';
       };
 
-      // 1. Raw Name Extraction
+      // 1. Raw Name Extraction (EXCLUDE "display name" from polluting first/last names)
       const rawFirstName = getVal('first name', 'given name', 'first', 'forename');
       const rawLastName = getVal('last name', 'family name', 'last', 'surname');
-      const rawFullName = getVal('full name', 'name', 'display name', 'contact name');
+      const rawFullName = getVal('full name', 'contact name', 'name');
       const csvNickname = getVal('nickname');
 
       // Smart Name Parsing for Couples ("Tom & Mary"), Nicknames, and Suffixes
@@ -129,8 +149,9 @@ const normalizeImportedContacts = (records) => {
       const email = getVal('e-mail 1 - value', 'e-mail address', 'email address', 'email 1', 'email', 'e-mail', 'primary email', 'e-mail 1');
       const secondaryEmail = getVal('e-mail 2 - value', 'e-mail 2 address', 'email 2', 'secondary email', 'e-mail 2');
 
-      // 3. Phone Field Parsing
-      const phone = getVal('phone 1 - value', 'mobile phone', 'home phone', 'business phone', 'phone', 'cell phone', 'telephone', 'phone 1');
+      // 3. Phone Field Parsing (Direct column lookup + Smart Auto-Recognition from row)
+      const rawPhone = getVal('phone 1 - value', 'mobile phone', 'home phone', 'business phone', 'phone', 'cell phone', 'telephone', 'phone 1');
+      const phone = extractPhoneFromRow(row, rawPhone);
 
       // 4. Group / Tag Parsing
       let group = getVal('group membership', 'categories', 'group', 'category', 'tag', 'tags');
@@ -196,7 +217,6 @@ const normalizeImportedContacts = (records) => {
 
 // Generate CSV string from contacts array
 export const exportToCSV = (contacts) => {
-  // Collect all unique custom field headers across all contacts
   const customHeaders = new Set();
   contacts.forEach((c) => {
     if (c.customFields) {

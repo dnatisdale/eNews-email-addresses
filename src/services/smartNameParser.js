@@ -4,10 +4,9 @@
  * - Couples & Households (e.g. "Tom & Mary Tisdale", "John and Jane")
  * - Nicknames & Parentheses (e.g. "Robert (Bob)", "William 'Bill'")
  * - Honorifics & Suffixes (e.g. "Dr. Robert H. Tisdale Jr.")
- * - Common Nickname Dictionary for smart duplicate matching (Bob <-> Robert, Bill <-> William, etc.)
+ * - Ignores "Display Name" system strings to avoid polluting name fields
  */
 
-// Common English Nickname Map for intelligent matching
 export const NICKNAME_MAP = {
   bob: ['robert', 'bobby'],
   robert: ['bob', 'bobby', 'rob'],
@@ -50,19 +49,29 @@ export const NICKNAME_MAP = {
 
 const PREFIXES = new Set(['mr', 'mr.', 'mrs', 'mrs.', 'ms', 'ms.', 'dr', 'dr.', 'prof', 'prof.', 'rev', 'rev.']);
 const SUFFIXES = new Set(['jr', 'jr.', 'sr', 'sr.', 'ii', 'iii', 'iv', 'phd', 'esq', 'md']);
+const DISALLOWED_NAME_STRINGS = new Set(['display name', 'file as', 'formatted name', 'contact name', 'name', 'unnamed']);
 
-/**
- * Smart Name Parser Result Shape:
- * { firstName: 'Tom & Mary', lastName: 'Tisdale', nickname: 'Tommy', isHousehold: true }
- */
 export const parseSmartName = (rawFirst = '', rawLast = '', rawFull = '') => {
   let firstName = rawFirst.trim();
   let lastName = rawLast.trim();
   let nickname = '';
   let isHousehold = false;
 
+  // Filter out system strings like "Display Name"
+  if (firstName && DISALLOWED_NAME_STRINGS.has(firstName.toLowerCase())) {
+    firstName = '';
+  }
+  if (lastName && DISALLOWED_NAME_STRINGS.has(lastName.toLowerCase())) {
+    lastName = '';
+  }
+
   let combined = rawFull.trim();
-  if (!combined) {
+  if (combined && DISALLOWED_NAME_STRINGS.has(combined.toLowerCase())) {
+    combined = '';
+  }
+
+  // If rawFirst/rawLast present, prioritize them and DO NOT fallback to Display Name
+  if (firstName || lastName) {
     combined = `${firstName} ${lastName}`.trim();
   }
 
@@ -100,9 +109,7 @@ export const parseSmartName = (rawFirst = '', rawLast = '', rawFull = '') => {
       firstName = tokens[0];
       lastName = '';
     } else if (tokens.length >= 2) {
-      // Check for couple first names like "Tom and Mary Tisdale"
       if (coupleRegex.test(tokens.join(' '))) {
-        // e.g. ["Tom", "and", "Mary", "Tisdale"]
         const andIdx = tokens.findIndex(t => coupleRegex.test(t));
         if (andIdx > 0 && andIdx < tokens.length - 1) {
           firstName = tokens.slice(0, andIdx + 2).join(' '); // "Tom and Mary"
@@ -131,11 +138,6 @@ export const parseSmartName = (rawFirst = '', rawLast = '', rawFull = '') => {
   };
 };
 
-/**
- * Check if two names are smart duplicates (Nicknames or Household overlap)
- * e.g. "Bob Smith" <-> "Robert Smith" => Match!
- * e.g. "Tom Tisdale" <-> "Tom & Mary Tisdale" => Household Overlap Match!
- */
 export const areNamesSmartMatch = (nameA = '', nameB = '') => {
   const normA = nameA.toLowerCase().trim();
   const normB = nameB.toLowerCase().trim();
@@ -149,17 +151,14 @@ export const areNamesSmartMatch = (nameA = '', nameB = '') => {
   const lastA = partsA[partsA.length - 1] || '';
   const lastB = partsB[partsB.length - 1] || '';
 
-  // Must share last name (or one of them has no last name)
   if (lastA && lastB && lastA !== lastB) return false;
 
   const firstA = partsA[0] || '';
   const firstB = partsB[0] || '';
 
-  // 1. Check Nickname Dictionary match (e.g. Bob <-> Robert)
   if (NICKNAME_MAP[firstA] && NICKNAME_MAP[firstA].includes(firstB)) return true;
   if (NICKNAME_MAP[firstB] && NICKNAME_MAP[firstB].includes(firstA)) return true;
 
-  // 2. Check Household Overlap match (e.g., "Tom Tisdale" <-> "Tom & Mary Tisdale")
   if (normA.includes('&') || normA.includes('and') || normB.includes('&') || normB.includes('and')) {
     if (firstA && normB.includes(firstA)) return true;
     if (firstB && normA.includes(firstB)) return true;

@@ -12,14 +12,17 @@ import {
   Phone, 
   Sparkles,
   FolderPlus,
-  Pin
+  Pin,
+  ShieldCheck
 } from 'lucide-react';
 import { ColumnSelector, STANDARD_COLUMNS } from './ColumnSelector';
+import { getContactAccuracy } from '../services/accuracyEvaluator';
 
 const WIDTHS_STORAGE_KEY = 'eNews_Column_Widths_v1';
 const STICKY_STORAGE_KEY = 'eNews_Sticky_Header_v1';
 
 const DEFAULT_WIDTHS = {
+  accuracy: 110,
   name: 210,
   email: 230,
   secondaryEmail: 180,
@@ -50,6 +53,7 @@ export const ContactTable = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('All');
+  const [accuracyFilter, setAccuracyFilter] = useState('All');
   const [sortField, setSortField] = useState('firstName');
   const [sortAsc, setSortAsc] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
@@ -83,8 +87,6 @@ export const ContactTable = ({
   }, [columnWidths]);
 
   // Column resizing drag handler
-  const resizingRef = useRef(null);
-
   const startResizing = (colId, e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -140,7 +142,14 @@ export const ContactTable = ({
     const matchesGroup = selectedGroup === 'All' || contact.group === selectedGroup;
     const matchesStatus = selectedStatus === 'All' || contact.status === selectedStatus;
 
-    return matchesSearch && matchesGroup && matchesStatus;
+    // Accuracy Rating Filter
+    let matchesAccuracy = true;
+    if (accuracyFilter !== 'All') {
+      const acc = getContactAccuracy(contact);
+      matchesAccuracy = acc.level === accuracyFilter;
+    }
+
+    return matchesSearch && matchesGroup && matchesStatus && matchesAccuracy;
   });
 
   // Sort contacts
@@ -180,16 +189,13 @@ export const ContactTable = ({
 
   const handleRowSelect = (contactId, index, e) => {
     if (e.shiftKey && lastSelectedIndex !== null) {
-      // Range selection between lastSelectedIndex and current index
       const start = Math.min(lastSelectedIndex, index);
       const end = Math.max(lastSelectedIndex, index);
       const rangeIds = sortedContacts.slice(start, end + 1).map((c) => c.id);
 
-      // Merge range with existing selection
       const newSelection = Array.from(new Set([...selectedIds, ...rangeIds]));
       setSelectedIds(newSelection);
     } else {
-      // Single toggle
       if (selectedIds.includes(contactId)) {
         setSelectedIds(selectedIds.filter((id) => id !== contactId));
       } else {
@@ -222,7 +228,7 @@ export const ContactTable = ({
 
   return (
     <div className="contact-manager-wrap">
-      {/* Control Bar: Search, Group Filters, Column Selector & Sticky Header Toggle */}
+      {/* Control Bar: Search, Group Filters, Accuracy Filters, Column Selector & Sticky Header Toggle */}
       <div className="control-bar">
         {/* Search Box */}
         <div className="search-box">
@@ -263,8 +269,24 @@ export const ContactTable = ({
           })}
         </div>
 
-        {/* Status Filter, Sticky Header Toggle, and Column Selector */}
+        {/* Status, Accuracy Filter, Sticky Header & Column Selector */}
         <div className="toolbar-controls">
+          {/* Accuracy Rating Filter */}
+          <div className="status-filter-wrap">
+            <ShieldCheck size={14} className="filter-icon text-primary" />
+            <select
+              className="select-control-sm"
+              value={accuracyFilter}
+              onChange={(e) => setAccuracyFilter(e.target.value)}
+              title="Filter by Info Accuracy & Completeness"
+            >
+              <option value="All">All Info Ratings</option>
+              <option value="green">🟢 High Accuracy (Complete)</option>
+              <option value="yellow">🟡 Partial Info</option>
+              <option value="red">🔴 Needs Info</option>
+            </select>
+          </div>
+
           {/* Sticky Header Toggle */}
           <button
             className={`btn btn-sm ${isStickyHeader ? 'btn-outline' : 'btn-secondary'}`}
@@ -372,6 +394,15 @@ export const ContactTable = ({
                       onChange={toggleSelectAll}
                     />
                   </th>
+
+                  {/* Info Accuracy Rating Header */}
+                  <th style={{ width: columnWidths.accuracy || 110 }} className="resizable-th">
+                    <div className="th-content">
+                      <span>Info Rating</span>
+                    </div>
+                    <div className="col-resizer" onMouseDown={(e) => startResizing('accuracy', e)} />
+                  </th>
+
                   {visibleColumns.includes('name') && (
                     <th 
                       style={{ width: columnWidths.name || 210 }}
@@ -489,6 +520,8 @@ export const ContactTable = ({
               <tbody>
                 {sortedContacts.map((contact, idx) => {
                   const isSelected = selectedIds.includes(contact.id);
+                  const accuracy = getContactAccuracy(contact);
+
                   return (
                     <tr 
                       key={contact.id} 
@@ -502,6 +535,17 @@ export const ContactTable = ({
                           onChange={(e) => handleRowSelect(contact.id, idx, e)}
                           onClick={(e) => e.stopPropagation()}
                         />
+                      </td>
+
+                      {/* Info Rating Badge Cell (Green/Yellow/Red Button) */}
+                      <td className="td-accuracy">
+                        <span 
+                          className={`accuracy-badge accuracy-${accuracy.level}`}
+                          title={accuracy.tooltip}
+                        >
+                          <span className={`accuracy-dot dot-${accuracy.level}`}></span>
+                          <span>{accuracy.label}</span>
+                        </span>
                       </td>
 
                       {visibleColumns.includes('name') && (
@@ -616,6 +660,8 @@ export const ContactTable = ({
           <div className="mobile-cards-view">
             {sortedContacts.map((contact, idx) => {
               const isSelected = selectedIds.includes(contact.id);
+              const accuracy = getContactAccuracy(contact);
+
               return (
                 <div 
                   key={contact.id} 
@@ -635,9 +681,15 @@ export const ContactTable = ({
                       </span>
                       <div>
                         <h4 className="card-name">{contact.firstName} {contact.lastName}</h4>
-                        <span className={`status-badge status-${contact.status.toLowerCase()}`}>
-                          {contact.status}
-                        </span>
+                        <div className="card-badges-wrap">
+                          <span className={`status-badge status-${contact.status.toLowerCase()}`}>
+                            {contact.status}
+                          </span>
+                          <span className={`accuracy-badge accuracy-${accuracy.level}`} title={accuracy.tooltip}>
+                            <span className={`accuracy-dot dot-${accuracy.level}`}></span>
+                            <span>{accuracy.label}</span>
+                          </span>
+                        </div>
                       </div>
                     </div>
                     <div className="card-actions" onClick={(e) => e.stopPropagation()}>
