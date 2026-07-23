@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
 import { ContactTable } from './components/ContactTable';
 import { ContactModal } from './components/ContactModal';
@@ -63,7 +63,7 @@ export default function App() {
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isTrashModalOpen, setIsTrashModalOpen] = useState(false);
-  const [pendingAction, setPendingAction] = useState(null);
+  const pendingActionRef = useRef(null);
   const [securityActionTitle, setSecurityActionTitle] = useState('Edit Contacts');
 
   // Delete Confirmation Modal State
@@ -77,9 +77,9 @@ export default function App() {
   // Require Security Verification Helper
   const requireAuth = (callback, title = 'Modify Contacts') => {
     if (!isSecurityLockEnabled() || isEditingUnlocked) {
-      callback();
+      if (callback) callback();
     } else {
-      setPendingAction(() => callback);
+      pendingActionRef.current = callback;
       setSecurityActionTitle(title);
       setIsSecurityModalOpen(true);
     }
@@ -87,9 +87,11 @@ export default function App() {
 
   const handleUnlockSuccess = () => {
     setIsEditingUnlocked(true);
-    if (pendingAction) {
-      pendingAction();
-      setPendingAction(null);
+    setIsSecurityModalOpen(false);
+    if (pendingActionRef.current) {
+      const actionToRun = pendingActionRef.current;
+      pendingActionRef.current = null;
+      actionToRun();
     }
   };
 
