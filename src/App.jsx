@@ -8,6 +8,7 @@ import { PrintView } from './components/PrintView';
 import { SecurityModal } from './components/SecurityModal';
 import { SettingsModal } from './components/SettingsModal';
 import { TrashModal } from './components/TrashModal';
+import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { generateSampleContacts } from './services/sampleData';
 import { findDuplicates } from './services/deduplicator';
 import { cleanDatabase } from './services/dbCleaner';
@@ -45,7 +46,6 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Auto-purge any items older than 60 days
         const now = Date.now();
         return parsed.filter((c) => {
           const deletedTime = c.deletedAt ? new Date(c.deletedAt).getTime() : now;
@@ -65,6 +65,14 @@ export default function App() {
   const [isTrashModalOpen, setIsTrashModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const [securityActionTitle, setSecurityActionTitle] = useState('Edit Contacts');
+
+  // Delete Confirmation Modal State
+  const [deleteModalState, setDeleteModalState] = useState({
+    isOpen: false,
+    targetCount: 0,
+    targetNames: [],
+    onConfirm: null
+  });
 
   // Require Security Verification Helper
   const requireAuth = (callback, title = 'Modify Contacts') => {
@@ -195,18 +203,16 @@ export default function App() {
     }, 'Edit Contact Details');
   };
 
-  // Single Contact Deletion (Moved to 60-Day Trash with Confirmation)
+  // Single Contact Deletion (Requires High Warning Delete Modal & Admin Code 050763)
   const handleDeleteContact = (id) => {
-    requireAuth(() => {
-      const target = contacts.find((c) => c.id === id);
-      if (!target) return;
+    const target = contacts.find((c) => c.id === id);
+    if (!target) return;
 
-      const confirmed = window.confirm(
-        `Are you sure you want to delete "${target.firstName} ${target.lastName}"?\n\n` +
-        `This contact will be moved to the Trash & Recovery Bin for 60 days before permanent deletion.`
-      );
-
-      if (confirmed) {
+    setDeleteModalState({
+      isOpen: true,
+      targetCount: 1,
+      targetNames: [`${target.firstName} ${target.lastName}`],
+      onConfirm: () => {
         const deletedRecord = {
           ...target,
           deletedAt: new Date().toISOString()
@@ -215,20 +221,22 @@ export default function App() {
         setContacts((prev) => prev.filter((c) => c.id !== id));
         setSelectedIds((prev) => prev.filter((item) => item !== id));
       }
-    }, 'Delete Contact');
+    });
   };
 
-  // Bulk Contact Deletion (Moved to 60-Day Trash with Exact Count Confirmation)
+  // Bulk Contact Deletion (Requires High Warning Delete Modal & Admin Code 050763)
   const handleBulkDelete = (idsToDelete) => {
-    requireAuth(() => {
-      if (idsToDelete.length === 0) return;
+    if (idsToDelete.length === 0) return;
 
-      const confirmed = window.confirm(
-        `Are you sure you want to delete ${idsToDelete.length} selected contact(s)?\n\n` +
-        `They will be moved to the Trash & Recovery Bin where you can restore them anytime within the next 60 days.`
-      );
+    const targetNames = contacts
+      .filter((c) => idsToDelete.includes(c.id))
+      .map((c) => `${c.firstName} ${c.lastName}`);
 
-      if (confirmed) {
+    setDeleteModalState({
+      isOpen: true,
+      targetCount: idsToDelete.length,
+      targetNames,
+      onConfirm: () => {
         const timestamp = new Date().toISOString();
         const deletedRecords = contacts
           .filter((c) => idsToDelete.includes(c.id))
@@ -238,7 +246,7 @@ export default function App() {
         setContacts((prev) => prev.filter((c) => !idsToDelete.includes(c.id)));
         setSelectedIds([]);
       }
-    }, 'Bulk Delete Contacts');
+    });
   };
 
   // Bulk Assign Selected Contacts to a Collection / Group
@@ -266,26 +274,26 @@ export default function App() {
     }, 'Clean & Repair Database');
   };
 
-  // Purge Blank Records (Moved to Trash)
+  // Purge Blank Records (Requires Admin Code 050763)
   const handlePurgeBlanks = () => {
-    requireAuth(() => {
-      if (blankCount === 0) {
-        alert('No blank or invalid contacts to purge!');
-        return;
-      }
+    if (blankCount === 0) {
+      alert('No blank or invalid contacts to purge!');
+      return;
+    }
 
-      const confirmed = window.confirm(
-        `Move ${blankCount} blank/invalid contact record(s) to Trash?\n\nThey will be stored in Trash for 60 days before permanent deletion.`
-      );
+    const blankNames = blankContacts.map((c) => `${c.firstName} ${c.lastName}`);
 
-      if (confirmed) {
+    setDeleteModalState({
+      isOpen: true,
+      targetCount: blankCount,
+      targetNames: blankNames,
+      onConfirm: () => {
         const timestamp = new Date().toISOString();
         const deletedRecords = blankContacts.map((c) => ({ ...c, deletedAt: timestamp }));
         setTrashContacts((prev) => [...deletedRecords, ...prev]);
         setContacts((prev) => prev.filter((c) => c.email || (c.firstName && c.firstName !== 'Unnamed') || c.lastName || c.phone));
-        alert(`Moved ${blankCount} blank records to Trash!`);
       }
-    }, 'Purge Invalid Records');
+    });
   };
 
   // Trash & Recovery Bin Action Handlers
@@ -293,7 +301,6 @@ export default function App() {
     const item = trashContacts.find((c) => c.id === id);
     if (!item) return;
 
-    // Clean up trash properties
     const { deletedAt, ...restoredContact } = item;
 
     setContacts((prev) => [restoredContact, ...prev]);
@@ -468,6 +475,19 @@ export default function App() {
         onRestoreAll={handleRestoreAll}
         onPermanentlyDelete={handlePermanentlyDelete}
         onEmptyTrash={handleEmptyTrash}
+      />
+
+      {/* High-Risk Delete Confirmation Modal requiring Admin Code 050763 */}
+      <DeleteConfirmModal
+        isOpen={deleteModalState.isOpen}
+        onClose={() => setDeleteModalState((prev) => ({ ...prev, isOpen: false }))}
+        onConfirmDelete={() => {
+          if (deleteModalState.onConfirm) {
+            deleteModalState.onConfirm();
+          }
+        }}
+        targetCount={deleteModalState.targetCount}
+        targetNames={deleteModalState.targetNames}
       />
     </div>
   );

@@ -1,11 +1,11 @@
 /**
  * Security & Verification Code Service for eNews Address Book
- * Manages Admin Security Passcode, 6-Digit Email/SMS Verification Codes, and Session Locking.
+ * Manages Admin Security Passcode (Default: 050763), 6-Digit Email/SMS Verification Codes, and Session Locking.
  */
 
 const PIN_STORAGE_KEY = 'eNews_Admin_PIN_v1';
 const LOCK_ENABLED_KEY = 'eNews_Security_Lock_Enabled_v1';
-const DEFAULT_PIN = '1234';
+const DEFAULT_PIN = '050763';
 
 export const getAdminPIN = () => {
   return localStorage.getItem(PIN_STORAGE_KEY) || DEFAULT_PIN;
