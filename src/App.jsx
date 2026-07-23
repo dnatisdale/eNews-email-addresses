@@ -207,11 +207,19 @@ export default function App() {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `eNews Family & Friends Contact Directory - ${new Date().toISOString().slice(0, 10)}.csv`);
+    link.href = url;
+    
+    // Match the PDF filename format precisely (avoiding & and special chars in attributes)
+    const defaultTitle = 'eNews Family & Friends Contact Directory';
+    const safeTitle = defaultTitle.replace(/[/\\?%*:|"<>]/g, '-');
+    const dateStamp = new Date().toISOString().split('T')[0];
+    
+    link.download = `${safeTitle} - ${dateStamp}.csv`;
+    
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // Auto-enable newly discovered custom columns when imported

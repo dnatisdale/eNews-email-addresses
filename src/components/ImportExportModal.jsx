@@ -106,7 +106,10 @@ export const ImportExportModal = ({ isOpen, onClose, onImportContacts, contacts 
             </div>
             <button 
               className="btn btn-secondary btn-sm"
-              onClick={() => downloadCSVFile(contacts, `eNews_Contacts_${new Date().toISOString().slice(0, 10)}.csv`)}
+              onClick={() => {
+                const safeTitle = 'eNews Family & Friends Contact Directory'.replace(/[/\\?%*:|"<>]/g, '-');
+                downloadCSVFile(contacts, `${safeTitle} - ${new Date().toISOString().slice(0, 10)}.csv`);
+              }}
             >
               <Download size={16} />
               <span>Export CSV</span>
