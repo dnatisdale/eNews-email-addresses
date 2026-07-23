@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   Copy, 
@@ -13,10 +13,14 @@ import {
   Sparkles,
   FolderPlus,
   Pin,
-  ShieldCheck
+  ShieldCheck,
+  PhoneCall
 } from 'lucide-react';
 import { ColumnSelector, STANDARD_COLUMNS } from './ColumnSelector';
 import { getContactAccuracy } from '../services/accuracyEvaluator';
+import { cleanAndFormatPhone } from '../services/phoneService';
+import { CallModal } from './CallModal';
+import { AZIndexBar } from './AZIndexBar';
 
 const WIDTHS_STORAGE_KEY = 'eNews_Column_Widths_v1';
 const STICKY_STORAGE_KEY = 'eNews_Sticky_Header_v1';
@@ -26,7 +30,7 @@ const DEFAULT_WIDTHS = {
   name: 210,
   email: 230,
   secondaryEmail: 180,
-  phone: 150,
+  phone: 160,
   group: 140,
   status: 120,
   address: 200,
@@ -54,9 +58,13 @@ export const ContactTable = ({
   const [selectedGroup, setSelectedGroup] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('All');
   const [accuracyFilter, setAccuracyFilter] = useState('All');
+  const [activeLetter, setActiveLetter] = useState('All');
   const [sortField, setSortField] = useState('firstName');
   const [sortAsc, setSortAsc] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
+
+  // Call Modal State
+  const [callModalContact, setCallModalContact] = useState(null);
 
   // Range Selection (Shift+Click) State
   const [lastSelectedIndex, setLastSelectedIndex] = useState(null);
@@ -149,7 +157,18 @@ export const ContactTable = ({
       matchesAccuracy = acc.level === accuracyFilter;
     }
 
-    return matchesSearch && matchesGroup && matchesStatus && matchesAccuracy;
+    // A-Z Quick Jump Filter
+    let matchesLetter = true;
+    if (activeLetter !== 'All') {
+      const firstChar = (contact.firstName[0] || contact.lastName[0] || '').toUpperCase();
+      if (activeLetter === '#') {
+        matchesLetter = !(firstChar >= 'A' && firstChar <= 'Z');
+      } else {
+        matchesLetter = firstChar === activeLetter;
+      }
+    }
+
+    return matchesSearch && matchesGroup && matchesStatus && matchesAccuracy && matchesLetter;
   });
 
   // Sort contacts
@@ -226,9 +245,16 @@ export const ContactTable = ({
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  // Open Call Confirmation Modal
+  const handlePhoneClick = (contact, e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setCallModalContact(contact);
+  };
+
   return (
     <div className="contact-manager-wrap">
-      {/* Control Bar: Search, Group Filters, Accuracy Filters, Column Selector & Sticky Header Toggle */}
+      {/* Control Bar: Search, Group Filters, Accuracy Filters, A-Z Jump, Column Selector & Sticky Header Toggle */}
       <div className="control-bar">
         {/* Search Box */}
         <div className="search-box">
@@ -236,7 +262,7 @@ export const ContactTable = ({
           <input
             type="text"
             className="search-input"
-            placeholder="Search contacts by name, email, group, or notes..."
+            placeholder="Search contacts by name, email, phone, or notes..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -269,8 +295,15 @@ export const ContactTable = ({
           })}
         </div>
 
-        {/* Status, Accuracy Filter, Sticky Header & Column Selector */}
+        {/* Status, Accuracy Filter, A-Z Slideout, Sticky Header & Column Selector */}
         <div className="toolbar-controls">
+          {/* A-Z Slideout Jump Button */}
+          <AZIndexBar 
+            activeLetter={activeLetter}
+            onSelectLetter={setActiveLetter}
+            contacts={contacts}
+          />
+
           {/* Accuracy Rating Filter */}
           <div className="status-filter-wrap">
             <ShieldCheck size={14} className="filter-icon text-primary" />
@@ -366,7 +399,7 @@ export const ContactTable = ({
         <div className="empty-state">
           <UserCheck size={48} className="empty-icon" />
           <h3>No contacts found</h3>
-          <p>{searchTerm ? 'Try adjusting your search query or filters.' : 'Your eNews address book is currently empty.'}</p>
+          <p>{searchTerm || activeLetter !== 'All' ? 'Try adjusting your search query, letter filter, or rating filters.' : 'Your eNews address book is currently empty.'}</p>
           <div className="empty-actions">
             {contacts.length === 0 && (
               <button className="btn btn-secondary" onClick={onLoadSampleData}>
@@ -440,7 +473,7 @@ export const ContactTable = ({
                   )}
                   {visibleColumns.includes('phone') && (
                     <th 
-                      style={{ width: columnWidths.phone || 150 }}
+                      style={{ width: columnWidths.phone || 160 }}
                       className="resizable-th"
                     >
                       <div className="th-content">
@@ -521,6 +554,7 @@ export const ContactTable = ({
                 {sortedContacts.map((contact, idx) => {
                   const isSelected = selectedIds.includes(contact.id);
                   const accuracy = getContactAccuracy(contact);
+                  const formattedPhone = cleanAndFormatPhone(contact.phone);
 
                   return (
                     <tr 
@@ -551,9 +585,16 @@ export const ContactTable = ({
                       {visibleColumns.includes('name') && (
                         <td className="td-name">
                           <div className="name-wrap">
-                            <span className="avatar-circle">
+                            <button
+                              className="avatar-circle avatar-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEditContact(contact);
+                              }}
+                              title="Click to view/edit contact details"
+                            >
                               {(contact.firstName[0] || 'U').toUpperCase()}
-                            </span>
+                            </button>
                             <div>
                               <strong className="contact-name">{contact.firstName} {contact.lastName}</strong>
                             </div>
@@ -590,8 +631,22 @@ export const ContactTable = ({
                         </td>
                       )}
 
+                      {/* Phone Column with Click-to-Call Confirmation & App Launcher */}
                       {visibleColumns.includes('phone') && (
-                        <td>{contact.phone || <span className="text-muted">-</span>}</td>
+                        <td className="td-phone">
+                          {contact.phone ? (
+                            <button
+                              className="btn-phone-call"
+                              onClick={(e) => handlePhoneClick(contact, e)}
+                              title={`Click to call ${contact.firstName} via Phone, WhatsApp, Skype, or FaceTime`}
+                            >
+                              <PhoneCall size={13} className="phone-icon-btn" />
+                              <span>{formattedPhone}</span>
+                            </button>
+                          ) : (
+                            <span className="text-muted">-</span>
+                          )}
+                        </td>
                       )}
 
                       {visibleColumns.includes('group') && (
@@ -661,6 +716,7 @@ export const ContactTable = ({
             {sortedContacts.map((contact, idx) => {
               const isSelected = selectedIds.includes(contact.id);
               const accuracy = getContactAccuracy(contact);
+              const formattedPhone = cleanAndFormatPhone(contact.phone);
 
               return (
                 <div 
@@ -726,8 +782,13 @@ export const ContactTable = ({
 
                     {visibleColumns.includes('phone') && contact.phone && (
                       <div className="card-field">
-                        <Phone size={14} className="field-icon" />
-                        <a href={`tel:${contact.phone}`} onClick={(e) => e.stopPropagation()}>{contact.phone}</a>
+                        <button 
+                          className="btn-phone-call"
+                          onClick={(e) => handlePhoneClick(contact, e)}
+                        >
+                          <PhoneCall size={14} className="field-icon text-success" />
+                          <span>{formattedPhone}</span>
+                        </button>
                       </div>
                     )}
 
@@ -749,6 +810,13 @@ export const ContactTable = ({
           </div>
         </>
       )}
+
+      {/* Call Confirmation & App Launcher Modal */}
+      <CallModal
+        isOpen={Boolean(callModalContact)}
+        onClose={() => setCallModalContact(null)}
+        contact={callModalContact}
+      />
     </div>
   );
 };

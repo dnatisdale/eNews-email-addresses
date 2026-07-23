@@ -6,20 +6,20 @@
  */
 
 import { parseSmartName } from './smartNameParser';
+import { cleanAndFormatPhone, extractInternationalPhone } from './phoneService';
 
-// Regex for phone number detection (e.g. (555) 123-4567, 555-123-4567, +1 555 123 4567)
-const PHONE_REGEX = /(?:\+?1[-.\s]?)?\(?[2-9]\d{2}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/;
-
-// Scan row values to recognize phone numbers automatically
+// Scan row values to recognize Thai and International phone numbers automatically
 export const extractPhoneFromRow = (row, existingPhone = '') => {
-  if (existingPhone && existingPhone.trim().length > 5) return existingPhone.trim();
+  if (existingPhone && existingPhone.trim().length > 5) {
+    return cleanAndFormatPhone(existingPhone);
+  }
 
   for (const key of Object.keys(row)) {
     const val = row[key];
     if (typeof val === 'string' && val.length >= 7) {
-      const match = val.match(PHONE_REGEX);
-      if (match && match[0]) {
-        return match[0].trim();
+      const extracted = extractInternationalPhone(val);
+      if (extracted) {
+        return extracted;
       }
     }
   }
