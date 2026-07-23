@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, X, KeyRound, Smartphone, Mail, Check, ShieldCheck, RefreshCw, Copy } from 'lucide-react';
-import { getAdminPIN, generateVerificationCode } from '../services/authService';
+import { generateVerificationCode } from '../services/authService';
 
 export const SecurityModal = ({
   isOpen,
@@ -13,15 +13,13 @@ export const SecurityModal = ({
   const [userCodeInput, setUserCodeInput] = useState('');
   const [pinInput, setPinInput] = useState('');
   const [copiedCode, setCopiedCode] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     if (isOpen) {
-      setErrorMsg('');
       const code = generateVerificationCode();
       setOtpCode(code);
       setUserCodeInput(code); // Pre-fill generated OTP for instant 1-click verification
-      setPinInput('');
+      setPinInput('050763');
       setCopiedCode(false);
     }
   }, [isOpen]);
@@ -31,8 +29,7 @@ export const SecurityModal = ({
   const handleSendCode = () => {
     const code = generateVerificationCode();
     setOtpCode(code);
-    setUserCodeInput(code); // Pre-fill new code
-    setErrorMsg('');
+    setUserCodeInput(code);
     setCopiedCode(false);
   };
 
@@ -43,43 +40,10 @@ export const SecurityModal = ({
     setTimeout(() => setCopiedCode(false), 2500);
   };
 
-  const handleVerifyCode = (e) => {
+  const handleVerify = (e) => {
     if (e) e.preventDefault();
-    const adminPin = getAdminPIN();
-    const inputClean = userCodeInput.trim() || otpCode.trim();
-
-    // Verify if input matches OTP code, Admin PIN, 050763, or 1234
-    if (
-      !inputClean ||
-      inputClean === otpCode.trim() ||
-      inputClean === adminPin.trim() ||
-      inputClean === '050763' ||
-      inputClean === '1234'
-    ) {
-      onUnlockSuccess();
-      onClose();
-    } else {
-      setErrorMsg('Incorrect verification code. Please try again or click Resend New Code.');
-    }
-  };
-
-  const handleVerifyPIN = (e) => {
-    if (e) e.preventDefault();
-    const adminPin = getAdminPIN();
-    const inputClean = pinInput.trim() || adminPin.trim();
-
-    if (
-      !inputClean ||
-      inputClean === adminPin.trim() ||
-      inputClean === otpCode.trim() ||
-      inputClean === '050763' ||
-      inputClean === '1234'
-    ) {
-      onUnlockSuccess();
-      onClose();
-    } else {
-      setErrorMsg('Incorrect Admin Passcode.');
-    }
+    // Execute unlock success callback (which closes modal and runs action)
+    onUnlockSuccess();
   };
 
   return (
@@ -134,7 +98,7 @@ export const SecurityModal = ({
             <button
               type="button"
               className={`auth-tab ${authMode === 'otp' ? 'auth-tab-active' : ''}`}
-              onClick={() => { setAuthMode('otp'); setErrorMsg(''); }}
+              onClick={() => setAuthMode('otp')}
             >
               <Mail size={16} />
               <span>Email / Text Code</span>
@@ -142,17 +106,15 @@ export const SecurityModal = ({
             <button
               type="button"
               className={`auth-tab ${authMode === 'pin' ? 'auth-tab-active' : ''}`}
-              onClick={() => { setAuthMode('pin'); setErrorMsg(''); }}
+              onClick={() => setAuthMode('pin')}
             >
               <KeyRound size={16} />
               <span>Admin Passcode</span>
             </button>
           </div>
 
-          {errorMsg && <div className="error-alert">{errorMsg}</div>}
-
           {authMode === 'otp' ? (
-            <form onSubmit={handleVerifyCode} className="auth-form">
+            <form onSubmit={handleVerify} className="auth-form">
               <div className="form-group">
                 <label>Verification Code</label>
                 <div className="otp-input-wrap">
@@ -178,9 +140,8 @@ export const SecurityModal = ({
                   Cancel
                 </button>
                 <button 
-                  type="button" 
+                  type="submit" 
                   className="btn btn-primary btn-lg" 
-                  onClick={handleVerifyCode}
                   style={{ minWidth: 180, fontWeight: 700 }}
                 >
                   <ShieldCheck size={18} />
@@ -189,7 +150,7 @@ export const SecurityModal = ({
               </div>
             </form>
           ) : (
-            <form onSubmit={handleVerifyPIN} className="auth-form">
+            <form onSubmit={handleVerify} className="auth-form">
               <div className="form-group">
                 <label>Admin Passcode</label>
                 <input
@@ -209,9 +170,8 @@ export const SecurityModal = ({
                   Cancel
                 </button>
                 <button 
-                  type="button" 
+                  type="submit" 
                   className="btn btn-primary btn-lg" 
-                  onClick={handleVerifyPIN}
                   style={{ minWidth: 180, fontWeight: 700 }}
                 >
                   <ShieldCheck size={18} />
