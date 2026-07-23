@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { SlidersHorizontal, X, ChevronRight } from 'lucide-react';
+import { BookMarked, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
 
 export const AZIndexBar = ({ activeLetter, onSelectLetter, contacts = [] }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Calculate count of contacts starting with each letter
   const letterCounts = {};
@@ -22,36 +22,45 @@ export const AZIndexBar = ({ activeLetter, onSelectLetter, contacts = [] }) => {
   });
 
   return (
-    <>
-      {/* Trigger Button */}
-      <button 
-        className={`btn btn-sm ${activeLetter !== 'All' ? 'btn-primary' : 'btn-secondary'} az-trigger-btn`}
-        onClick={() => setIsOpen(!isOpen)}
-        title="Open A-Z Quick Jump Directory"
-      >
-        <SlidersHorizontal size={14} />
-        <span>A-Z Index {activeLetter !== 'All' ? `(${activeLetter})` : ''}</span>
-      </button>
+    <div className={`rolodex-container ${isExpanded ? 'rolodex-expanded' : 'rolodex-collapsed'}`}>
+      {/* Right Edge Collapsed Tab Handle */}
+      {!isExpanded && (
+        <button
+          className="rolodex-handle-btn"
+          onClick={() => setIsExpanded(true)}
+          title="Open Collapsible A-Z Rolodex Alphabet Index"
+        >
+          <ChevronLeft size={16} />
+          <BookMarked size={16} />
+          <span className="handle-text">A-Z Rolodex {activeLetter !== 'All' ? `(${activeLetter})` : ''}</span>
+        </button>
+      )}
 
-      {/* Slideout A-Z Jump Drawer */}
-      {isOpen && (
-        <div className="az-slideout-drawer">
-          <div className="az-drawer-header">
-            <h4>A-Z Quick Jump Index</h4>
-            <button className="icon-close-btn" onClick={() => setIsOpen(false)}>
-              <X size={16} />
+      {/* Expanded Right-Side Rolodex Alphabet Bar */}
+      {isExpanded && (
+        <div className="rolodex-panel">
+          <div className="rolodex-header">
+            <div className="rolodex-title">
+              <BookMarked size={16} className="text-primary" />
+              <span>A-Z Rolodex</span>
+            </div>
+            <button
+              className="rolodex-close-btn"
+              onClick={() => setIsExpanded(false)}
+              title="Collapse Rolodex"
+            >
+              <ChevronRight size={18} />
             </button>
           </div>
 
-          <div className="az-grid">
+          <div className="rolodex-list">
             <button
-              className={`az-pill ${activeLetter === 'All' ? 'az-pill-active' : ''}`}
-              onClick={() => {
-                onSelectLetter('All');
-                setIsOpen(false);
-              }}
+              className={`rolodex-item ${activeLetter === 'All' ? 'rolodex-item-active' : ''}`}
+              onClick={() => onSelectLetter('All')}
+              title={`All Contacts (${contacts.length})`}
             >
-              All ({contacts.length})
+              <span className="rolodex-char">ALL</span>
+              <span className="rolodex-badge">{contacts.length}</span>
             </button>
 
             {ALPHABET.map((letter) => {
@@ -61,20 +70,18 @@ export const AZIndexBar = ({ activeLetter, onSelectLetter, contacts = [] }) => {
                 <button
                   key={letter}
                   disabled={count === 0}
-                  className={`az-pill ${isActive ? 'az-pill-active' : ''} ${count === 0 ? 'az-disabled' : ''}`}
-                  onClick={() => {
-                    onSelectLetter(letter);
-                    setIsOpen(false);
-                  }}
+                  className={`rolodex-item ${isActive ? 'rolodex-item-active' : ''} ${count === 0 ? 'rolodex-item-disabled' : ''}`}
+                  onClick={() => onSelectLetter(letter)}
+                  title={count > 0 ? `${letter} (${count} contacts)` : `No contacts starting with ${letter}`}
                 >
-                  <span className="az-char">{letter}</span>
-                  {count > 0 && <span className="az-badge">{count}</span>}
+                  <span className="rolodex-char">{letter}</span>
+                  {count > 0 && <span className="rolodex-badge">{count}</span>}
                 </button>
               );
             })}
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };

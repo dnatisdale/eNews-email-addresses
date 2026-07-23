@@ -199,7 +199,6 @@ export const ContactTable = ({
       setSortAsc(!sortAsc);
     } else {
       setSortField(field);
-      // Default score sort to descending (Green top)
       setSortAsc(field === 'score' ? false : true);
     }
   };
@@ -263,7 +262,14 @@ export const ContactTable = ({
 
   return (
     <div className="contact-manager-wrap">
-      {/* Control Bar: Search, Group Filters, Accuracy Filters, A-Z Jump, Column Selector & Sticky Header Toggle */}
+      {/* Collapsible Right-Side A-Z Rolodex Index */}
+      <AZIndexBar 
+        activeLetter={activeLetter}
+        onSelectLetter={setActiveLetter}
+        contacts={contacts}
+      />
+
+      {/* Control Bar: Search, Group Filters, Accuracy Filters, Column Selector & Sticky Header Toggle */}
       <div className="control-bar">
         {/* Search Box */}
         <div className="search-box">
@@ -304,15 +310,8 @@ export const ContactTable = ({
           })}
         </div>
 
-        {/* Status, Score Filter, A-Z Slideout, Sticky Header & Column Selector */}
+        {/* Status, Score Filter, Sticky Header & Column Selector */}
         <div className="toolbar-controls">
-          {/* A-Z Slideout Jump Button */}
-          <AZIndexBar 
-            activeLetter={activeLetter}
-            onSelectLetter={setActiveLetter}
-            contacts={contacts}
-          />
-
           {/* Score Light Filter */}
           <div className="status-filter-wrap">
             <ShieldCheck size={14} className="filter-icon text-primary" />
@@ -594,23 +593,10 @@ export const ContactTable = ({
                         </div>
                       </td>
 
+                      {/* Clean Name Display (No Blue Initial Avatar Circle) */}
                       {visibleColumns.includes('name') && (
                         <td className="td-name">
-                          <div className="name-wrap">
-                            <button
-                              className="avatar-circle avatar-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onEditContact(contact);
-                              }}
-                              title="Click to view/edit contact details"
-                            >
-                              {(contact.firstName[0] || 'U').toUpperCase()}
-                            </button>
-                            <div>
-                              <strong className="contact-name">{contact.firstName} {contact.lastName}</strong>
-                            </div>
-                          </div>
+                          <strong className="contact-name">{contact.firstName} {contact.lastName}</strong>
                         </td>
                       )}
 
@@ -723,7 +709,7 @@ export const ContactTable = ({
             </table>
           </div>
 
-          {/* Mobile Cards View */}
+          {/* Mobile Cards View (Clean Name without initial circle) */}
           <div className="mobile-cards-view">
             {sortedContacts.map((contact, idx) => {
               const isSelected = selectedIds.includes(contact.id);
@@ -744,9 +730,6 @@ export const ContactTable = ({
                         onChange={(e) => handleRowSelect(contact.id, idx, e)}
                         onClick={(e) => e.stopPropagation()}
                       />
-                      <span className="avatar-circle-sm">
-                        {(contact.firstName[0] || 'U').toUpperCase()}
-                      </span>
                       <div>
                         <h4 className="card-name">{contact.firstName} {contact.lastName}</h4>
                         <div className="card-badges-wrap">
