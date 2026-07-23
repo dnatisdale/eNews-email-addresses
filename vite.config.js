@@ -12,9 +12,9 @@ export default defineConfig({
       },
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
       manifest: {
-        name: 'Zenith Personal Hub',
-        short_name: 'Zenith',
-        description: 'Personal productivity, habit tracker, notes, and budget management PWA',
+        name: 'eNews Email Address Manager',
+        short_name: 'eNews Hub',
+        description: 'Family and friends eNews email list and address book manager PWA',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',
