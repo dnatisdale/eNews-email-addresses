@@ -1,53 +1,50 @@
 import React, { useState } from 'react';
-import { BookMarked, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
+const ENGLISH_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const THAI_ALPHABET = ['ก', 'ข', 'ค', 'ง', 'จ', 'ฉ', 'ช', 'ซ', 'ญ', 'ด', 'ต', 'ถ', 'ท', 'น', 'บ', 'ป', 'ผ', 'ฝ', 'พ', 'ฟ', 'ม', 'ย', 'ร', 'ล', 'ว', 'ศ', 'ส', 'ห', 'อ', 'ฮ'];
 
 export const AZIndexBar = ({ activeLetter, onSelectLetter, contacts = [] }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-
-  // Calculate count of contacts starting with each letter
-  const letterCounts = {};
-  ALPHABET.forEach((lettr) => {
-    letterCounts[lettr] = 0;
-  });
-
-  contacts.forEach((c) => {
-    const firstChar = (c.firstName[0] || c.lastName[0] || '').toUpperCase();
-    if (firstChar >= 'A' && firstChar <= 'Z') {
-      letterCounts[firstChar] = (letterCounts[firstChar] || 0) + 1;
-    } else if (firstChar) {
-      letterCounts['#'] = (letterCounts['#'] || 0) + 1;
-    }
-  });
+  const [activeTab, setActiveTab] = useState('EN'); // 'EN' or 'TH'
 
   return (
     <div className={`rolodex-container ${isExpanded ? 'rolodex-expanded' : 'rolodex-collapsed'}`}>
-      {/* Right Edge Collapsed Tab Handle */}
+      {/* Right Edge Collapsed Caret Handle (Poking out) */}
       {!isExpanded && (
         <button
-          className="rolodex-handle-btn"
+          className="rolodex-caret-btn"
           onClick={() => setIsExpanded(true)}
-          title="Open Collapsible A-Z Rolodex Alphabet Index"
+          title="Open Alphabet Directory (English / Thai)"
         >
-          <ChevronLeft size={16} />
-          <BookMarked size={16} />
-          <span className="handle-text">A-Z Rolodex {activeLetter !== 'All' ? `(${activeLetter})` : ''}</span>
+          <ChevronLeft size={20} className="caret-icon" />
+          {activeLetter !== 'All' && <span className="active-letter-dot">{activeLetter}</span>}
         </button>
       )}
 
-      {/* Expanded Right-Side Rolodex Alphabet Bar */}
+      {/* Expanded Right-Side Alphabet Index */}
       {isExpanded && (
         <div className="rolodex-panel">
           <div className="rolodex-header">
-            <div className="rolodex-title">
-              <BookMarked size={16} className="text-primary" />
-              <span>A-Z Rolodex</span>
+            {/* EN / TH Switcher Tabs */}
+            <div className="lang-tabs">
+              <button
+                className={`lang-tab ${activeTab === 'EN' ? 'lang-tab-active' : ''}`}
+                onClick={() => setActiveTab('EN')}
+              >
+                A-Z
+              </button>
+              <button
+                className={`lang-tab ${activeTab === 'TH' ? 'lang-tab-active' : ''}`}
+                onClick={() => setActiveTab('TH')}
+              >
+                ก-ฮ
+              </button>
             </div>
             <button
               className="rolodex-close-btn"
               onClick={() => setIsExpanded(false)}
-              title="Collapse Rolodex"
+              title="Close"
             >
               <ChevronRight size={18} />
             </button>
@@ -56,29 +53,40 @@ export const AZIndexBar = ({ activeLetter, onSelectLetter, contacts = [] }) => {
           <div className="rolodex-list">
             <button
               className={`rolodex-item ${activeLetter === 'All' ? 'rolodex-item-active' : ''}`}
-              onClick={() => onSelectLetter('All')}
-              title={`All Contacts (${contacts.length})`}
+              onClick={() => {
+                onSelectLetter('All');
+                setIsExpanded(false);
+              }}
             >
-              <span className="rolodex-char">ALL</span>
-              <span className="rolodex-badge">{contacts.length}</span>
+              ALL
             </button>
 
-            {ALPHABET.map((letter) => {
-              const count = letterCounts[letter] || 0;
+            {/* Render English or Thai Alphabet */}
+            {(activeTab === 'EN' ? ENGLISH_ALPHABET : THAI_ALPHABET).map((letter) => {
               const isActive = activeLetter === letter;
               return (
                 <button
                   key={letter}
-                  disabled={count === 0}
-                  className={`rolodex-item ${isActive ? 'rolodex-item-active' : ''} ${count === 0 ? 'rolodex-item-disabled' : ''}`}
-                  onClick={() => onSelectLetter(letter)}
-                  title={count > 0 ? `${letter} (${count} contacts)` : `No contacts starting with ${letter}`}
+                  className={`rolodex-item ${isActive ? 'rolodex-item-active' : ''}`}
+                  onClick={() => {
+                    onSelectLetter(letter);
+                    setIsExpanded(false);
+                  }}
                 >
                   <span className="rolodex-char">{letter}</span>
-                  {count > 0 && <span className="rolodex-badge">{count}</span>}
                 </button>
               );
             })}
+
+            <button
+              className={`rolodex-item ${activeLetter === '#' ? 'rolodex-item-active' : ''}`}
+              onClick={() => {
+                onSelectLetter('#');
+                setIsExpanded(false);
+              }}
+            >
+              #
+            </button>
           </div>
         </div>
       )}
