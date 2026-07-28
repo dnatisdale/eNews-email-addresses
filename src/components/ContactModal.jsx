@@ -161,6 +161,10 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 170px', gap: '0.75rem', alignItems: 'start' }} className="full-width">
               {/* Categories — Dropdown Multi-Select */}
               <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
+                  Categories
+                </label>
+                
                 {/* Selected pills */}
                 {(formData.categories || []).filter(c => c !== '*SAMPLE*' && c !== '*EXAMPLES*').length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
@@ -224,16 +228,19 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
 
               {/* Status */}
               <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
+                  Status
+                </label>
                 <select
                   className="input-control"
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                   title="Non-active status automatically displays as an exception warning tag"
                 >
-                  <option value="Active">Status: 🟢 Active</option>
-                  <option value="Inactive">Status: 💤 Inactive</option>
-                  <option value="Unsubscribed">Status: 🚫 Unsubscribed</option>
-                  <option value="Bounced">Status: ⚠️ Bounced</option>
+                  <option value="Active">🟢 Active</option>
+                  <option value="Inactive">💤 Inactive</option>
+                  <option value="Unsubscribed">🚫 Unsubscribed</option>
+                  <option value="Bounced">⚠️ Bounced</option>
                 </select>
               </div>
             </div>
