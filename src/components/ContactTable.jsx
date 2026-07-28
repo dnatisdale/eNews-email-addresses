@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { ColumnSelector, STANDARD_COLUMNS } from './ColumnSelector';
 import { getContactAccuracy } from '../services/accuracyEvaluator';
+import { BulkCategoryAssignModal } from './BulkCategoryAssignModal';
 
 export const AccuracyBoxes = ({ accuracy }) => {
   if (!accuracy || !accuracy.boxes) return null;
@@ -74,6 +75,7 @@ export const ContactTable = ({
   onBulkDelete,
   onBulkCopyEmails,
   onBulkAssignCategories,
+  onAddNewMasterCategory,
   onOpenAddModal,
   onLoadSampleData,
   onUndo,
@@ -251,14 +253,7 @@ export const ContactTable = ({
   // Assign Selected Contacts to Categories
   const handleAssignCategories = () => {
     if (selectedIds.length === 0) return;
-    const targetCategoriesRaw = window.prompt(
-      `Enter Categories for the ${selectedIds.length} selected contacts (comma separated):`,
-      'Friends & Family'
-    );
-    if (targetCategoriesRaw && targetCategoriesRaw.trim()) {
-      const categoriesToAdd = targetCategoriesRaw.split(',').map(c => c.trim()).filter(Boolean);
-      onBulkAssignCategories(selectedIds, categoriesToAdd);
-    }
+    setIsAssignModalOpen(true);
   };
 
   // Copy single email to clipboard
@@ -822,6 +817,16 @@ export const ContactTable = ({
         isOpen={Boolean(callModalContact)}
         onClose={() => setCallModalContact(null)}
         contact={callModalContact}
+      />
+
+      {/* Bulk Category Assignment Modal */}
+      <BulkCategoryAssignModal
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        selectedCount={selectedIds.length}
+        masterCategories={masterCategories}
+        onSave={(cats, mode) => onBulkAssignCategories(selectedIds, cats, mode)}
+        onAddNewMasterCategory={onAddNewMasterCategory}
       />
     </div>
   );

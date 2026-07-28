@@ -409,19 +409,30 @@ export default function App() {
   };
 
   // Bulk Assign Selected Contacts to Categories
-  const handleBulkAssignCategories = (idsToAssign, categoriesToAdd) => {
+  const handleBulkAssignCategories = (idsToAssign, categoriesToAdd, mode = 'add') => {
     requireAuth(() => {
       const updated = contacts.map((c) => {
         if (idsToAssign.includes(c.id)) {
-          const newCategories = [...new Set([...(c.categories || []), ...categoriesToAdd])];
+          let newCategories = [];
+          if (mode === 'replace') {
+            newCategories = [...categoriesToAdd];
+          } else {
+            newCategories = [...new Set([...(c.categories || []), ...categoriesToAdd])];
+          }
           return { ...c, categories: newCategories };
         }
         return c;
       });
       updateContactsState(updated);
       setSelectedIds([]);
-      showToast(`Assigned ${idsToAssign.length} contacts to categories`);
+      showToast(`Assigned categories to ${idsToAssign.length} contacts`);
     }, 'Assign Contacts to Categories');
+  };
+
+  const handleAddNewMasterCategory = (newCat) => {
+    if (newCat && !masterCategories.includes(newCat)) {
+      setMasterCategories(prev => [...prev, newCat]);
+    }
   };
 
   // Database Cleanup
@@ -688,6 +699,7 @@ export default function App() {
           onBulkDelete={(ids) => requireAuth(() => handleBulkDelete(ids), 'Delete Selected Contacts')}
           onBulkCopyEmails={handleBulkCopyEmails}
           onBulkAssignCategories={handleBulkAssignCategories}
+          onAddNewMasterCategory={handleAddNewMasterCategory}
           onOpenAddModal={() => requireAuth(() => {
             setContactToEdit(null);
             setIsAddEditModalOpen(true);
