@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { X, Upload, Download, FileSpreadsheet, Check, FolderPlus, HelpCircle } from 'lucide-react';
-import { parseCSV, downloadCSVFile } from '../services/csvParser';
+import { X, Upload, FileSpreadsheet, Check, FolderPlus, HelpCircle } from 'lucide-react';
+import { parseCSV } from '../services/csvParser';
 
 // Helper to convert filename to a clean Collection / Group title
 const formatFileNameToCollection = (fileName) => {
@@ -17,7 +17,7 @@ const formatFileNameToCollection = (fileName) => {
     .join(' ');
 };
 
-export const ImportExportModal = ({ isOpen, onClose, onImportContacts, contacts }) => {
+export const ImportExportModal = ({ isOpen, onClose, onImportContacts, onImport, contacts = [] }) => {
   const [dragActive, setDragActive] = useState(false);
   const [parsedPreview, setParsedPreview] = useState([]);
   const [fileName, setFileName] = useState('');
@@ -76,7 +76,10 @@ export const ImportExportModal = ({ isOpen, onClose, onImportContacts, contacts 
         };
       });
 
-      onImportContacts(updatedPreview, finalCollection);
+      const doImport = onImportContacts || onImport;
+      if (doImport) {
+        doImport(updatedPreview, finalCollection);
+      }
       onClose();
       setParsedPreview([]);
       setFileName('');
@@ -90,7 +93,7 @@ export const ImportExportModal = ({ isOpen, onClose, onImportContacts, contacts 
         <div className="modal-header">
           <div className="modal-title-wrap">
             <FileSpreadsheet className="modal-icon" />
-            <h2>Import / Export eNews Contacts</h2>
+            <h2>Import CSV Contacts</h2>
           </div>
           <button className="icon-close-btn" onClick={onClose}>
             <X size={20} />
@@ -98,28 +101,6 @@ export const ImportExportModal = ({ isOpen, onClose, onImportContacts, contacts 
         </div>
 
         <div className="modal-body">
-          {/* Export Quick Action */}
-          <div className="export-banner">
-            <div className="banner-text">
-              <h4>Export Active List</h4>
-              <p>Download your current list of {contacts.length} contacts as a standard CSV file.</p>
-            </div>
-            <button 
-              className="btn btn-secondary btn-sm"
-              onClick={() => {
-                const safeTitle = 'eNews Family & Friends Contact Directory'.replace(/[/\\?%*:|"<>]/g, '-');
-                downloadCSVFile(contacts, `${safeTitle} - ${new Date().toISOString().slice(0, 10)}.csv`);
-              }}
-            >
-              <Download size={16} />
-              <span>Export CSV</span>
-            </button>
-          </div>
-
-          <div className="section-divider">
-            <span>OR IMPORT FROM FILE</span>
-          </div>
-
           {/* Import Instructions Box */}
           <div className="import-info-card">
             <HelpCircle size={18} className="info-icon" />

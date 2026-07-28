@@ -1,12 +1,11 @@
 import React from 'react';
-import { X, GitMerge, AlertTriangle, Check, ArrowRight } from 'lucide-react';
-import { mergeContacts } from '../services/deduplicator';
+import { X, GitMerge, AlertTriangle, ArrowRight, ArrowDown, SkipForward, Ban, CheckCircle, RefreshCw, Mail, Briefcase, Phone, Tag, FileText } from 'lucide-react';
 
 export const DuplicateResolverModal = ({
   isOpen,
   onClose,
   duplicates = [],
-  onResolveDuplicate
+  onResolve
 }) => {
   if (!isOpen || duplicates.length === 0) return null;
 
@@ -14,20 +13,36 @@ export const DuplicateResolverModal = ({
   const remainingCount = duplicates.length;
 
   const handleMerge = () => {
-    const merged = mergeContacts(currentDup.existing, currentDup.incoming);
-    onResolveDuplicate({ action: 'merge', merged, existingId: currentDup.existing.id, incomingId: currentDup.incoming.id });
+    onResolve({
+      action: 'merge',
+      existingId: currentDup.existing.id,
+      incomingId: currentDup.incoming?.id
+    });
   };
 
   const handleKeepExisting = () => {
-    onResolveDuplicate({ action: 'keep_existing', existingId: currentDup.existing.id, incomingId: currentDup.incoming.id });
+    onResolve({
+      action: 'keep_existing',
+      existingId: currentDup.existing.id,
+      incomingId: currentDup.incoming?.id
+    });
   };
 
   const handleOverwrite = () => {
-    onResolveDuplicate({ action: 'overwrite', newContact: currentDup.incoming, existingId: currentDup.existing.id });
+    onResolve({
+      action: 'overwrite',
+      existingId: currentDup.existing.id,
+      incomingId: currentDup.incoming?.id,
+      incoming: currentDup.incoming
+    });
+  };
+
+  const handleSkipOne = () => {
+    onResolve({ action: 'skip_one' });
   };
 
   const handleSkipAll = () => {
-    onResolveDuplicate({ action: 'skip_all' });
+    onResolve({ action: 'skip_all' });
   };
 
   return (
@@ -35,63 +50,136 @@ export const DuplicateResolverModal = ({
       <div className="modal-content duplicate-modal">
         <div className="modal-header">
           <div className="modal-title-wrap text-warning">
-            <AlertTriangle className="modal-icon text-warning" />
-            <h2>Duplicate Contact Detected ({remainingCount} Left)</h2>
+            <AlertTriangle className="modal-icon text-warning" size={22} />
+            <div>
+              <h2>Duplicate Contact Detected</h2>
+              <span className="dup-count-subtitle">
+                {remainingCount} duplicate{remainingCount > 1 ? 's' : ''} remaining to resolve
+              </span>
+            </div>
           </div>
-          <button className="icon-close-btn" onClick={onClose}>
+          <button className="icon-close-btn" onClick={handleSkipAll} title="Skip remaining duplicates and close">
             <X size={20} />
           </button>
         </div>
 
         <div className="modal-body">
-          <p className="dup-reason-badge">
-            <strong>Reason:</strong> {currentDup.reason} ({currentDup.matchType})
-          </p>
+          <div className="dup-reason-badge">
+            <span className="reason-label">Reason:</span>
+            <span className="reason-text">{currentDup.reason}</span>
+            {currentDup.matchType && <span className="match-type-pill">{currentDup.matchType}</span>}
+          </div>
 
           <div className="dup-comparison-grid">
             {/* Existing Contact Card */}
             <div className="dup-card existing-card">
-              <span className="card-tag">EXISTING CONTACT</span>
-              <h3>{currentDup.existing.firstName} {currentDup.existing.lastName}</h3>
-              <p className="email-text">✉️ {currentDup.existing.email || 'No email'}</p>
-              {currentDup.existing.secondaryEmail && <p className="sub-text">Work: {currentDup.existing.secondaryEmail}</p>}
-              <p className="sub-text">📞 {currentDup.existing.phone || 'No phone'}</p>
-              <p className="sub-text">🏷️ {currentDup.existing.categories ? currentDup.existing.categories.join(', ') : ''}</p>
-              {currentDup.existing.notes && <p className="notes-text">📝 {currentDup.existing.notes}</p>}
+              <div className="dup-card-header">
+                <span className="card-tag tag-existing">EXISTING CONTACT</span>
+              </div>
+              <h3 className="dup-contact-name">
+                {currentDup.existing.firstName || ''} {currentDup.existing.lastName || ''}
+              </h3>
+              <div className="dup-contact-details">
+                <p className="detail-row">
+                  <Mail size={14} className="detail-icon text-primary" />
+                  <span className="detail-val">{currentDup.existing.email || 'No email'}</span>
+                </p>
+                {currentDup.existing.secondaryEmail && (
+                  <p className="detail-row">
+                    <Briefcase size={14} className="detail-icon text-secondary" />
+                    <span className="detail-val">{currentDup.existing.secondaryEmail}</span>
+                  </p>
+                )}
+                <p className="detail-row">
+                  <Phone size={14} className="detail-icon text-success" />
+                  <span className="detail-val">{currentDup.existing.phone || 'No phone'}</span>
+                </p>
+                {currentDup.existing.categories && currentDup.existing.categories.length > 0 && (
+                  <p className="detail-row">
+                    <Tag size={14} className="detail-icon text-warning" />
+                    <span className="detail-val">{currentDup.existing.categories.join(', ')}</span>
+                  </p>
+                )}
+                {currentDup.existing.notes && (
+                  <p className="detail-row notes-row">
+                    <FileText size={14} className="detail-icon text-muted" />
+                    <span className="detail-val">{currentDup.existing.notes}</span>
+                  </p>
+                )}
+              </div>
             </div>
 
-            <div className="dup-vs-divider">
-              <ArrowRight size={24} />
+            {/* Visual Direction Arrow / Divider */}
+            <div className="dup-vs-divider" title="Comparing existing with incoming">
+              <span className="divider-desktop"><ArrowRight size={22} /></span>
+              <span className="divider-mobile"><ArrowDown size={22} /></span>
             </div>
 
             {/* Incoming / New Contact Card */}
             <div className="dup-card incoming-card">
-              <span className="card-tag tag-new">NEW / INCOMING</span>
-              <h3>{currentDup.incoming.firstName} {currentDup.incoming.lastName}</h3>
-              <p className="email-text">✉️ {currentDup.incoming.email || 'No email'}</p>
-              {currentDup.incoming.secondaryEmail && <p className="sub-text">Work: {currentDup.incoming.secondaryEmail}</p>}
-              <p className="sub-text">📞 {currentDup.incoming.phone || 'No phone'}</p>
-              <p className="sub-text">🏷️ {currentDup.incoming.categories ? currentDup.incoming.categories.join(', ') : ''}</p>
-              {currentDup.incoming.notes && <p className="notes-text">📝 {currentDup.incoming.notes}</p>}
+              <div className="dup-card-header">
+                <span className="card-tag tag-new">NEW / INCOMING</span>
+              </div>
+              <h3 className="dup-contact-name">
+                {currentDup.incoming.firstName || ''} {currentDup.incoming.lastName || ''}
+              </h3>
+              <div className="dup-contact-details">
+                <p className="detail-row">
+                  <Mail size={14} className="detail-icon text-primary" />
+                  <span className="detail-val">{currentDup.incoming.email || 'No email'}</span>
+                </p>
+                {currentDup.incoming.secondaryEmail && (
+                  <p className="detail-row">
+                    <Briefcase size={14} className="detail-icon text-secondary" />
+                    <span className="detail-val">{currentDup.incoming.secondaryEmail}</span>
+                  </p>
+                )}
+                <p className="detail-row">
+                  <Phone size={14} className="detail-icon text-success" />
+                  <span className="detail-val">{currentDup.incoming.phone || 'No phone'}</span>
+                </p>
+                {currentDup.incoming.categories && currentDup.incoming.categories.length > 0 && (
+                  <p className="detail-row">
+                    <Tag size={14} className="detail-icon text-warning" />
+                    <span className="detail-val">{currentDup.incoming.categories.join(', ')}</span>
+                  </p>
+                )}
+                {currentDup.incoming.notes && (
+                  <p className="detail-row notes-row">
+                    <FileText size={14} className="detail-icon text-muted" />
+                    <span className="detail-val">{currentDup.incoming.notes}</span>
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
+        {/* Footer Toolbar */}
         <div className="modal-footer dup-footer">
-          <button className="btn btn-secondary btn-sm" onClick={handleSkipAll}>
-            Skip All Duplicates
-          </button>
-
-          <div className="action-buttons-group">
-            <button className="btn btn-secondary" onClick={handleKeepExisting}>
-              Keep Existing Only
+          <div className="dup-primary-actions">
+            <button className="btn btn-secondary btn-dup-action" onClick={handleKeepExisting} title="Keep existing contact unchanged">
+              <CheckCircle size={16} />
+              <span>Keep Existing Only</span>
             </button>
-            <button className="btn btn-outline" onClick={handleOverwrite}>
-              Overwrite Existing
+            <button className="btn btn-outline btn-dup-action" onClick={handleOverwrite} title="Replace existing with new incoming contact">
+              <RefreshCw size={16} />
+              <span>Overwrite Existing</span>
             </button>
-            <button className="btn btn-primary" onClick={handleMerge}>
+            <button className="btn btn-primary btn-dup-action" onClick={handleMerge} title="Merge information from both contacts">
               <GitMerge size={16} />
               <span>Smart Merge Both</span>
+            </button>
+          </div>
+
+          <div className="dup-secondary-actions">
+            <button className="btn btn-ghost btn-sm" onClick={handleSkipOne}>
+              <SkipForward size={14} />
+              <span>Skip This One</span>
+            </button>
+            <button className="btn btn-danger-outline btn-sm" onClick={handleSkipAll}>
+              <Ban size={14} />
+              <span>Skip All Duplicates</span>
             </button>
           </div>
         </div>

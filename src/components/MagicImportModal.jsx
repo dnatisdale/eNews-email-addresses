@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { X, Sparkles, AlertCircle, Save, CheckCircle } from 'lucide-react';
-import { parseContactsWithGemini } from '../services/geminiService';
+import { X, Sparkles, AlertCircle, Save, CheckCircle, Wand2, Mail, Phone, MapPin, FileText } from 'lucide-react';
+import { parseContactsFromText } from '../services/smartTextParser';
 
 export const MagicImportModal = ({ isOpen, onClose, onImport }) => {
   const [rawText, setRawText] = useState('');
@@ -10,25 +10,25 @@ export const MagicImportModal = ({ isOpen, onClose, onImport }) => {
 
   if (!isOpen) return null;
 
-  const handleParse = async () => {
+  const handleParse = () => {
     if (!rawText.trim()) {
       setErrorMsg("Please paste some text first.");
       return;
     }
-    
+
     setIsParsing(true);
     setErrorMsg('');
     setParsedContacts(null);
 
     try {
-      const contacts = await parseContactsWithGemini(rawText);
+      const contacts = parseContactsFromText(rawText);
       if (contacts && contacts.length > 0) {
         setParsedContacts(contacts);
       } else {
-        setErrorMsg("Gemini couldn't find any contacts in that text. Try pasting something else.");
+        setErrorMsg("No emails or phone numbers found in that text. Try pasting a contact signature or list containing contact details.");
       }
     } catch (err) {
-      setErrorMsg(err.message || "An error occurred while parsing.");
+      setErrorMsg("Could not parse contacts from text. Please check the formatting.");
     } finally {
       setIsParsing(false);
     }
@@ -37,15 +37,15 @@ export const MagicImportModal = ({ isOpen, onClose, onImport }) => {
   const handleSaveAll = () => {
     if (parsedContacts && parsedContacts.length > 0) {
       // Clean up array and generate IDs
-      const importedList = parsedContacts.map(c => ({
+      const importedList = parsedContacts.map((c) => ({
         ...c,
-        id: 'gemini_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+        id: 'smart_extract_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
         status: 'Active',
-        categories: ['Imported by AI'],
+        categories: ['Smart Extracted'],
         createdAt: new Date().toISOString()
       }));
-      
-      onImport(importedList, 'Imported by AI');
+
+      onImport(importedList, 'Smart Extracted');
       handleClose();
     }
   };
@@ -60,11 +60,11 @@ export const MagicImportModal = ({ isOpen, onClose, onImport }) => {
 
   return (
     <div className="modal-backdrop">
-      <div className="modal-content magic-modal" style={{ maxWidth: '600px' }}>
+      <div className="modal-content magic-modal" style={{ maxWidth: '640px' }}>
         <div className="modal-header">
           <div className="modal-title-wrap">
-            <Sparkles className="modal-icon text-primary" />
-            <h2>Magic AI Import</h2>
+            <Wand2 className="modal-icon text-primary" />
+            <h2>Smart Text Contact Extractor</h2>
           </div>
           <button className="icon-close-btn" onClick={handleClose} aria-label="Close Modal">
             <X size={20} />
@@ -75,9 +75,9 @@ export const MagicImportModal = ({ isOpen, onClose, onImport }) => {
           {!parsedContacts ? (
             <>
               <p className="security-notice mb-3">
-                Paste an email signature, a block of meeting notes, or any messy text. Gemini AI will automatically extract the contact details for you!
+                Paste an email signature, meeting notes, or raw text list. The 100% offline Smart Extractor will automatically pull names, emails, phone numbers, and addresses!
               </p>
-              
+
               <div className="form-group full-width">
                 <textarea
                   rows={8}
@@ -104,14 +104,14 @@ export const MagicImportModal = ({ isOpen, onClose, onImport }) => {
                 <button type="button" className="btn btn-secondary" onClick={handleClose} disabled={isParsing}>
                   Cancel
                 </button>
-                <button 
-                  type="button" 
-                  className="btn btn-primary" 
-                  onClick={handleParse} 
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleParse}
                   disabled={isParsing || !rawText.trim()}
                 >
                   <Sparkles size={16} />
-                  <span>{isParsing ? 'Analyzing Text...' : 'Extract Contacts'}</span>
+                  <span>Extract Contacts</span>
                 </button>
               </div>
             </>
@@ -119,19 +119,36 @@ export const MagicImportModal = ({ isOpen, onClose, onImport }) => {
             <>
               <div className="success-alert mb-3">
                 <CheckCircle size={16} />
-                <span>Gemini successfully extracted {parsedContacts.length} contact(s)!</span>
+                <span>Successfully extracted {parsedContacts.length} contact(s)!</span>
               </div>
-              
-              <div className="extracted-preview" style={{ maxHeight: '300px', overflowY: 'auto', background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+
+              <div
+                className="extracted-preview"
+                style={{
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  background: 'var(--bg-secondary)',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)'
+                }}
+              >
                 {parsedContacts.map((contact, i) => (
-                  <div key={i} style={{ paddingBottom: i < parsedContacts.length - 1 ? '1rem' : '0', marginBottom: i < parsedContacts.length - 1 ? '1rem' : '0', borderBottom: i < parsedContacts.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
+                  <div
+                    key={i}
+                    style={{
+                      paddingBottom: i < parsedContacts.length - 1 ? '1rem' : '0',
+                      marginBottom: i < parsedContacts.length - 1 ? '1rem' : '0',
+                      borderBottom: i < parsedContacts.length - 1 ? '1px solid var(--border-color)' : 'none'
+                    }}
+                  >
                     <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>
                       {contact.firstName} {contact.lastName}
                     </h4>
-                    {contact.email && <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>✉️ {contact.email}</div>}
-                    {contact.phone && <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>📞 {contact.phone}</div>}
-                    {contact.address && <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>📍 {contact.address}</div>}
-                    {contact.notes && <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>📝 {contact.notes}</div>}
+                    {contact.email && <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}><Mail size={13} className="text-primary" /> {contact.email}</div>}
+                    {contact.phone && <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}><Phone size={13} className="text-success" /> {contact.phone}</div>}
+                    {contact.address && <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}><MapPin size={13} className="text-warning" /> {contact.address}</div>}
+                    {contact.notes && <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}><FileText size={13} className="text-muted" /> {contact.notes}</div>}
                   </div>
                 ))}
               </div>
@@ -142,7 +159,7 @@ export const MagicImportModal = ({ isOpen, onClose, onImport }) => {
                 </button>
                 <button type="button" className="btn btn-primary" onClick={handleSaveAll}>
                   <Save size={16} />
-                  <span>Save All to Address Book</span>
+                  <span>Save All ({parsedContacts.length}) to Address Book</span>
                 </button>
               </div>
             </>

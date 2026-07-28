@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Mail, Sun, Moon, Download, Plus, Users, Sparkles, Printer, FileText,
   ShieldAlert, Lock, Unlock, Settings, Wand2, Archive, Share2,
-  Menu, X, ChevronRight, Trash2, Tag
+  Menu, X, ChevronRight, Trash2, Tag, Type
 } from 'lucide-react';
 
 export const Header = ({
@@ -13,6 +13,8 @@ export const Header = ({
   trashCount = 0,
   theme,
   toggleTheme,
+  fontSize = 100,
+  setFontSize,
   isEditingUnlocked,
   onToggleLock,
   onOpenSettings,
@@ -33,19 +35,23 @@ export const Header = ({
   onInstallClick
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [fontPopoverOpen, setFontPopoverOpen] = useState(false);
   const menuRef = useRef(null);
+  const fontRef = useRef(null);
 
-  // Close menu when clicking outside
+  // Close menus when clicking outside
   useEffect(() => {
-    if (!menuOpen) return;
     const handleClick = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
+      if (menuOpen && menuRef.current && !menuRef.current.contains(e.target)) {
         setMenuOpen(false);
+      }
+      if (fontPopoverOpen && fontRef.current && !fontRef.current.contains(e.target)) {
+        setFontPopoverOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [menuOpen]);
+  }, [menuOpen, fontPopoverOpen]);
 
   const handleShareApp = async () => {
     setMenuOpen(false);
@@ -120,6 +126,54 @@ export const Header = ({
         {/* ── Right Actions ────────────────────────────────── */}
         <div className="header-actions">
 
+          {/* Quick Font Size Control Popover (Outside Hamburger Dropdown) */}
+          <div className="font-popover-wrap" ref={fontRef}>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => setFontPopoverOpen(v => !v)}
+              title="Adjust Font Size & Smartphone Text Scaling"
+            >
+              <Type size={15} />
+              <span className="desktop-only">{fontSize || 100}%</span>
+            </button>
+
+            {fontPopoverOpen && (
+              <div className="font-popover-menu">
+                <div className="font-popover-header">
+                  <span>Font Scale ({fontSize || 100}%)</span>
+                  <button className="btn-link text-xs" onClick={() => setFontSize && setFontSize(100)}>Reset</button>
+                </div>
+                <div className="font-popover-body">
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-xs"
+                    onClick={() => setFontSize && setFontSize(Math.max(80, (fontSize || 100) - 5))}
+                    disabled={(fontSize || 100) <= 80}
+                  >
+                    A-
+                  </button>
+                  <input
+                    type="range"
+                    min="80"
+                    max="140"
+                    step="5"
+                    className="font-popover-slider"
+                    value={fontSize || 100}
+                    onChange={(e) => setFontSize && setFontSize(Number(e.target.value))}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-xs"
+                    onClick={() => setFontSize && setFontSize(Math.min(140, (fontSize || 100) + 5))}
+                    disabled={(fontSize || 100) >= 140}
+                  >
+                    A+
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Lock / Unlock */}
           <button
             className={`btn btn-sm ${isEditingUnlocked ? 'btn-unlocked' : 'btn-locked'}`}
@@ -129,7 +183,6 @@ export const Header = ({
             {isEditingUnlocked ? <Unlock size={15} /> : <Lock size={15} />}
             <span className="desktop-only">{isEditingUnlocked ? 'Unlocked' : 'Locked'}</span>
           </button>
-
 
           {/* Add Contact — always prominent */}
           <button className="btn btn-primary btn-sm" onClick={onOpenAddModal}>
@@ -154,7 +207,7 @@ export const Header = ({
             {menuOpen && (
               <div className="hmenu-dropdown">
                 <div className="hmenu-section-label">Import &amp; Export</div>
-                {menuItem(<Sparkles size={16} className="text-primary" />, 'Magic AI Import', onOpenMagicImport)}
+                {menuItem(<Wand2 size={16} className="text-primary" />, 'Smart Text Import', onOpenMagicImport)}
                 {menuItem(<Download size={16} />, 'Import CSV', onOpenImportModal)}
                 {menuItem(<Printer size={16} />, 'Print / Save PDF', onPrintDirectory)}
                 {menuItem(<FileText size={16} />, 'Export CSV', onExportCSV)}
@@ -178,26 +231,22 @@ export const Header = ({
                 <div className="hmenu-divider" />
                 <div className="hmenu-section-label">System &amp; Settings</div>
                 {menuItem(<Tag size={16} />, 'Category Manager', onOpenCategoryManager)}
-                {menuItem(<Settings size={16} />, 'App Settings', onOpenSettings)}
-                {menuItem(theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />, theme === 'dark' ? 'Light Mode' : 'Dark Mode', toggleTheme)}
-
-                <div className="hmenu-divider" />
-                
-                {deferredPrompt && (
-                  <>
-                    <div className="hmenu-section-label">App</div>
-                    {menuItem(<Download size={16} className="text-primary" />, 'Install App', onInstallClick)}
-                    <div className="hmenu-divider" />
-                  </>
-                )}
-                
-                <div style={{ padding: '8px 12px', fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-                  Version: {typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'Local Dev'}
-                </div>
+                {menuItem(<Settings size={16} />, 'Settings', onOpenSettings)}
               </div>
             )}
           </div>
+
+          {/* Theme Toggle Button */}
+          <button
+            className="theme-toggle-btn"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
         </div>
+
       </div>
     </header>
   );

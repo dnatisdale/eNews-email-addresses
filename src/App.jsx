@@ -12,7 +12,7 @@ import { TrashModal } from './components/TrashModal';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { CategoryManagerModal } from './components/CategoryManagerModal';
 import { generateSampleContacts } from './services/sampleData';
-import { findDuplicates } from './services/deduplicator';
+import { findDuplicates, mergeContacts } from './services/deduplicator';
 import { cleanDatabase } from './services/dbCleaner';
 import { STANDARD_COLUMNS } from './components/ColumnSelector';
 import { isSecurityLockEnabled } from './services/authService';
@@ -20,12 +20,23 @@ import { isSecurityLockEnabled } from './services/authService';
 const STORAGE_KEY = 'eNews_Contacts_List_v1';
 const TRASH_STORAGE_KEY = 'eNews_Trash_Contacts_v1';
 const THEME_KEY = 'eNews_Theme_Preference';
+const FONT_SIZE_KEY = 'eNews_Font_Size_Preference';
 const MASTER_CATEGORIES_KEY = 'eNews_master_categories';
 const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000;
 
 export default function App() {
   // Theme state
   const [theme, setTheme] = useState(() => localStorage.getItem(THEME_KEY) || 'dark');
+
+  // Font Scale state (Numeric percentage 80% to 140%)
+  const [fontSize, setFontSize] = useState(() => {
+    const saved = localStorage.getItem(FONT_SIZE_KEY);
+    if (saved && !isNaN(saved)) return Number(saved);
+    if (saved === 'small') return 85;
+    if (saved === 'large') return 115;
+    if (saved === 'xlarge') return 125;
+    return 100;
+  });
 
   // Contacts state
   const [contacts, setContacts] = useState(() => {
@@ -34,12 +45,12 @@ export default function App() {
       try {
         const parsed = JSON.parse(saved);
         const { cleanedContacts } = cleanDatabase(parsed);
-        return cleanedContacts;
+        if (cleanedContacts.length > 0) return cleanedContacts;
       } catch (e) {
         console.error('Failed to load contacts from storage', e);
       }
     }
-    return [];
+    return generateSampleContacts();
   });
 
   // Trash Contacts State (60-Day Recovery Bin)
@@ -71,7 +82,7 @@ export default function App() {
       }
     }
     // Default categories if none exist
-    return ['Family', 'Close Friends', 'Newsletter', 'Holiday List'];
+    return ['*EXAMPLES*', 'Family', 'Close Friends', 'Newsletter', 'Holiday List'];
   });
 
   // Security Lock & Authentication State
@@ -249,6 +260,14 @@ export default function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    const numScale = typeof fontSize === 'number' ? fontSize : 100;
+    const pxSize = (16 * numScale) / 100;
+    document.documentElement.style.fontSize = `${pxSize}px`;
+    document.documentElement.setAttribute('data-font-scale', numScale.toString());
+    localStorage.setItem(FONT_SIZE_KEY, numScale.toString());
+  }, [fontSize]);
 
   // PWA Installation State
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -506,11 +525,54 @@ export default function App() {
     }
   };
 
-  // Resolve duplicate merge
-  const handleResolveDuplicates = (resolvedList) => {
-    setContacts(resolvedList);
-    setDuplicates([]);
-    setIsDuplicateModalOpen(false);
+  // Resolve duplicate actions (Skip All, Skip One, Merge, Overwrite, Keep Existing)
+  const handleResolveDuplicates = (resolution) => {
+    if (!resolution) return;
+    const { action, existingId, incomingId, incoming } = resolution;
+
+    if (action === 'skip_all') {
+      setDuplicates([]);
+      setIsDuplicateModalOpen(false);
+      return;
+    }
+
+    if (action === 'skip_one') {
+      setDuplicates((prev) => {
+        const next = prev.slice(1);
+        if (next.length === 0) setIsDuplicateModalOpen(false);
+        return next;
+      });
+      return;
+    }
+
+    const currentDup = duplicates[0];
+    if (!currentDup) return;
+
+    if (action === 'merge') {
+      const merged = mergeContacts(currentDup.existing, currentDup.incoming);
+      setContacts((prev) => {
+        const updated = prev.map((c) => (c.id === existingId ? merged : c));
+        return incomingId ? updated.filter((c) => c.id !== incomingId || c.id === existingId) : updated;
+      });
+    } else if (action === 'overwrite') {
+      const overwritten = { ...(incoming || currentDup.incoming), id: existingId };
+      setContacts((prev) => {
+        const updated = prev.map((c) => (c.id === existingId ? overwritten : c));
+        return incomingId ? updated.filter((c) => c.id !== incomingId || c.id === existingId) : updated;
+      });
+    } else if (action === 'keep_existing') {
+      if (incomingId) {
+        setContacts((prev) => prev.filter((c) => c.id !== incomingId || c.id === existingId));
+      }
+    }
+
+    setDuplicates((prev) => {
+      const next = prev.slice(1);
+      if (next.length === 0) {
+        setIsDuplicateModalOpen(false);
+      }
+      return next;
+    });
   };
 
   const handleClearSampleData = () => {
@@ -538,6 +600,8 @@ export default function App() {
         trashCount={trashContacts.length}
         theme={theme}
         toggleTheme={toggleTheme}
+        fontSize={fontSize}
+        setFontSize={setFontSize}
         isEditingUnlocked={isEditingUnlocked}
         onToggleLock={handleToggleLock}
         onOpenSettings={() => setIsSettingsModalOpen(true)}
@@ -547,7 +611,7 @@ export default function App() {
           setIsAddEditModalOpen(true);
         }, 'Add New Contact')}
         onOpenImportModal={() => requireAuth(() => setIsImportModalOpen(true), 'Import CSV File')}
-        onOpenMagicImport={() => requireAuth(() => setIsMagicImportModalOpen(true), 'Magic AI Import')}
+        onOpenMagicImport={() => requireAuth(() => setIsMagicImportModalOpen(true), 'Smart Text Import')}
         onLoadSampleData={() => requireAuth(() => {
           const samples = generateSampleContacts();
           setContacts(samples);
@@ -610,6 +674,8 @@ export default function App() {
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onImport={handleImportContacts}
+        onImportContacts={handleImportContacts}
+        contacts={contacts}
       />
 
       <MagicImportModal
@@ -660,6 +726,8 @@ export default function App() {
       <SettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
+        fontSize={fontSize}
+        setFontSize={setFontSize}
       />
 
       <TrashModal

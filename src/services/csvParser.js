@@ -223,9 +223,9 @@ const normalizeImportedContacts = (records) => {
 };
 
 // Generate CSV string from contacts array
-export const exportToCSV = (contacts) => {
+export const exportToCSV = (contacts = []) => {
   const customHeaders = new Set();
-  contacts.forEach((c) => {
+  (contacts || []).forEach((c) => {
     if (c.customFields) {
       Object.keys(c.customFields).forEach((key) => customHeaders.add(key));
     }
@@ -250,7 +250,7 @@ export const exportToCSV = (contacts) => {
     return `"${str}"`;
   };
 
-  const rows = contacts.map((c) => {
+  const rows = (contacts || []).map((c) => {
     const baseCols = [
       escapeCSV(c.firstName),
       escapeCSV(c.lastName),
@@ -274,7 +274,7 @@ export const exportToCSV = (contacts) => {
 };
 
 // Download CSV file directly in browser
-export const downloadCSVFile = (contacts, filename = `eNews Family & Friends Contact Directory - ${new Date().toISOString().slice(0, 10)}.csv`) => {
+export const downloadCSVFile = (contacts = [], filename = `eNews Family & Friends Contact Directory - ${new Date().toISOString().slice(0, 10)}.csv`) => {
   const csvContent = exportToCSV(contacts);
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
