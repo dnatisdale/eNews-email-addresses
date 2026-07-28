@@ -93,12 +93,11 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
           <div className="form-grid">
             {/* First Name */}
             <div className="form-group">
-              <label>First Name *</label>
               <input
                 type="text"
                 required
                 className="input-control"
-                placeholder="e.g. Eleanor"
+                placeholder="First Name *"
                 value={formData.firstName}
                 onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
               />
@@ -106,11 +105,10 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
 
             {/* Last Name */}
             <div className="form-group">
-              <label>Last Name</label>
               <input
                 type="text"
                 className="input-control"
-                placeholder="e.g. Tisdale"
+                placeholder="Last Name"
                 value={formData.lastName}
                 onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
               />
@@ -118,14 +116,13 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
 
             {/* Email */}
             <div className="form-group">
-              <label>Email *</label>
               <div className="input-with-icon">
                 <Mail size={16} className="input-icon" />
                 <input
                   type="email"
                   required
                   className="input-control"
-                  placeholder="eleanor@example.com"
+                  placeholder="Email *"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
@@ -134,13 +131,12 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
 
             {/* Secondary Email */}
             <div className="form-group">
-              <label>Secondary Email</label>
               <div className="input-with-icon">
                 <Mail size={16} className="input-icon" />
                 <input
                   type="email"
                   className="input-control"
-                  placeholder="work.email@company.com"
+                  placeholder="Secondary Email"
                   value={formData.secondaryEmail}
                   onChange={(e) => setFormData({ ...formData, secondaryEmail: e.target.value })}
                 />
@@ -149,13 +145,12 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
 
             {/* Phone */}
             <div className="form-group">
-              <label>Phone Number</label>
               <div className="input-with-icon">
                 <Phone size={16} className="input-icon" />
                 <input
                   type="tel"
                   className="input-control"
-                  placeholder="(555) 000-0000"
+                  placeholder="Phone Number"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 />
@@ -163,11 +158,9 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
             </div>
 
             {/* Side-by-Side: Categories & Status */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px', gap: '1rem', alignItems: 'start' }} className="full-width">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 170px', gap: '0.75rem', alignItems: 'start' }} className="full-width">
               {/* Categories — Dropdown Multi-Select */}
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Categories</label>
-                
                 {/* Selected pills */}
                 {(formData.categories || []).filter(c => c !== '*SAMPLE*' && c !== '*EXAMPLES*').length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
@@ -202,7 +195,7 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
                   }}
                   style={{ cursor: 'pointer' }}
                 >
-                  <option value="" disabled>Select a category…</option>
+                  <option value="" disabled>Add Categories…</option>
                   {masterCategories.filter(cat => cat !== '*SAMPLE*' && cat !== '*EXAMPLES*').map(cat => {
                     const isSelected = (formData.categories || []).includes(cat);
                     return (
@@ -231,35 +224,28 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
 
               {/* Status */}
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <span>Status</span>
-                  <Info size={14} className="text-muted" title="Non-active status automatically displays as an exception warning tag in Categories & Tags" style={{ cursor: 'help' }} />
-                </label>
                 <select
                   className="input-control"
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  title="Non-active status automatically displays as an exception warning tag"
                 >
-                  <option value="Active">🟢 Active</option>
-                  <option value="Inactive">💤 Inactive</option>
-                  <option value="Unsubscribed">🚫 Unsubscribed</option>
-                  <option value="Bounced">⚠️ Bounced</option>
+                  <option value="Active">Status: 🟢 Active</option>
+                  <option value="Inactive">Status: 💤 Inactive</option>
+                  <option value="Unsubscribed">Status: 🚫 Unsubscribed</option>
+                  <option value="Bounced">Status: ⚠️ Bounced</option>
                 </select>
-                <small className="field-hint" style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
-                  Non-active status adds an exception tag.
-                </small>
               </div>
             </div>
 
             {/* Address */}
             <div className="form-group full-width">
-              <label>Physical Address</label>
               <div className="input-with-icon">
                 <MapPin size={16} className="input-icon" />
                 <input
                   type="text"
                   className="input-control"
-                  placeholder="Street, City, State Zip"
+                  placeholder="Physical Address (Street, City, State Zip)"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 />
@@ -268,11 +254,10 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
 
             {/* Notes */}
             <div className="form-group full-width">
-              <label>Notes</label>
               <textarea
-                rows={3}
+                rows={2}
                 className="input-control textarea-control"
-                placeholder="Holiday card notes, relationship details, preferred greeting..."
+                placeholder="Notes (Holiday card notes, relationship details, preferred greeting...)"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               />
