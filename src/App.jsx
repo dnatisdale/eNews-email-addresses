@@ -760,6 +760,13 @@ export default function App() {
         onConfirm={deleteModalState.onConfirm}
       />
 
+      <SecurityModal
+        isOpen={isSecurityModalOpen}
+        onClose={() => setIsSecurityModalOpen(false)}
+        onUnlockSuccess={handleUnlockSuccess}
+        actionTitle={securityActionTitle}
+      />
+
       <SettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
