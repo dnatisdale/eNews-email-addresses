@@ -216,7 +216,7 @@ export const Header = ({
                 <div className="hmenu-divider" />
                 <div className="hmenu-section-label">Maintenance</div>
                 {contactsCount > 0 && menuItem(<Wand2 size={16} />, 'Clean & Repair DB', onCleanDatabase)}
-                {contactsCount === 0 && menuItem(<Sparkles size={16} />, 'Load 50 Sample Contacts', onLoadSampleData)}
+                {contactsCount === 0 && menuItem(<Sparkles size={16} />, 'Load Sample Contacts', onLoadSampleData)}
                 {menuItem(<Trash2 size={16} />, 'Clear Sample Data', onClearSampleData)}
 
                 <div className="hmenu-divider" />

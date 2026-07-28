@@ -409,7 +409,7 @@ export const ContactTable = ({
             {contacts.length === 0 && (
               <button className="btn btn-secondary" onClick={onLoadSampleData}>
                 <Sparkles size={16} />
-                <span>Load 50 Sample Contacts</span>
+                <span>Load Sample Contacts</span>
               </button>
             )}
             <button className="btn btn-primary" onClick={onOpenAddModal}>
