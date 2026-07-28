@@ -158,20 +158,28 @@ export default function App() {
     return [];
   });
 
+  const OFFICIAL_BUILTIN = ['Christmas', 'eNewsletter', 'Family', 'Friends'];
+
   // Master Categories State
   const [masterCategories, setMasterCategories] = useState(() => {
     const saved = localStorage.getItem(MASTER_CATEGORIES_KEY);
+    let cats = OFFICIAL_BUILTIN;
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Strip out any legacy *EXAMPLES* or *SAMPLE* entries
-        const cleaned = parsed.filter(c => c !== '*EXAMPLES*' && c !== '*SAMPLE*');
-        return sortCategoriesAlphabetically(cleaned);
+        const cleaned = parsed.map(c => {
+          if (c === 'Friends & Family') return 'Family';
+          if (c === 'Close Friends') return 'Friends';
+          if (c === 'Holiday List') return 'Christmas';
+          if (c === 'Newsletter') return 'eNewsletter';
+          return c;
+        }).filter(c => c && c !== '*EXAMPLES*' && c !== '*SAMPLE*');
+        cats = Array.from(new Set([...OFFICIAL_BUILTIN, ...cleaned]));
       } catch (e) {
         console.error('Failed to load master categories', e);
       }
     }
-    return sortCategoriesAlphabetically(['Close Friends', 'Family', 'Holiday List', 'Newsletter']);
+    return sortCategoriesAlphabetically(cats);
   });
 
   // Security Lock & Authentication State

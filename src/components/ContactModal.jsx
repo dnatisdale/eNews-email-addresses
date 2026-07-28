@@ -8,7 +8,7 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
     email: '',
     secondaryEmail: '',
     phone: '',
-    categories: ['Friends & Family'],
+    categories: ['Family'],
     status: 'Active',
     address: '',
     notes: ''
@@ -25,7 +25,7 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
         email: contactToEdit.email || '',
         secondaryEmail: contactToEdit.secondaryEmail || '',
         phone: contactToEdit.phone || '',
-        categories: contactToEdit.categories && contactToEdit.categories.length > 0 ? contactToEdit.categories : ['Friends & Family'],
+        categories: contactToEdit.categories && contactToEdit.categories.length > 0 ? contactToEdit.categories : ['Family'],
         status: contactToEdit.status || 'Active',
         address: contactToEdit.address || '',
         notes: contactToEdit.notes || ''
@@ -37,7 +37,7 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
         email: '',
         secondaryEmail: '',
         phone: '',
-        categories: ['Friends & Family'],
+        categories: ['Family'],
         status: 'Active',
         address: '',
         notes: ''

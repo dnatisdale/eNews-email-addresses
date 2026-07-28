@@ -28,15 +28,23 @@ export const cleanDatabase = (contacts = []) => {
     let categories = contact.categories;
     if (!categories || !Array.isArray(categories)) {
       const legacyGroup = (contact.group || '').trim();
-      categories = legacyGroup ? [legacyGroup] : ['Friends & Family'];
+      categories = legacyGroup ? [legacyGroup] : ['Family'];
     }
+    categories = categories.flatMap(c => {
+      const trimmed = c.trim();
+      if (trimmed === 'Friends & Family') return ['Family', 'Friends'];
+      if (trimmed === 'Close Friends') return ['Friends'];
+      if (trimmed === 'Holiday List') return ['Christmas'];
+      if (trimmed === 'Newsletter') return ['eNewsletter'];
+      return [trimmed];
+    });
     categories = [...new Set(
       categories
         .map(c => c.trim())
         .filter(c => Boolean(c) && !c.toLowerCase().endsWith('.csv') && !c.toLowerCase().endsWith('.xlsx'))
     )];
     if (categories.length === 0) {
-      categories = ['Friends & Family'];
+      categories = ['Family'];
     }
     const status = (contact.status || '').trim() || 'Active';
     const address = (contact.address || '').trim();
