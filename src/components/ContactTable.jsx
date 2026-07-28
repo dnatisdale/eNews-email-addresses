@@ -19,6 +19,25 @@ import {
 } from 'lucide-react';
 import { ColumnSelector, STANDARD_COLUMNS } from './ColumnSelector';
 import { getContactAccuracy } from '../services/accuracyEvaluator';
+
+export const AccuracyBoxes = ({ accuracy }) => {
+  if (!accuracy || !accuracy.boxes) return null;
+  return (
+    <div 
+      className="accuracy-boxes-grid" 
+      title={accuracy.tooltip}
+      aria-label={accuracy.tooltip}
+    >
+      {accuracy.boxes.map((b) => (
+        <div 
+          key={b.key}
+          className={`accuracy-box ${b.present ? 'filled' : 'empty'}`}
+          title={`${b.label}: ${b.present ? 'Present' : 'Missing'}`}
+        />
+      ))}
+    </div>
+  );
+};
 import { cleanAndFormatPhone } from '../services/phoneService';
 import { CallModal } from './CallModal';
 import { AZIndexBar } from './AZIndexBar';
@@ -355,12 +374,12 @@ export const ContactTable = ({
                 className="select-control-sm"
                 value={accuracyFilter}
                 onChange={(e) => setAccuracyFilter(e.target.value)}
-                title="Filter by Completeness Percentage Score"
+                title="Filter by 4-Item Completeness (Name, Email, Phone, Address)"
               >
-                <option value="All">All % Scores</option>
-                <option value="green">🟢 Complete (99)</option>
-                <option value="yellow">🟡 Partial (65% - 98%)</option>
-                <option value="red">🔴 Incomplete (1% - 64%)</option>
+                <option value="All">All Completeness Scores</option>
+                <option value="green">🟢 4/4 Complete (All Items)</option>
+                <option value="yellow">🟡 2-3 Items Present</option>
+                <option value="red">🔴 0-1 Items Present</option>
               </select>
             </div>
           </div>
@@ -577,13 +596,7 @@ export const ContactTable = ({
                           case 'score':
                             return (
                               <td key="score" className="td-accuracy" onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
-                                <div 
-                                  className="score-badge"
-                                  title={accuracy.tooltip}
-                                  style={{ fontWeight: 'bold', fontSize: '0.95rem', color: accuracy.color }}
-                                >
-                                  {accuracy.displayScore}
-                                </div>
+                                <AccuracyBoxes accuracy={accuracy} />
                               </td>
                             );
                           case 'name':
@@ -727,13 +740,7 @@ export const ContactTable = ({
                         <h4 className="card-name">{contact.firstName} {contact.lastName}</h4>
                         <div className="card-badges-wrap">
                           {visibleColumns.includes('score') && (
-                            <div 
-                              className="score-badge"
-                              title={accuracy.tooltip}
-                              style={{ fontWeight: 'bold', fontSize: '0.95rem', color: accuracy.color, textAlign: 'center' }}
-                            >
-                              {accuracy.displayScore}
-                            </div>
+                            <AccuracyBoxes accuracy={accuracy} />
                           )}
                         </div>
                       </div>

@@ -306,7 +306,13 @@ export const PrintView = ({ isOpen, onClose, contacts = [], availableColumns = [
                   if (col.id === 'index') val = idx + 1;
                   else if (col.id === 'score') {
                     const accuracy = getContactAccuracy(c);
-                    val = <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: accuracy.color }}>{accuracy.displayScore}</span>;
+                    val = (
+                      <div className="accuracy-boxes-grid" title={accuracy.tooltip} style={{ display: 'inline-flex', verticalAlign: 'middle' }}>
+                        {(accuracy.boxes || []).map((b) => (
+                          <div key={b.key} className={`accuracy-box ${b.present ? 'filled' : 'empty'}`} />
+                        ))}
+                      </div>
+                    );
                   }
                   else if (col.id === 'name') val = <strong>{c.firstName} {c.lastName}</strong>;
                   else if (col.id === 'categories') {

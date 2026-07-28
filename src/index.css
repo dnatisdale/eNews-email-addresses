@@ -887,7 +887,72 @@ html, body, #root {
   color: var(--text-muted);
 }
 
-/* Accuracy & Score Lights (Green, Yellow, Red) */
+/* Accuracy & Score Lights / 1 x 4 Box Grid */
+.accuracy-boxes-grid {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 4px;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 4px;
+  background-color: var(--bg-card, #ffffff);
+  cursor: help;
+  vertical-align: middle;
+}
+
+.accuracy-box {
+  width: 10px;
+  height: 14px;
+  border-radius: 1px;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+/* Medium / Dark Green for positive items */
+.accuracy-box.filled {
+  background-color: #15803d !important; /* Medium Dark Green */
+  border: 1px solid #166534 !important;
+}
+
+.accuracy-box.empty {
+  background-color: transparent !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+[data-theme='dark'] .accuracy-boxes-grid {
+  border-color: #334155;
+  background-color: #0f172a;
+}
+
+[data-theme='dark'] .accuracy-box.filled {
+  background-color: #16a34a !important;
+  border: 1px solid #22c55e !important;
+}
+
+[data-theme='dark'] .accuracy-box.empty {
+  border-color: #475569 !important;
+}
+
+/* Black & White Print Styling (High contrast solid filled blocks) */
+@media print {
+  .accuracy-boxes-grid {
+    border: 1.5px solid #000000 !important;
+    background-color: #ffffff !important;
+  }
+  .accuracy-box.filled {
+    background-color: #000000 !important;
+    border: 1px solid #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .accuracy-box.empty {
+    background-color: #ffffff !important;
+    border: 1px solid #777777 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
 .th-score {
   text-align: center;
 }
