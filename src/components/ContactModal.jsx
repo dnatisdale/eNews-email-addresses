@@ -178,7 +178,7 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
               {/* Categories — Dropdown Multi-Select */}
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
-                  Categories
+                  Tags
                 </label>
                 
                 {/* Selected pills */}
@@ -215,7 +215,7 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
                   }}
                   style={{ cursor: 'pointer' }}
                 >
-                  <option value="" disabled>Add Categories…</option>
+                  <option value="" disabled>Add Tags…</option>
                   {masterCategories.filter(cat => cat !== '*SAMPLE*' && cat !== '*EXAMPLES*').map(cat => {
                     const isSelected = (formData.categories || []).includes(cat);
                     return (
@@ -224,7 +224,7 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
                       </option>
                     );
                   })}
-                  <option value="__add_new__">+ Add New Category…</option>
+                  <option value="__add_new__">+ Add New Tag…</option>
                 </select>
 
                 {/* Inline add new category input */}
@@ -234,7 +234,7 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
                       type="text"
                       autoFocus
                       className="input-control"
-                      placeholder="Type new category..."
+                      placeholder="Type new tag..."
                       value={customCategory}
                       onChange={(e) => setCustomCategory(e.target.value)}
                     />

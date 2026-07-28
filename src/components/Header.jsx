@@ -264,7 +264,7 @@ export const Header = ({
                 <div className="hmenu-section-header">
                   <span className="hmenu-section-title">Directory Management</span>
                 </div>
-                {menuItem(<Tag size={16} />, 'Category Manager', onOpenCategoryManager)}
+                {menuItem(<Tag size={16} />, 'Tag Manager', onOpenCategoryManager)}
                 {contactsCount > 0 && menuItem(<Wand2 size={16} />, 'Clean & Repair DB', onCleanDatabase)}
                 {menuItem(<Archive size={16} className={trashCount > 0 ? 'text-warning' : ''} />, '60-Day Trash Bin', onOpenTrashModal, trashCount)}
                 {contactsCount === 0 ? (

@@ -51,7 +51,7 @@ export const BulkCategoryAssignModal = ({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (selectedCats.length === 0) {
-      alert('Please select at least one category to assign.');
+      alert('Please select at least one tag to assign.');
       return;
     }
     onSave(selectedCats, assignMode);
@@ -70,9 +70,9 @@ export const BulkCategoryAssignModal = ({
             <button 
               type="button" 
               className="icon-btn-info" 
-              title={`Select categories from your official list below, or add a new category to assign to ${selectedCount} selected contacts.`}
+              title={`Select tags from your official list below, or add a new tag to assign to ${selectedCount} selected contacts.`}
               aria-label="Information"
-              onClick={() => alert(`Select categories from your official list below, or add a new category to assign to ${selectedCount} selected contacts.`)}
+              onClick={() => alert(`Select tags from your official list below, or add a new tag to assign to ${selectedCount} selected contacts.`)}
               style={{
                 background: 'none',
                 border: 'none',
@@ -139,7 +139,7 @@ export const BulkCategoryAssignModal = ({
             </div>
           </div>
 
-          {/* Add New Master Category inline */}
+          {/* Add New Master Tag inline */}
           <div className="mt-3">
             {!showCustomInput ? (
               <button
@@ -148,7 +148,7 @@ export const BulkCategoryAssignModal = ({
                 onClick={() => setShowCustomInput(true)}
               >
                 <Plus size={14} />
-                <span>+ Create New Category</span>
+                <span>+ Create New Tag</span>
               </button>
             ) : (
               <div style={{ display: 'flex', gap: '6px' }}>
@@ -156,7 +156,7 @@ export const BulkCategoryAssignModal = ({
                   type="text"
                   autoFocus
                   className="input-control"
-                  placeholder="Type new category name..."
+                  placeholder="Type new tag name..."
                   value={newCatInput}
                   onChange={(e) => setNewCatInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -197,7 +197,7 @@ export const BulkCategoryAssignModal = ({
                   checked={assignMode === 'add'}
                   onChange={() => setAssignMode('add')}
                 />
-                <span>Add to existing categories</span>
+                <span>Add to existing tags</span>
               </label>
               <label style={{ fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
                 <input
@@ -207,7 +207,7 @@ export const BulkCategoryAssignModal = ({
                   checked={assignMode === 'replace'}
                   onChange={() => setAssignMode('replace')}
                 />
-                <span>Replace existing categories</span>
+                <span>Replace existing tags</span>
               </label>
             </div>
           </div>
@@ -218,7 +218,7 @@ export const BulkCategoryAssignModal = ({
             </button>
             <button type="submit" className="btn btn-primary" style={{ minWidth: 140 }}>
               <Check size={16} />
-              <span>Apply Categories</span>
+              <span>Apply Tags</span>
             </button>
           </div>
         </form>

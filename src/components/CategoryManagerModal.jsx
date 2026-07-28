@@ -22,7 +22,7 @@ export const CategoryManagerModal = ({ isOpen, onClose, masterCategories, setMas
       return;
     }
     if (masterCategories.includes(trimmed)) {
-      alert('Category already exists!');
+      alert('Tag already exists!');
       return;
     }
     setMasterCategories(sortCategoriesAlphabetically([...masterCategories, trimmed]));
@@ -47,7 +47,7 @@ export const CategoryManagerModal = ({ isOpen, onClose, masterCategories, setMas
       return;
     }
     if (masterCategories.includes(trimmed)) {
-      alert('A category with this name already exists.');
+      alert('A tag with this name already exists.');
       return;
     }
 
@@ -63,7 +63,7 @@ export const CategoryManagerModal = ({ isOpen, onClose, masterCategories, setMas
         <div className="modal-header">
           <div className="modal-title-wrap text-primary">
             <Tag className="modal-icon text-primary" />
-            <h2>Category Manager</h2>
+            <h2>Tag Manager</h2>
           </div>
           <button className="icon-close-btn" onClick={onClose}>
             <X size={20} />
@@ -73,14 +73,14 @@ export const CategoryManagerModal = ({ isOpen, onClose, masterCategories, setMas
         <div className="modal-body">
           <div className="info-alert" style={{ marginBottom: '1rem', backgroundColor: 'var(--bg-accent)', padding: '0.75rem', borderRadius: '6px', fontSize: '0.9rem' }}>
             <AlertCircle size={16} style={{ display: 'inline-block', marginRight: '8px', verticalAlign: 'text-bottom' }} />
-            Categories let you tag and organize your contacts. Built-in categories (🔒) cannot be edited or deleted. Add your own custom categories below.
+            Tags let you categorize and organize your contacts. Built-in tags (🔒) cannot be edited or deleted. Add your own custom tags below.
           </div>
 
           <form onSubmit={handleAddCategory} className="add-category-form" style={{ display: 'flex', gap: '8px', marginBottom: '1.5rem' }}>
             <input 
               type="text" 
               className="input-control" 
-              placeholder="New category name..." 
+              placeholder="New tag name..." 
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
               style={{ flex: 1 }}
@@ -92,7 +92,7 @@ export const CategoryManagerModal = ({ isOpen, onClose, masterCategories, setMas
 
           <div className="category-list" style={{ border: '1px solid var(--border)', borderRadius: '6px', overflow: 'hidden' }}>
             {visibleCategories.length === 0 ? (
-              <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>No categories found.</div>
+              <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>No tags found.</div>
             ) : (
               visibleCategories.map(cat => (
                 <div key={cat} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)' }}>
@@ -122,7 +122,7 @@ export const CategoryManagerModal = ({ isOpen, onClose, masterCategories, setMas
                             <button 
                               className="icon-btn-subtle" 
                               onClick={() => startEditing(cat)}
-                              title="Rename Category"
+                              title="Rename Tag"
                               style={{ padding: '4px' }}
                             >
                               <Edit2 size={16} />
@@ -130,7 +130,7 @@ export const CategoryManagerModal = ({ isOpen, onClose, masterCategories, setMas
                             <button 
                               className="icon-btn-subtle text-danger" 
                               onClick={() => handleDeleteCategory(cat)}
-                              title="Delete Category"
+                              title="Delete Tag"
                               style={{ padding: '4px' }}
                             >
                               <Trash2 size={16} />
