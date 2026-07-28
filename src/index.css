@@ -2821,5 +2821,21 @@ html[data-font-size="xlarge"] {
   cursor: not-allowed;
 }
 
+/* ==========================================================================
+   Typewriter Monospace Font for All Editable & Input Data Boxes
+   ========================================================================== */
+input,
+textarea,
+select,
+.input-control,
+.search-input,
+.modal-body input,
+.modal-body textarea,
+[contenteditable="true"] {
+  font-family: 'JetBrains Mono', 'Courier Prime', 'Courier New', Courier, monospace !important;
+  letter-spacing: -0.01em;
+}
+
+
 
 
