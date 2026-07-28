@@ -358,50 +358,54 @@ export default function App() {
 
   // Single Contact Deletion
   const handleDeleteContact = (id) => {
-    const target = contacts.find((c) => c.id === id);
-    if (!target) return;
+    requireAuth(() => {
+      const target = contacts.find((c) => c.id === id);
+      if (!target) return;
 
-    setDeleteModalState({
-      isOpen: true,
-      targetCount: 1,
-      targetNames: [`${target.firstName} ${target.lastName}`],
-      onConfirm: () => {
-        const deletedRecord = {
-          ...target,
-          deletedAt: new Date().toISOString()
-        };
-        setTrashContacts((prev) => [deletedRecord, ...prev]);
-        updateContactsState(contacts.filter((c) => c.id !== id));
-        setSelectedIds((prev) => prev.filter((item) => item !== id));
-        showToast(`Moved ${target.firstName} ${target.lastName} to Trash`);
-      }
-    });
+      setDeleteModalState({
+        isOpen: true,
+        targetCount: 1,
+        targetNames: [`${target.firstName} ${target.lastName}`],
+        onConfirm: () => {
+          const deletedRecord = {
+            ...target,
+            deletedAt: new Date().toISOString()
+          };
+          setTrashContacts((prev) => [deletedRecord, ...prev]);
+          updateContactsState(contacts.filter((c) => c.id !== id));
+          setSelectedIds((prev) => prev.filter((item) => item !== id));
+          showToast(`Moved ${target.firstName} ${target.lastName} to Trash`);
+        }
+      });
+    }, 'Delete Contact');
   };
 
   // Bulk Contact Deletion
   const handleBulkDelete = (idsToDelete) => {
     if (idsToDelete.length === 0) return;
 
-    const targetNames = contacts
-      .filter((c) => idsToDelete.includes(c.id))
-      .map((c) => `${c.firstName} ${c.lastName}`);
+    requireAuth(() => {
+      const targetNames = contacts
+        .filter((c) => idsToDelete.includes(c.id))
+        .map((c) => `${c.firstName} ${c.lastName}`);
 
-    setDeleteModalState({
-      isOpen: true,
-      targetCount: idsToDelete.length,
-      targetNames,
-      onConfirm: () => {
-        const timestamp = new Date().toISOString();
-        const deletedRecords = contacts
-          .filter((c) => idsToDelete.includes(c.id))
-          .map((c) => ({ ...c, deletedAt: timestamp }));
+      setDeleteModalState({
+        isOpen: true,
+        targetCount: idsToDelete.length,
+        targetNames,
+        onConfirm: () => {
+          const timestamp = new Date().toISOString();
+          const deletedRecords = contacts
+            .filter((c) => idsToDelete.includes(c.id))
+            .map((c) => ({ ...c, deletedAt: timestamp }));
 
-        setTrashContacts((prev) => [...deletedRecords, ...prev]);
-        updateContactsState(contacts.filter((c) => !idsToDelete.includes(c.id)));
-        setSelectedIds([]);
-        showToast(`Moved ${idsToDelete.length} contacts to Trash`);
-      }
-    });
+          setTrashContacts((prev) => [...deletedRecords, ...prev]);
+          updateContactsState(contacts.filter((c) => !idsToDelete.includes(c.id)));
+          setSelectedIds([]);
+          showToast(`Moved ${idsToDelete.length} contacts to Trash`);
+        }
+      });
+    }, 'Bulk Delete Contacts');
   };
 
   // Bulk Assign Selected Contacts to Categories
