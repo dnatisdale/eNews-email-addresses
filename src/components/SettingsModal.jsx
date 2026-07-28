@@ -3,7 +3,7 @@ import { X, Settings, KeyRound, Save, Check, Lock, Unlock, Type, Mail, Phone, Ta
 import { getAdminPIN, setAdminPIN, isSecurityLockEnabled, setSecurityLockEnabled } from '../services/authService';
 import { getRollingBackups, downloadBackupFile, emailBackup, deleteRollingBackup, createRollingBackup } from '../services/backupService';
 
-export const SettingsModal = ({ isOpen, onClose, fontSize = 100, setFontSize, contacts = [], masterCategories = [], onRestoreBackup }) => {
+export const SettingsModal = ({ isOpen, onClose, fontSize = 100, setFontSize, contacts = [], masterCategories = [], nameSortOrder = 'last', onSetNameSortOrder, onRestoreBackup }) => {
   const [lockEnabled, setLockEnabledState] = useState(true);
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
@@ -249,6 +249,40 @@ export const SettingsModal = ({ isOpen, onClose, fontSize = 100, setFontSize, co
                   <span className="example-category-badge">Family</span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Name Sorting Preference */}
+          <div className="settings-section">
+            <h4 className="setting-title flex-align-gap">
+              <Type size={16} className="text-primary" />
+              <span>Name Sorting Preference</span>
+            </h4>
+            <p className="setting-desc mb-3">
+              Choose whether contact names in your list should be arranged and sorted by First Name or Last Name.
+            </p>
+
+            <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
+                <input
+                  type="radio"
+                  name="nameSortOrderModal"
+                  value="first"
+                  checked={nameSortOrder === 'first'}
+                  onChange={() => onSetNameSortOrder && onSetNameSortOrder('first')}
+                />
+                <span><strong>First Name</strong> (e.g. Eleanor Tisdale)</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem' }}>
+                <input
+                  type="radio"
+                  name="nameSortOrderModal"
+                  value="last"
+                  checked={nameSortOrder === 'last'}
+                  onChange={() => onSetNameSortOrder && onSetNameSortOrder('last')}
+                />
+                <span><strong>Last Name</strong> (e.g. Tisdale, Eleanor)</span>
+              </label>
             </div>
           </div>
 

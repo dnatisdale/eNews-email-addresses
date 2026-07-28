@@ -111,7 +111,8 @@ export const ContactTable = ({
   redoCount = 0,
   showFilters: propShowFilters,
   setShowFilters: propSetShowFilters,
-  onResetFilters: propResetFilters
+  onResetFilters: propResetFilters,
+  nameSortOrder = 'last'
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -246,8 +247,21 @@ export const ContactTable = ({
     let valB = '';
 
     if (sortField === 'name') {
-      valA = `${a.firstName} ${a.lastName}`.trim().toLowerCase();
-      valB = `${b.firstName} ${b.lastName}`.trim().toLowerCase();
+      if (nameSortOrder === 'last') {
+        const lastA = (a.lastName || a.firstName || '').trim().toLowerCase();
+        const lastB = (b.lastName || b.firstName || '').trim().toLowerCase();
+        const firstA = (a.firstName || '').trim().toLowerCase();
+        const firstB = (b.firstName || '').trim().toLowerCase();
+        valA = `${lastA} ${firstA}`;
+        valB = `${lastB} ${firstB}`;
+      } else {
+        const firstA = (a.firstName || a.lastName || '').trim().toLowerCase();
+        const firstB = (b.firstName || b.lastName || '').trim().toLowerCase();
+        const lastA = (a.lastName || '').trim().toLowerCase();
+        const lastB = (b.lastName || '').trim().toLowerCase();
+        valA = `${firstA} ${lastA}`;
+        valB = `${firstB} ${lastB}`;
+      }
     } else if (sortField === 'categories') {
       valA = Array.isArray(a.categories) ? [...a.categories].sort().join(', ').toLowerCase() : (a.categories || '').toString().toLowerCase();
       valB = Array.isArray(b.categories) ? [...b.categories].sort().join(', ').toLowerCase() : (b.categories || '').toString().toLowerCase();
@@ -534,8 +548,8 @@ export const ContactTable = ({
                       case 'name':
                         return (
                           <th key="name" style={{ width: columnWidths.name || 210 }} className="sortable resizable-th">
-                            <div className="th-content" onClick={() => handleSort('name')}>
-                              <span>Name</span>
+                            <div className="th-content" onClick={() => handleSort('name')} title={`Click to sort by Name (${nameSortOrder === 'last' ? 'Last Name' : 'First Name'})`}>
+                              <span>Name ({nameSortOrder === 'last' ? 'Last' : 'First'})</span>
                               <ArrowUpDown size={12} className="sort-icon" />
                             </div>
                             <div className="col-resizer" onMouseDown={(e) => startResizing('name', e)} />

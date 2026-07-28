@@ -26,6 +26,7 @@ const TRASH_STORAGE_KEY = 'eNews_Trash_Contacts_v1';
 const THEME_KEY = 'eNews_Theme_Preference';
 const FONT_SIZE_KEY = 'eNews_Font_Size_Preference';
 const MASTER_CATEGORIES_KEY = 'eNews_master_categories';
+const NAME_SORT_ORDER_KEY = 'eNews_Name_Sort_Order';
 const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000;
 
 export const sortCategoriesAlphabetically = (cats = []) => {
@@ -47,6 +48,17 @@ export default function App() {
     if (saved === 'xlarge') return 125;
     return 100;
   });
+
+  // Name Sorting Preference state ('first' or 'last')
+  const [nameSortOrder, setNameSortOrder] = useState(() => {
+    return localStorage.getItem(NAME_SORT_ORDER_KEY) || 'last';
+  });
+
+  const handleSetNameSortOrder = (newOrder) => {
+    setNameSortOrder(newOrder);
+    localStorage.setItem(NAME_SORT_ORDER_KEY, newOrder);
+    showToast(`Sorting names by ${newOrder === 'last' ? 'Last Name' : 'First Name'}`);
+  };
 
   // Contacts state
   const [contacts, setContacts] = useState(() => {
@@ -747,6 +759,8 @@ export default function App() {
         redoCount={futureHistory.length}
         isMenuOpen={isMobileMenuOpen}
         setIsMenuOpen={setIsMobileMenuOpen}
+        nameSortOrder={nameSortOrder}
+        onSetNameSortOrder={handleSetNameSortOrder}
       />
 
       {/* Main Address Book Table & Mobile Card View */}
@@ -785,6 +799,7 @@ export default function App() {
           redoCount={futureHistory.length}
           showFilters={showMobileFilters}
           setShowFilters={setShowMobileFilters}
+          nameSortOrder={nameSortOrder}
         />
       </main>
 
@@ -884,6 +899,8 @@ export default function App() {
         setFontSize={setFontSize}
         contacts={contacts}
         masterCategories={masterCategories}
+        nameSortOrder={nameSortOrder}
+        onSetNameSortOrder={handleSetNameSortOrder}
         onRestoreBackup={(restoredContacts, restoredCategories) => {
           updateContactsState(restoredContacts);
           if (restoredCategories && restoredCategories.length > 0) setMasterCategories(restoredCategories);

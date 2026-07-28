@@ -40,7 +40,9 @@ export const Header = ({
   undoCount = 0,
   redoCount = 0,
   isMenuOpen: propMenuOpen,
-  setIsMenuOpen: propSetMenuOpen
+  setIsMenuOpen: propSetMenuOpen,
+  nameSortOrder = 'last',
+  onSetNameSortOrder
 }) => {
   const [internalMenuOpen, setInternalMenuOpen] = useState(false);
   const menuOpen = propMenuOpen !== undefined ? propMenuOpen : internalMenuOpen;
@@ -272,6 +274,35 @@ export const Header = ({
                 ) : (
                   menuItem(<RotateCcw size={16} />, 'Clear Sample Data', onClearSampleData)
                 )}
+
+                <div className="hmenu-divider" />
+
+                {/* ── Section 2b: Name Sort Order ── */}
+                <div className="hmenu-section-header">
+                  <span className="hmenu-section-title">Sort Names By</span>
+                </div>
+                <div style={{ padding: '4px 12px 8px 12px', display: 'flex', gap: '6px' }}>
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${nameSortOrder === 'first' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ flex: 1, fontSize: '0.8rem', padding: '5px 8px' }}
+                    onClick={() => {
+                      if (onSetNameSortOrder) onSetNameSortOrder('first');
+                    }}
+                  >
+                    First Name
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${nameSortOrder === 'last' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ flex: 1, fontSize: '0.8rem', padding: '5px 8px' }}
+                    onClick={() => {
+                      if (onSetNameSortOrder) onSetNameSortOrder('last');
+                    }}
+                  >
+                    Last Name
+                  </button>
+                </div>
 
                 <div className="hmenu-divider" />
 
