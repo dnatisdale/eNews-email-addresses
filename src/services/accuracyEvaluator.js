@@ -1,6 +1,12 @@
 /**
  * Accuracy & Completeness Evaluation Service for eNews Address Book
- * Categorizes contacts into Green (Complete - Rank 3), Yellow (Partial - Rank 2), or Red (Needs Info - Rank 1)
+ * Evaluates completeness based on 3 Core Communication Channels:
+ * 1. Physical Address (mail a letter)
+ * 2. Email Address (send an email)
+ * 3. Phone Number (call them)
+ *
+ * - IF all 3 channels exist: Displays a Green "99" (no % symbol needed).
+ * - IF incomplete (missing 1, 2, or 3 channels): Displays percentage from 1% to 98% (with % symbol).
  */
 
 export const getContactAccuracy = (contact) => {
@@ -8,12 +14,12 @@ export const getContactAccuracy = (contact) => {
     return {
       level: 'red',
       scoreRank: 1,
-      scorePercent: '0%',
+      displayScore: '1%',
       label: 'Needs Info',
       color: '#ef4444',
-      tooltip: '🔴 Incomplete: Missing critical contact details',
-      checks: { email: false, firstName: false, lastName: false, address: false, phone: false },
-      missingList: ['Email', 'Name', 'Address', 'Phone']
+      tooltip: '🔴 Incomplete: Missing mail address, email, and phone number',
+      checks: { email: false, address: false, phone: false },
+      missingList: ['Mail Address', 'Email', 'Phone']
     };
   }
 
@@ -23,69 +29,70 @@ export const getContactAccuracy = (contact) => {
   const address = (contact.address || '').trim();
   const phone = (contact.phone || '').trim();
 
-  const hasEmail = Boolean(email && email.includes('@') && email.includes('.') && email.length > 5);
-  const hasFirstName = Boolean(firstName && firstName !== 'Unnamed' && firstName.length > 0);
-  const hasLastName = Boolean(lastName && lastName.length > 0);
+  const hasEmail = Boolean(email && email.includes('@') && email.includes('.') && email.length > 4);
   const hasAddress = Boolean(address && address.length > 3);
-  const hasPhone = Boolean(phone && phone.length > 6);
+  const hasPhone = Boolean(phone && phone.length > 5);
+  const hasName = Boolean((firstName && firstName !== 'Unnamed') || lastName);
 
   const checks = {
     email: hasEmail,
-    firstName: hasFirstName,
-    lastName: hasLastName,
     address: hasAddress,
     phone: hasPhone
   };
 
   const missingList = [];
+  if (!hasAddress) missingList.push('Mail Address');
   if (!hasEmail) missingList.push('Email');
-  if (!hasFirstName) missingList.push('First Name');
-  if (!hasLastName) missingList.push('Last Name');
-  if (!hasAddress) missingList.push('Address');
   if (!hasPhone) missingList.push('Phone');
 
-  const fieldCount = [hasEmail, hasFirstName, hasLastName, hasAddress, hasPhone].filter(Boolean).length;
-  const scorePercent = `${Math.round((fieldCount / 5) * 100)}%`;
+  // Count core communication channels (3 max)
+  const coreChannelsCount = [hasAddress, hasEmail, hasPhone].filter(Boolean).length;
 
-  // Green: Has Valid Email + First Name + Last Name + (Mailing Address OR Phone)
-  if (hasEmail && hasFirstName && hasLastName && (hasAddress || hasPhone)) {
+  // Complete Contact: All 3 channels present (Mail + Email + Call)
+  if (coreChannelsCount === 3) {
     return {
       level: 'green',
-      scoreRank: 3,
-      scorePercent,
-      label: 'Complete',
-      grade: 'A',
+      scoreRank: 99,
+      displayScore: '99', // Solid Green "99" without % symbol
+      label: 'Complete Contact (Mail + Email + Call)',
+      grade: '99',
       color: '#10b981',
-      tooltip: `🟢 Complete Score (${scorePercent})\n✓ Email: ${email}\n✓ Name: ${firstName} ${lastName}\n${hasPhone ? '✓ Phone: ' + phone : '✗ Address: Missing'}`,
+      tooltip: `🟢 Complete Contact (99)\n✓ Mail Address: ${address}\n✓ Email: ${email}\n✓ Phone: ${phone}`,
       checks,
-      missingList
+      missingList: []
     };
   }
 
-  // Yellow: Has Email + Name (either first or last), but missing Address or Phone
-  if (hasEmail && (hasFirstName || hasLastName)) {
+  // Incomplete percentage score (1% to 98%)
+  // Base: 32 points per core channel present (max 96)
+  // Bonus: +2 points for name present (max 98)
+  let percentVal = (coreChannelsCount * 32) + (hasName ? 2 : 0);
+  if (percentVal === 0) percentVal = 1; // Minimum 1%
+
+  const displayScore = `${percentVal}%`;
+
+  if (coreChannelsCount === 2) {
     return {
       level: 'yellow',
-      scoreRank: 2,
-      scorePercent,
-      label: 'Partial',
-      grade: 'C',
+      scoreRank: percentVal,
+      displayScore,
+      label: 'Partial Contact',
+      grade: displayScore,
       color: '#f59e0b',
-      tooltip: `🟡 Partial Score (${scorePercent})\n✓ Email: ${email}\nMissing: ${missingList.join(', ')}`,
+      tooltip: `🟡 Partial Contact (${displayScore})\nMissing: ${missingList.join(', ')}`,
       checks,
       missingList
     };
   }
 
-  // Red: Missing Email OR missing Name completely
   return {
     level: 'red',
-    scoreRank: 1,
-    scorePercent,
+    scoreRank: percentVal,
+    displayScore,
     label: 'Needs Info',
-    grade: 'F',
+    grade: displayScore,
     color: '#ef4444',
-    tooltip: `🔴 Incomplete Score (${scorePercent})\nMissing: ${missingList.join(', ')}`,
+    tooltip: `🔴 Incomplete Contact (${displayScore})\nMissing: ${missingList.join(', ')}`,
     checks,
     missingList
   };

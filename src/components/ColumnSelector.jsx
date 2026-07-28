@@ -4,7 +4,7 @@ import { Columns, Check, GripHorizontal } from 'lucide-react';
 export const STANDARD_COLUMNS = [
   { id: 'checkbox', label: 'Selection Box', default: true },
   { id: 'index', label: '#', default: true },
-  { id: 'score', label: 'Score', default: true },
+  { id: 'score', label: '%', default: true },
   { id: 'name', label: 'Contact Name', default: true },
   { id: 'email', label: 'Email', default: true },
   { id: 'secondaryEmail', label: 'Secondary Email', default: false },

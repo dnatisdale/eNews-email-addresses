@@ -453,8 +453,8 @@ export const ContactTable = ({
                       case 'score':
                         return (
                           <th key="score" style={{ width: columnWidths.score || 60 }} className="sortable resizable-th th-score">
-                            <div className="th-content" onClick={() => handleSort('score')} title="Click to sort by Score Ranking (Green -> Yellow -> Red)">
-                              <span>Score</span>
+                            <div className="th-content" onClick={() => handleSort('score')} title="Click to sort by Completeness %">
+                              <span>%</span>
                               <ArrowUpDown size={12} className="sort-icon" />
                             </div>
                             <div className="col-resizer" onMouseDown={(e) => startResizing('score', e)} />
@@ -576,11 +576,11 @@ export const ContactTable = ({
                             return (
                               <td key="score" className="td-accuracy" onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center' }}>
                                 <div 
-                                  className={`score-grade grade-${accuracy.grade}`}
+                                  className="score-badge"
                                   title={accuracy.tooltip}
-                                  style={{ fontWeight: 'bold', fontSize: '1.1rem', color: accuracy.color }}
+                                  style={{ fontWeight: 'bold', fontSize: '0.95rem', color: accuracy.color }}
                                 >
-                                  {accuracy.grade}
+                                  {accuracy.displayScore}
                                 </div>
                               </td>
                             );
@@ -727,11 +727,11 @@ export const ContactTable = ({
                           )}
                           {visibleColumns.includes('score') && (
                             <div 
-                              className={`score-grade grade-${accuracy.grade}`}
+                              className="score-badge"
                               title={accuracy.tooltip}
-                              style={{ fontWeight: 'bold', fontSize: '1.1rem', color: accuracy.color, textAlign: 'center' }}
+                              style={{ fontWeight: 'bold', fontSize: '0.95rem', color: accuracy.color, textAlign: 'center' }}
                             >
-                              {accuracy.grade}
+                              {accuracy.displayScore}
                             </div>
                           )}
                         </div>

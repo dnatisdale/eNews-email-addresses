@@ -306,7 +306,7 @@ export const PrintView = ({ isOpen, onClose, contacts = [], availableColumns = [
                   if (col.id === 'index') val = idx + 1;
                   else if (col.id === 'score') {
                     const accuracy = getContactAccuracy(c);
-                    val = <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: accuracy.color }}>{accuracy.grade}</span>;
+                    val = <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: accuracy.color }}>{accuracy.displayScore}</span>;
                   }
                   else if (col.id === 'name') val = <strong>{c.firstName} {c.lastName}</strong>;
                   else if (col.id === 'email') val = <span style={{ color: '#0369a1' }}>{c.email}</span>;
