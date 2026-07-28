@@ -2898,6 +2898,33 @@ select,
   }
 }
 
+/* ==========================================================================
+   Select Dropdown & Option Popup Contrast Fixes
+   ========================================================================== */
+select,
+.select-control-sm {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.65rem;
+  font-family: 'JetBrains Mono', 'Courier Prime', 'Courier New', Courier, monospace !important;
+}
+
+select option,
+.select-control-sm option {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  padding: 0.5rem;
+}
+
+[data-theme="light"] select option,
+[data-theme="light"] .select-control-sm option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+
 
 
 
