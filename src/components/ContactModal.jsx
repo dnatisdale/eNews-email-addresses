@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Mail, Phone, Tag, MapPin, FileText, CheckCircle } from 'lucide-react';
+import { X, Save, User, Mail, Phone, Tag, MapPin, FileText, CheckCircle, Info } from 'lucide-react';
 
 export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCategories = [] }) => {
   const [formData, setFormData] = useState({
@@ -162,62 +162,68 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
               </div>
             </div>
 
-            {/* Categories */}
-            <div className="form-group">
-              <label>Categories (Select multiple)</label>
-              <div className="categories-checkbox-list">
-                {masterCategories.filter(cat => cat !== '*SAMPLE*' && cat !== '*EXAMPLES*').map((cat) => (
-                  <label key={cat} className="category-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={(formData.categories || []).includes(cat)}
-                      onChange={() => toggleCategory(cat)}
-                    />
-                    <span>{cat}</span>
-                  </label>
-                ))}
+            {/* Side-by-Side: Categories & Status */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px', gap: '1rem', alignItems: 'start' }} className="full-width">
+              {/* Categories */}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label>Categories (Select multiple)</label>
+                <div className="categories-checkbox-list">
+                  {masterCategories.filter(cat => cat !== '*SAMPLE*' && cat !== '*EXAMPLES*').map((cat) => (
+                    <label key={cat} className="category-checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={(formData.categories || []).includes(cat)}
+                        onChange={() => toggleCategory(cat)}
+                      />
+                      <span>{cat}</span>
+                    </label>
+                  ))}
+                </div>
+                
+                <div className="add-category-inline">
+                  {!showCustomCategory ? (
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setShowCustomCategory(true)}
+                    >
+                      + Add New Category
+                    </button>
+                  ) : (
+                    <div className="input-with-button">
+                      <input
+                        type="text"
+                        autoFocus
+                        className="input-control"
+                        placeholder="Type new category..."
+                        value={customCategory}
+                        onChange={(e) => setCustomCategory(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
-              
-              <div className="add-category-inline">
-                {!showCustomCategory ? (
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => setShowCustomCategory(true)}
-                  >
-                    + Add New Category
-                  </button>
-                ) : (
-                  <div className="input-with-button">
-                    <input
-                      type="text"
-                      autoFocus
-                      className="input-control"
-                      placeholder="Type new category..."
-                      value={customCategory}
-                      onChange={(e) => setCustomCategory(e.target.value)}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
 
-            {/* Status & Exception Tags */}
-            <div className="form-group">
-              <label>Delivery State & Exception Tags</label>
-              <select
-                className="input-control"
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              >
-                <option value="Active">🟢 Active (Normal Subscriber • Implied by default)</option>
-                <option value="Inactive">💤 Inactive (Adds Inactive Tag)</option>
-                <option value="Unsubscribed">🚫 Unsubscribed (Adds Unsubscribed Tag)</option>
-                <option value="Bounced">⚠️ Bounced / Undeliverable (Adds Bounced Tag)</option>
-              </select>
-              <small className="field-hint" style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '4px', display: 'block' }}>
-                Non-active selections display as distinct warning tags in the Categories & Tags column.
-              </small>
+              {/* Status */}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span>Status</span>
+                  <Info size={14} className="text-muted" title="Non-active status automatically displays as an exception warning tag in Categories & Tags" style={{ cursor: 'help' }} />
+                </label>
+                <select
+                  className="input-control"
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                >
+                  <option value="Active">🟢 Active</option>
+                  <option value="Inactive">💤 Inactive</option>
+                  <option value="Unsubscribed">🚫 Unsubscribed</option>
+                  <option value="Bounced">⚠️ Bounced</option>
+                </select>
+                <small className="field-hint" style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                  Non-active status adds an exception tag.
+                </small>
+              </div>
             </div>
 
             {/* Address */}
