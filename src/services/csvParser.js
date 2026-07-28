@@ -167,7 +167,7 @@ const normalizeImportedContacts = (records) => {
       }
       
       if (categories.length === 0) {
-        categories = [smartName.isHousehold ? 'Family & Household' : 'Friends & Family'];
+        categories = ['Family'];
       }
 
       // 5. Address & Notes

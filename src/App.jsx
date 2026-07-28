@@ -168,12 +168,17 @@ export default function App() {
       try {
         const parsed = JSON.parse(saved);
         const cleaned = parsed.map(c => {
-          if (c === 'Friends & Family') return 'Family';
+          if (c === 'Friends & Family' || c === 'Family & Household') return 'Family';
           if (c === 'Close Friends') return 'Friends';
           if (c === 'Holiday List') return 'Christmas';
           if (c === 'Newsletter') return 'eNewsletter';
           return c;
-        }).filter(c => c && c !== '*EXAMPLES*' && c !== '*SAMPLE*');
+        }).filter(c => {
+          if (!c || c === '*EXAMPLES*' || c === '*SAMPLE*' || c === 'Family & Household' || c === 'Friends & Family') return false;
+          const lower = c.toLowerCase();
+          if (lower.includes('this is the new') || lower.includes('sheet1') || lower.endsWith('.csv') || lower.endsWith('.xlsx')) return false;
+          return true;
+        });
         cats = Array.from(new Set([...OFFICIAL_BUILTIN, ...cleaned]));
       } catch (e) {
         console.error('Failed to load master categories', e);

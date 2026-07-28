@@ -32,7 +32,7 @@ export const cleanDatabase = (contacts = []) => {
     }
     categories = categories.flatMap(c => {
       const trimmed = c.trim();
-      if (trimmed === 'Friends & Family') return ['Family', 'Friends'];
+      if (trimmed === 'Friends & Family' || trimmed === 'Family & Household') return ['Family'];
       if (trimmed === 'Close Friends') return ['Friends'];
       if (trimmed === 'Holiday List') return ['Christmas'];
       if (trimmed === 'Newsletter') return ['eNewsletter'];
@@ -41,7 +41,13 @@ export const cleanDatabase = (contacts = []) => {
     categories = [...new Set(
       categories
         .map(c => c.trim())
-        .filter(c => Boolean(c) && !c.toLowerCase().endsWith('.csv') && !c.toLowerCase().endsWith('.xlsx'))
+        .filter(c => {
+          if (!c) return false;
+          const lower = c.toLowerCase();
+          if (lower === 'family & household' || lower === 'friends & family') return false;
+          if (lower.includes('this is the new') || lower.includes('sheet1') || lower.endsWith('.csv') || lower.endsWith('.xlsx')) return false;
+          return true;
+        })
     )];
     if (categories.length === 0) {
       categories = ['Family'];
