@@ -922,6 +922,7 @@ export default function App() {
           availableColumns={availableColumns}
           visibleColumns={visibleColumns}
           columnWidths={columnWidths}
+          nameSortOrder={nameSortOrder}
         />
       )}
 
