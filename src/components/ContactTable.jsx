@@ -361,12 +361,12 @@ export const ContactTable = ({
                 className="select-control-sm"
                 value={accuracyFilter}
                 onChange={(e) => setAccuracyFilter(e.target.value)}
-                title="Filter by Score Light Rating"
+                title="Filter by Completeness Percentage Score"
               >
-                <option value="All">All Score Lights</option>
-                <option value="green">🟢 Green Lights Only</option>
-                <option value="yellow">🟡 Yellow Lights Only</option>
-                <option value="red">🔴 Red Lights Only</option>
+                <option value="All">All % Scores</option>
+                <option value="green">🟢 Complete (99)</option>
+                <option value="yellow">🟡 Partial (65% - 98%)</option>
+                <option value="red">🔴 Incomplete (1% - 64%)</option>
               </select>
             </div>
 
