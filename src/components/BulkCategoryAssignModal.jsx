@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FolderPlus, X, Plus, Check, Tag } from 'lucide-react';
+import { FolderPlus, X, Plus, Check, Tag, Info } from 'lucide-react';
 
 export const BulkCategoryAssignModal = ({
   isOpen,
@@ -64,21 +64,39 @@ export const BulkCategoryAssignModal = ({
         <div className="modal-header">
           <div className="modal-title-wrap">
             <FolderPlus className="modal-icon text-primary" size={20} />
-            <h2>Assign Categories ({selectedCount} Contacts)</h2>
+            <h2>Assign Tags ({selectedCount} Contacts)</h2>
           </div>
-          <button className="icon-close-btn" onClick={onClose} aria-label="Close Modal">
-            <X size={20} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button 
+              type="button" 
+              className="icon-btn-info" 
+              title={`Select categories from your official list below, or add a new category to assign to ${selectedCount} selected contacts.`}
+              aria-label="Information"
+              onClick={() => alert(`Select categories from your official list below, or add a new category to assign to ${selectedCount} selected contacts.`)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: '4px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <Info size={18} />
+            </button>
+            <button className="icon-close-btn" onClick={onClose} aria-label="Close Modal">
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="modal-body">
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
-            Select categories from your official list below, or add a new category to assign to <strong>{selectedCount}</strong> selected contacts:
-          </p>
-
           <div className="form-group">
             <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.4rem' }}>
-              Master Category List
+              Master Tag List
             </label>
             <div className="categories-checkbox-list" style={{
               display: 'flex',
