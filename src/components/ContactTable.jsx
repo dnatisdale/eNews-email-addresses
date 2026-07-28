@@ -242,12 +242,18 @@ export const ContactTable = ({
       return 0;
     }
 
-    let valA = (a[sortField] || '').toString().toLowerCase();
-    let valB = (b[sortField] || '').toString().toLowerCase();
+    let valA = '';
+    let valB = '';
 
     if (sortField === 'name') {
-      valA = `${a.firstName} ${a.lastName}`.toLowerCase();
-      valB = `${b.firstName} ${b.lastName}`.toLowerCase();
+      valA = `${a.firstName} ${a.lastName}`.trim().toLowerCase();
+      valB = `${b.firstName} ${b.lastName}`.trim().toLowerCase();
+    } else if (sortField === 'categories') {
+      valA = Array.isArray(a.categories) ? [...a.categories].sort().join(', ').toLowerCase() : (a.categories || '').toString().toLowerCase();
+      valB = Array.isArray(b.categories) ? [...b.categories].sort().join(', ').toLowerCase() : (b.categories || '').toString().toLowerCase();
+    } else {
+      valA = (a[sortField] || '').toString().toLowerCase();
+      valB = (b[sortField] || '').toString().toLowerCase();
     }
 
     if (valA < valB) return sortAsc ? -1 : 1;
@@ -547,36 +553,51 @@ export const ContactTable = ({
                         );
                       case 'secondaryEmail':
                         return (
-                          <th key="secondaryEmail" style={{ width: columnWidths.secondaryEmail || 200 }} className="resizable-th">
-                            <div className="th-content"><span>Secondary Email</span></div>
+                          <th key="secondaryEmail" style={{ width: columnWidths.secondaryEmail || 200 }} className="sortable resizable-th">
+                            <div className="th-content" onClick={() => handleSort('secondaryEmail')} title="Click to sort by Secondary Email">
+                              <span>Secondary Email</span>
+                              <ArrowUpDown size={12} className="sort-icon" />
+                            </div>
                             <div className="col-resizer" onMouseDown={(e) => startResizing('secondaryEmail', e)} />
                           </th>
                         );
                       case 'phone':
                         return (
-                          <th key="phone" style={{ width: columnWidths.phone || 220 }} className="resizable-th">
-                            <div className="th-content"><span>Phone</span></div>
+                          <th key="phone" style={{ width: columnWidths.phone || 220 }} className="sortable resizable-th">
+                            <div className="th-content" onClick={() => handleSort('phone')} title="Click to sort by Phone">
+                              <span>Phone</span>
+                              <ArrowUpDown size={12} className="sort-icon" />
+                            </div>
                             <div className="col-resizer" onMouseDown={(e) => startResizing('phone', e)} />
                           </th>
                         );
                       case 'categories':
                         return (
-                          <th key="categories" style={{ width: columnWidths.categories || 180 }} className="resizable-th">
-                            <div className="th-content"><span>Tags</span></div>
+                          <th key="categories" style={{ width: columnWidths.categories || 180 }} className="sortable resizable-th">
+                            <div className="th-content" onClick={() => handleSort('categories')} title="Click to sort by Tag(s)">
+                              <span>Tags</span>
+                              <ArrowUpDown size={12} className="sort-icon" />
+                            </div>
                             <div className="col-resizer" onMouseDown={(e) => startResizing('categories', e)} />
                           </th>
                         );
                       case 'address':
                         return (
-                          <th key="address" style={{ width: columnWidths.address || 250 }} className="resizable-th">
-                            <div className="th-content"><span>Address</span></div>
+                          <th key="address" style={{ width: columnWidths.address || 250 }} className="sortable resizable-th">
+                            <div className="th-content" onClick={() => handleSort('address')} title="Click to sort by Address">
+                              <span>Address</span>
+                              <ArrowUpDown size={12} className="sort-icon" />
+                            </div>
                             <div className="col-resizer" onMouseDown={(e) => startResizing('address', e)} />
                           </th>
                         );
                       case 'notes':
                         return (
-                          <th key="notes" style={{ width: columnWidths.notes || 250 }} className="resizable-th">
-                            <div className="th-content"><span>Notes</span></div>
+                          <th key="notes" style={{ width: columnWidths.notes || 250 }} className="sortable resizable-th">
+                            <div className="th-content" onClick={() => handleSort('notes')} title="Click to sort by Notes">
+                              <span>Notes</span>
+                              <ArrowUpDown size={12} className="sort-icon" />
+                            </div>
                             <div className="col-resizer" onMouseDown={(e) => startResizing('notes', e)} />
                           </th>
                         );
