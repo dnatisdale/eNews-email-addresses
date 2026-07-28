@@ -2836,6 +2836,68 @@ select,
   letter-spacing: -0.01em;
 }
 
+/* ==========================================================================
+   30-Step Undo & Redo History Styling
+   ========================================================================== */
+.undo-redo-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.undo-redo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  position: relative;
+}
+
+.undo-redo-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.undo-badge {
+  background-color: var(--accent-primary);
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.05rem 0.4rem;
+  border-radius: var(--radius-full);
+  margin-left: 0.15rem;
+  line-height: 1;
+}
+
+/* Toast Alert Banner for Undo/Redo & Mutations */
+.toast-alert-banner {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #1e293b;
+  color: #ffffff;
+  border: 1px solid var(--accent-primary);
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.88rem;
+  font-weight: 600;
+  z-index: 9999;
+  animation: toastFadeIn 0.25s ease-out;
+}
+
+@keyframes toastFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
 
 
 

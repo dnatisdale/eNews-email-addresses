@@ -13,7 +13,9 @@ import {
   FolderPlus,
   Pin,
   ShieldCheck,
-  SlidersHorizontal
+  SlidersHorizontal,
+  RotateCcw,
+  RotateCw
 } from 'lucide-react';
 import { ColumnSelector, STANDARD_COLUMNS } from './ColumnSelector';
 import { getContactAccuracy } from '../services/accuracyEvaluator';
@@ -54,7 +56,13 @@ export const ContactTable = ({
   onBulkCopyEmails,
   onBulkAssignCategories,
   onOpenAddModal,
-  onLoadSampleData
+  onLoadSampleData,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
+  undoCount = 0,
+  redoCount = 0
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -277,6 +285,28 @@ export const ContactTable = ({
         </div>
 
         <div className="toolbar-controls">
+          {/* Quick Undo & Redo Controls */}
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm toolbar-undo-btn"
+            onClick={onUndo}
+            disabled={!canUndo}
+            title={canUndo ? `Undo (${undoCount} left) [Ctrl+Z]` : 'Nothing to undo'}
+          >
+            <RotateCcw size={14} />
+            <span className="desktop-only">Undo</span>
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm toolbar-undo-btn"
+            onClick={onRedo}
+            disabled={!canRedo}
+            title={canRedo ? `Redo (${redoCount} left) [Ctrl+Y]` : 'Nothing to redo'}
+          >
+            <RotateCw size={14} />
+            <span className="desktop-only">Redo</span>
+          </button>
+
           <button 
             className={`btn btn-sm ${showFilters ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setShowFilters(!showFilters)}

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Mail, Sun, Moon, Download, Plus, Users, Sparkles, Printer, FileText,
   ShieldAlert, Lock, Unlock, Settings, Wand2, Archive, Share2,
-  Menu, X, ChevronRight, Trash2, Tag, Type
+  Menu, X, ChevronRight, Trash2, Tag, Type, RotateCcw, RotateCw
 } from 'lucide-react';
 
 export const Header = ({
@@ -32,7 +32,13 @@ export const Header = ({
   duplicateCount,
   onClearSampleData,
   deferredPrompt,
-  onInstallClick
+  onInstallClick,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
+  undoCount = 0,
+  redoCount = 0
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [fontPopoverOpen, setFontPopoverOpen] = useState(false);
@@ -126,7 +132,34 @@ export const Header = ({
         {/* ── Right Actions ────────────────────────────────── */}
         <div className="header-actions">
 
-          {/* Quick Font Size Control Popover (Outside Hamburger Dropdown) */}
+          {/* Undo & Redo 30-Step History Controls */}
+          <div className="undo-redo-group">
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm undo-redo-btn"
+              onClick={onUndo}
+              disabled={!canUndo}
+              title={canUndo ? `Undo last action (${undoCount} steps left) [Ctrl+Z]` : 'Nothing to undo'}
+            >
+              <RotateCcw size={15} />
+              <span className="desktop-only">Undo</span>
+              {canUndo && <span className="undo-badge">{undoCount}</span>}
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm undo-redo-btn"
+              onClick={onRedo}
+              disabled={!canRedo}
+              title={canRedo ? `Redo last undone action (${redoCount} steps left) [Ctrl+Y]` : 'Nothing to redo'}
+            >
+              <RotateCw size={15} />
+              <span className="desktop-only">Redo</span>
+              {canRedo && <span className="undo-badge">{redoCount}</span>}
+            </button>
+          </div>
+
+          {/* Quick Font Size Control Popover */}
           <div className="font-popover-wrap" ref={fontRef}>
             <button
               className="btn btn-secondary btn-sm"

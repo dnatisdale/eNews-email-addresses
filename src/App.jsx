@@ -53,6 +53,73 @@ export default function App() {
     return generateSampleContacts();
   });
 
+  // Undo / Redo 30-Step History Stacks
+  const [pastHistory, setPastHistory] = useState([]);
+  const [futureHistory, setFutureHistory] = useState([]);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 2500);
+  };
+
+  // Helper to update contacts while recording state snapshot in pastHistory (max 30 steps)
+  const updateContactsState = (newContacts) => {
+    setPastHistory((prev) => {
+      const next = [...prev, contacts];
+      if (next.length > 30) return next.slice(next.length - 30);
+      return next;
+    });
+    setFutureHistory([]);
+    setContacts(newContacts);
+  };
+
+  const handleUndo = () => {
+    if (pastHistory.length === 0) return;
+    const previousState = pastHistory[pastHistory.length - 1];
+    const newPast = pastHistory.slice(0, pastHistory.length - 1);
+
+    setFutureHistory((prev) => [contacts, ...prev].slice(0, 30));
+    setPastHistory(newPast);
+    setContacts(previousState);
+    showToast(`Undid last action (${newPast.length} steps left)`);
+  };
+
+  const handleRedo = () => {
+    if (futureHistory.length === 0) return;
+    const nextState = futureHistory[0];
+    const newFuture = futureHistory.slice(1);
+
+    setPastHistory((prev) => [...prev, contacts].slice(-30));
+    setFutureHistory(newFuture);
+    setContacts(nextState);
+    showToast('Redid action');
+  };
+
+  // Global Keyboard Shortcuts (Ctrl+Z / Cmd+Z for Undo, Ctrl+Y / Cmd+Y for Redo)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) {
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        if (e.shiftKey) {
+          e.preventDefault();
+          handleRedo();
+        } else {
+          e.preventDefault();
+          handleUndo();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pastHistory, futureHistory, contacts]);
+
   // Trash Contacts State (60-Day Recovery Bin)
   const [trashContacts, setTrashContacts] = useState(() => {
     const saved = localStorage.getItem(TRASH_STORAGE_KEY);
@@ -81,7 +148,6 @@ export default function App() {
         console.error('Failed to load master categories', e);
       }
     }
-    // Default categories if none exist
     return ['*EXAMPLES*', 'Family', 'Close Friends', 'Newsletter', 'Holiday List'];
   });
 
@@ -127,116 +193,38 @@ export default function App() {
     if (isEditingUnlocked) {
       setIsEditingUnlocked(false);
     } else {
-      requireAuth(() => setIsEditingUnlocked(true), 'Unlock Editing Session');
+      requireAuth(() => setIsEditingUnlocked(true), 'Unlock Editing Controls');
     }
   };
 
-  // Dynamically compute available columns (Standard + all custom headers from imported CSVs)
-  const customKeysSet = new Set();
-  contacts.forEach((c) => {
-    if (c.customFields) {
-      Object.keys(c.customFields).forEach((key) => customKeysSet.add(key));
-    }
-  });
-
-  const [columnOrder, setColumnOrder] = useState(() => {
-    try {
-      const stored = localStorage.getItem('eNews_Column_Order_v2');
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  const baseAvailableColumns = [
-    ...STANDARD_COLUMNS,
-    ...Array.from(customKeysSet).map((key) => ({
-      id: key,
-      label: key,
-      default: true
-    }))
-  ];
-
-  const availableColumns = [...baseAvailableColumns].sort((a, b) => {
-    const idxA = columnOrder.indexOf(a.id);
-    const idxB = columnOrder.indexOf(b.id);
-    if (idxA === -1 && idxB === -1) return 0;
-    if (idxA === -1) return 1;
-    if (idxB === -1) return -1;
-    return idxA - idxB;
-  });
-
-  const handleReorderColumns = (newColumns) => {
-    const newOrder = newColumns.map(c => c.id);
-    setColumnOrder(newOrder);
-    localStorage.setItem('eNews_Column_Order_v2', JSON.stringify(newOrder));
-  };
-
-  // Selected column visibility state
+  // Custom Columns visibility state
+  const [availableColumns, setAvailableColumns] = useState(STANDARD_COLUMNS);
   const [visibleColumns, setVisibleColumns] = useState(() => {
-    try {
-      const stored = localStorage.getItem('eNews_Visible_Columns_v2');
-      if (stored) return JSON.parse(stored);
-    } catch {}
     return STANDARD_COLUMNS.filter(c => c.default).map(c => c.id);
   });
 
-  // Save visible columns when they change
-  useEffect(() => {
-    localStorage.setItem('eNews_Visible_Columns_v2', JSON.stringify(visibleColumns));
-  }, [visibleColumns]);
-
-  // Track column widths
+  // Dynamic Column Widths State
   const [columnWidths, setColumnWidths] = useState(() => {
-    try {
-      const stored = localStorage.getItem('eNews_Column_Widths_v1');
-      return stored ? JSON.parse(stored) : {};
-    } catch {
-      return {};
+    const saved = localStorage.getItem('eNews_Column_Widths_v1');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
     }
+    return {
+      accuracy: 60, name: 210, email: 230, secondaryEmail: 180, phone: 150,
+      categories: 160, status: 120, address: 200, notes: 220, actions: 100
+    };
   });
 
-  const handleExportCSV = () => {
-    const activeCols = availableColumns.filter(c => visibleColumns.includes(c.id));
-    const exportCols = activeCols.filter(c => !['checkbox', 'index', 'score', 'actions'].includes(c.id));
-    
-    let csv = exportCols.map(c => c.label).join(',') + '\n';
-    
-    contacts.forEach(contact => {
-      const row = exportCols.map(col => {
-        let val = contact[col.id] || '';
-        if (col.id === 'categories' && Array.isArray(val)) val = val.join('; ');
-        if (col.id === 'name') val = `${contact.firstName || ''} ${contact.lastName || ''}`.trim();
-        if (contact.customFields && contact.customFields[col.id]) val = contact.customFields[col.id];
-        
-        const escaped = String(val).replace(/"/g, '""');
-        return `"${escaped}"`;
-      });
-      csv += row.join(',') + '\n';
-    });
-    
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    
-    // Match the PDF filename format precisely (avoiding & and special chars in attributes)
-    const defaultTitle = 'eNews Family & Friends Contact Directory';
-    const safeTitle = defaultTitle.replace(/[/\\?%*:|"<>]/g, '-');
-    const dateStamp = new Date().toISOString().split('T')[0];
-    
-    link.download = `${safeTitle} - ${dateStamp}.csv`;
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  // Auto-enable newly discovered custom columns when imported
   useEffect(() => {
-    if (customKeysSet.size > 0) {
-      const allIds = availableColumns.map(c => c.id);
+    localStorage.setItem('eNews_Column_Widths_v1', JSON.stringify(columnWidths));
+  }, [columnWidths]);
+
+  // Sync missing columns into visibleColumns
+  useEffect(() => {
+    const currentIds = availableColumns.map(c => c.id);
+    const missing = currentIds.filter(id => !visibleColumns.includes(id));
+    if (missing.length > 0 && visibleColumns.length < currentIds.length) {
+      const allIds = availableColumns.filter(c => c.default).map(c => c.id);
       const newVisible = Array.from(new Set([...visibleColumns, ...allIds]));
       setVisibleColumns(newVisible);
     }
@@ -274,9 +262,7 @@ export default function App() {
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
-      // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
-      // Stash the event so it can be triggered later.
       setDeferredPrompt(e);
     };
 
@@ -286,11 +272,8 @@ export default function App() {
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
-    // Show the install prompt
     deferredPrompt.prompt();
-    // Wait for the user to respond to the prompt
     const { outcome } = await deferredPrompt.userChoice;
-    // We've used the prompt, and can't use it again, throw it away
     setDeferredPrompt(null);
   };
 
@@ -330,7 +313,6 @@ export default function App() {
 
   // Derived counts & lists
   const activeCount = contacts.filter(c => c.status === 'Active').length;
-  // groups replaced by masterCategories usage where applicable
   
   // Identify blank / invalid contacts
   const blankContacts = contacts.filter(
@@ -345,7 +327,8 @@ export default function App() {
   // Add / Edit contact with Security Check
   const handleSaveContact = (formData) => {
     if (formData.id) {
-      setContacts(prev => prev.map(c => c.id === formData.id ? { ...c, ...formData } : c));
+      updateContactsState(contacts.map(c => c.id === formData.id ? { ...c, ...formData } : c));
+      showToast('Updated contact details');
     } else {
       const newContact = {
         ...formData,
@@ -359,7 +342,8 @@ export default function App() {
         setIsDuplicateModalOpen(true);
       }
 
-      setContacts(prev => [newContact, ...prev]);
+      updateContactsState([newContact, ...contacts]);
+      showToast(`Added contact: ${newContact.firstName} ${newContact.lastName}`);
     }
   };
 
@@ -370,7 +354,7 @@ export default function App() {
     }, 'Edit Contact Details');
   };
 
-  // Single Contact Deletion (Requires High Warning Delete Modal & Admin Code 050763)
+  // Single Contact Deletion
   const handleDeleteContact = (id) => {
     const target = contacts.find((c) => c.id === id);
     if (!target) return;
@@ -385,13 +369,14 @@ export default function App() {
           deletedAt: new Date().toISOString()
         };
         setTrashContacts((prev) => [deletedRecord, ...prev]);
-        setContacts((prev) => prev.filter((c) => c.id !== id));
+        updateContactsState(contacts.filter((c) => c.id !== id));
         setSelectedIds((prev) => prev.filter((item) => item !== id));
+        showToast(`Moved ${target.firstName} ${target.lastName} to Trash`);
       }
     });
   };
 
-  // Bulk Contact Deletion (Requires High Warning Delete Modal & Admin Code 050763)
+  // Bulk Contact Deletion
   const handleBulkDelete = (idsToDelete) => {
     if (idsToDelete.length === 0) return;
 
@@ -410,8 +395,9 @@ export default function App() {
           .map((c) => ({ ...c, deletedAt: timestamp }));
 
         setTrashContacts((prev) => [...deletedRecords, ...prev]);
-        setContacts((prev) => prev.filter((c) => !idsToDelete.includes(c.id)));
+        updateContactsState(contacts.filter((c) => !idsToDelete.includes(c.id)));
         setSelectedIds([]);
+        showToast(`Moved ${idsToDelete.length} contacts to Trash`);
       }
     });
   };
@@ -419,23 +405,25 @@ export default function App() {
   // Bulk Assign Selected Contacts to Categories
   const handleBulkAssignCategories = (idsToAssign, categoriesToAdd) => {
     requireAuth(() => {
-      setContacts((prev) => prev.map((c) => {
+      const updated = contacts.map((c) => {
         if (idsToAssign.includes(c.id)) {
           const newCategories = [...new Set([...(c.categories || []), ...categoriesToAdd])];
           return { ...c, categories: newCategories };
         }
         return c;
-      }));
+      });
+      updateContactsState(updated);
       setSelectedIds([]);
-      alert(`Added ${idsToAssign.length} contacts to categories: ${categoriesToAdd.join(', ')}`);
+      showToast(`Assigned ${idsToAssign.length} contacts to categories`);
     }, 'Assign Contacts to Categories');
   };
 
-  // Thorough Database Cleanup
+  // Database Cleanup
   const handleCleanDatabase = () => {
     requireAuth(() => {
       const { cleanedContacts, stats } = cleanDatabase(contacts);
-      setContacts(cleanedContacts);
+      updateContactsState(cleanedContacts);
+      showToast('Cleaned & Repaired database records');
       alert(
         `🧹 Database Cleanup Complete!\n\n` +
         `• Removed ${stats.removedCount} blank/invalid records.\n` +
@@ -445,7 +433,7 @@ export default function App() {
     }, 'Clean & Repair Database');
   };
 
-  // Purge Blank Records (Requires Admin Code 050763)
+  // Purge Blank Records
   const handlePurgeBlanks = () => {
     if (blankCount === 0) {
       alert('No blank or invalid contacts to purge!');
@@ -462,7 +450,8 @@ export default function App() {
         const timestamp = new Date().toISOString();
         const deletedRecords = blankContacts.map((c) => ({ ...c, deletedAt: timestamp }));
         setTrashContacts((prev) => [...deletedRecords, ...prev]);
-        setContacts((prev) => prev.filter((c) => c.email || (c.firstName && c.firstName !== 'Unnamed') || c.lastName || c.phone));
+        updateContactsState(contacts.filter((c) => c.email || (c.firstName && c.firstName !== 'Unnamed') || c.lastName || c.phone));
+        showToast(`Purged ${blankCount} blank records`);
       }
     });
   };
@@ -474,17 +463,18 @@ export default function App() {
 
     const { deletedAt, ...restoredContact } = item;
 
-    setContacts((prev) => [restoredContact, ...prev]);
+    updateContactsState([restoredContact, ...contacts]);
     setTrashContacts((prev) => prev.filter((c) => c.id !== id));
+    showToast(`Restored ${restoredContact.firstName} ${restoredContact.lastName}`);
   };
 
   const handleRestoreAll = () => {
     if (trashContacts.length === 0) return;
     const restored = trashContacts.map(({ deletedAt, ...c }) => c);
-    setContacts((prev) => [...restored, ...prev]);
+    updateContactsState([...restored, ...contacts]);
     setTrashContacts([]);
     setIsTrashModalOpen(false);
-    alert(`Restored all ${restored.length} contacts back to address book!`);
+    showToast(`Restored all ${restored.length} contacts from Trash`);
   };
 
   const handlePermanentlyDelete = (id) => {
@@ -518,14 +508,15 @@ export default function App() {
       setIsDuplicateModalOpen(true);
     }
 
-    setContacts(prev => [...importedList, ...prev]);
+    updateContactsState([...importedList, ...contacts]);
+    showToast(`Imported ${importedList.length} contacts`);
 
     if (collectionName) {
       alert(`Imported ${importedList.length} contacts into collection: "${collectionName}"!`);
     }
   };
 
-  // Resolve duplicate actions (Skip All, Skip One, Merge, Overwrite, Keep Existing)
+  // Resolve duplicate actions
   const handleResolveDuplicates = (resolution) => {
     if (!resolution) return;
     const { action, existingId, incomingId, incoming } = resolution;
@@ -550,19 +541,20 @@ export default function App() {
 
     if (action === 'merge') {
       const merged = mergeContacts(currentDup.existing, currentDup.incoming);
-      setContacts((prev) => {
-        const updated = prev.map((c) => (c.id === existingId ? merged : c));
-        return incomingId ? updated.filter((c) => c.id !== incomingId || c.id === existingId) : updated;
-      });
+      const updated = contacts.map((c) => (c.id === existingId ? merged : c));
+      const finalContacts = incomingId ? updated.filter((c) => c.id !== incomingId || c.id === existingId) : updated;
+      updateContactsState(finalContacts);
+      showToast('Merged duplicate contact');
     } else if (action === 'overwrite') {
       const overwritten = { ...(incoming || currentDup.incoming), id: existingId };
-      setContacts((prev) => {
-        const updated = prev.map((c) => (c.id === existingId ? overwritten : c));
-        return incomingId ? updated.filter((c) => c.id !== incomingId || c.id === existingId) : updated;
-      });
+      const updated = contacts.map((c) => (c.id === existingId ? overwritten : c));
+      const finalContacts = incomingId ? updated.filter((c) => c.id !== incomingId || c.id === existingId) : updated;
+      updateContactsState(finalContacts);
+      showToast('Overwrote contact record');
     } else if (action === 'keep_existing') {
       if (incomingId) {
-        setContacts((prev) => prev.filter((c) => c.id !== incomingId || c.id === existingId));
+        updateContactsState(contacts.filter((c) => c.id !== incomingId || c.id === existingId));
+        showToast('Kept existing contact record');
       }
     }
 
@@ -580,17 +572,46 @@ export default function App() {
       const remaining = contacts.filter(c => !c.id.startsWith('sample_'));
       const removedCount = contacts.length - remaining.length;
       if (removedCount > 0) {
-        setContacts(remaining);
+        updateContactsState(remaining);
         setSelectedIds(prev => prev.filter(id => !id.startsWith('sample_')));
-        alert(`Cleared ${removedCount} sample contacts.`);
+        showToast(`Cleared ${removedCount} sample contacts`);
       } else {
         alert('No sample contacts found.');
       }
     }, 'Clear Sample Data');
   };
 
+  const handleExportCSV = () => {
+    const headers = ['First Name', 'Last Name', 'Email', 'Phone', 'Address', 'Categories', 'Notes'];
+    const rows = contacts.map(c => [
+      `"${c.firstName || ''}"`,
+      `"${c.lastName || ''}"`,
+      `"${c.email || ''}"`,
+      `"${c.phone || ''}"`,
+      `"${c.address || ''}"`,
+      `"${(c.categories || []).join(';')}"`,
+      `"${c.notes || ''}"`
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `eNews_Contacts_Export_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="app-layout">
+      {/* Toast Alert Notification */}
+      {toastMessage && (
+        <div className="toast-alert-banner">
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Header Bar */}
       <Header 
         contactsCount={contacts.length}
@@ -614,27 +635,38 @@ export default function App() {
         onOpenMagicImport={() => requireAuth(() => setIsMagicImportModalOpen(true), 'Smart Text Import')}
         onLoadSampleData={() => requireAuth(() => {
           const samples = generateSampleContacts();
-          setContacts(samples);
+          updateContactsState(samples);
+          showToast('Loaded sample contacts');
         }, 'Load Sample Contacts')}
         onPrintDirectory={() => setIsPrintViewOpen(true)}
         onExportCSV={handleExportCSV}
         onScanDuplicates={() => {
           const dups = findDuplicates(contacts, contacts);
-          setDuplicates(dups);
-          setIsDuplicateModalOpen(true);
+          if (dups.length > 0) {
+            setDuplicates(dups);
+            setIsDuplicateModalOpen(true);
+          } else {
+            alert('No duplicate contacts detected.');
+          }
         }}
-        onPurgeBlanks={handlePurgeBlanks}
+        onPurgeBlanks={() => requireAuth(handlePurgeBlanks, 'Purge Blank Contacts')}
         onOpenTrashModal={() => setIsTrashModalOpen(true)}
         onCleanDatabase={handleCleanDatabase}
-        duplicateCount={duplicates.length}
+        duplicateCount={findDuplicates(contacts, contacts).length}
         onClearSampleData={handleClearSampleData}
         deferredPrompt={deferredPrompt}
         onInstallClick={handleInstallClick}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        canUndo={pastHistory.length > 0}
+        canRedo={futureHistory.length > 0}
+        undoCount={pastHistory.length}
+        redoCount={futureHistory.length}
       />
 
-      {/* Main Content View */}
-      <main className="main-content">
-        <ContactTable 
+      {/* Main Address Book Table & Mobile Card View */}
+      <main className="app-main-content">
+        <ContactTable
           contacts={contacts}
           masterCategories={masterCategories}
           availableColumns={availableColumns}
@@ -642,12 +674,12 @@ export default function App() {
           setVisibleColumns={setVisibleColumns}
           columnWidths={columnWidths}
           setColumnWidths={setColumnWidths}
-          onReorderColumns={handleReorderColumns}
+          onReorderColumns={(cols) => setAvailableColumns(cols)}
           selectedIds={selectedIds}
           setSelectedIds={setSelectedIds}
           onEditContact={handleEditContact}
-          onDeleteContact={handleDeleteContact}
-          onBulkDelete={handleBulkDelete}
+          onDeleteContact={(id) => requireAuth(() => handleDeleteContact(id), 'Delete Contact')}
+          onBulkDelete={(ids) => requireAuth(() => handleBulkDelete(ids), 'Delete Selected Contacts')}
           onBulkCopyEmails={handleBulkCopyEmails}
           onBulkAssignCategories={handleBulkAssignCategories}
           onOpenAddModal={() => requireAuth(() => {
@@ -656,26 +688,32 @@ export default function App() {
           }, 'Add New Contact')}
           onLoadSampleData={() => requireAuth(() => {
             const samples = generateSampleContacts();
-            setContacts(samples);
+            updateContactsState(samples);
+            showToast('Loaded sample contacts');
           }, 'Load Sample Contacts')}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          canUndo={pastHistory.length > 0}
+          canRedo={futureHistory.length > 0}
+          undoCount={pastHistory.length}
+          redoCount={futureHistory.length}
         />
       </main>
 
-      {/* Modals & Dialogs */}
-      <ContactModal 
+      {/* Modals & Popups */}
+      <ContactModal
         isOpen={isAddEditModalOpen}
         onClose={() => setIsAddEditModalOpen(false)}
         onSave={handleSaveContact}
         contactToEdit={contactToEdit}
         masterCategories={masterCategories}
+        availableColumns={availableColumns}
       />
 
-      <ImportExportModal 
+      <ImportExportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onImport={handleImportContacts}
-        onImportContacts={handleImportContacts}
-        contacts={contacts}
       />
 
       <MagicImportModal
@@ -684,43 +722,36 @@ export default function App() {
         onImport={handleImportContacts}
       />
 
-      <DuplicateResolverModal 
+      <DuplicateResolverModal
         isOpen={isDuplicateModalOpen}
         onClose={() => setIsDuplicateModalOpen(false)}
         duplicates={duplicates}
-        allContacts={contacts}
-        onResolve={handleResolveDuplicates}
-      />
-
-      <PrintView 
-        isOpen={isPrintViewOpen}
-        onClose={() => setIsPrintViewOpen(false)}
-        contacts={contacts}
-        availableColumns={availableColumns}
-        visibleColumns={visibleColumns}
-        columnWidths={columnWidths}
+        onResolveDuplicate={handleResolveDuplicates}
       />
 
       <CategoryManagerModal
         isOpen={isCategoryManagerModalOpen}
         onClose={() => setIsCategoryManagerModalOpen(false)}
         masterCategories={masterCategories}
-        setMasterCategories={(newCategories) => {
-          // Sync changes down to contacts if categories were deleted or renamed
-          // Simple logic: if a category is missing, remove it from contacts. If renamed, we can't easily tell which was renamed from just the new array unless we do complex diffing. 
-          // The CategoryManagerModal actually handles renaming and deleting. We can pass a callback to handle updates.
-          setMasterCategories(newCategories);
-        }}
+        setMasterCategories={setMasterCategories}
       />
 
-      <SecurityModal
-        isOpen={isSecurityModalOpen}
-        onClose={() => {
-          setIsSecurityModalOpen(false);
-          pendingActionRef.current = null;
-        }}
-        onUnlockSuccess={handleUnlockSuccess}
-        actionTitle={securityActionTitle}
+      <TrashModal
+        isOpen={isTrashModalOpen}
+        onClose={() => setIsTrashModalOpen(false)}
+        trashContacts={trashContacts}
+        onRestore={handleRestoreContact}
+        onRestoreAll={handleRestoreAll}
+        onPermanentlyDelete={handlePermanentlyDelete}
+        onEmptyTrash={handleEmptyTrash}
+      />
+
+      <DeleteConfirmModal
+        isOpen={deleteModalState.isOpen}
+        onClose={() => setDeleteModalState(prev => ({ ...prev, isOpen: false }))}
+        targetCount={deleteModalState.targetCount}
+        targetNames={deleteModalState.targetNames}
+        onConfirm={deleteModalState.onConfirm}
       />
 
       <SettingsModal
@@ -730,28 +761,16 @@ export default function App() {
         setFontSize={setFontSize}
       />
 
-      <TrashModal
-        isOpen={isTrashModalOpen}
-        onClose={() => setIsTrashModalOpen(false)}
-        trashContacts={trashContacts}
-        onRestoreContact={handleRestoreContact}
-        onRestoreAll={handleRestoreAll}
-        onPermanentlyDelete={handlePermanentlyDelete}
-        onEmptyTrash={handleEmptyTrash}
-      />
-
-      {/* High-Risk Delete Confirmation Modal requiring Admin Code 050763 */}
-      <DeleteConfirmModal
-        isOpen={deleteModalState.isOpen}
-        onClose={() => setDeleteModalState((prev) => ({ ...prev, isOpen: false }))}
-        onConfirmDelete={() => {
-          if (deleteModalState.onConfirm) {
-            deleteModalState.onConfirm();
-          }
-        }}
-        targetCount={deleteModalState.targetCount}
-        targetNames={deleteModalState.targetNames}
-      />
+      {isPrintViewOpen && (
+        <PrintView
+          isOpen={isPrintViewOpen}
+          onClose={() => setIsPrintViewOpen(false)}
+          contacts={contacts}
+          availableColumns={availableColumns}
+          visibleColumns={visibleColumns}
+          columnWidths={columnWidths}
+        />
+      )}
     </div>
   );
 }
