@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, X, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Lock, X, ShieldCheck, AlertCircle, Delete } from 'lucide-react';
 import { getAdminPIN } from '../services/authService';
 
 export const SecurityModal = ({
@@ -11,6 +11,8 @@ export const SecurityModal = ({
   const [passcodeInput, setPasscodeInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  const adminPin = getAdminPIN();
+
   useEffect(() => {
     if (isOpen) {
       setPasscodeInput('');
@@ -20,21 +22,52 @@ export const SecurityModal = ({
 
   if (!isOpen) return null;
 
-  const handleVerify = (e) => {
-    e.preventDefault();
-    const adminPin = getAdminPIN();
-    const typed = passcodeInput.trim();
-
-    if (typed === adminPin) {
+  const attemptVerify = (typedPin) => {
+    const cleanPin = typedPin.trim();
+    if (cleanPin === adminPin) {
       onUnlockSuccess();
+      return true;
     } else {
-      setErrorMsg('Incorrect Admin Passcode. Please check Settings for your 6-digit passcode.');
+      setErrorMsg(`Incorrect passcode (${cleanPin}). Default passcode is ${adminPin}.`);
+      return false;
     }
+  };
+
+  const handleVerify = (e) => {
+    if (e) e.preventDefault();
+    attemptVerify(passcodeInput);
+  };
+
+  const handleInputChange = (val) => {
+    const clean = val.replace(/[^0-9]/g, '').slice(0, 6);
+    setPasscodeInput(clean);
+    setErrorMsg('');
+    if (clean.length === 6) {
+      attemptVerify(clean);
+    }
+  };
+
+  const handleKeypadPress = (digit) => {
+    if (passcodeInput.length < 6) {
+      const next = passcodeInput + digit;
+      handleInputChange(next);
+    }
+  };
+
+  const handleKeypadBackspace = () => {
+    if (passcodeInput.length > 0) {
+      handleInputChange(passcodeInput.slice(0, -1));
+    }
+  };
+
+  const handleUseDefaultPin = () => {
+    setPasscodeInput(adminPin);
+    attemptVerify(adminPin);
   };
 
   return (
     <div className="modal-backdrop">
-      <div className="modal-content security-modal" style={{ maxWidth: '440px' }}>
+      <div className="modal-content security-modal" style={{ maxWidth: '420px' }}>
         <div className="modal-header">
           <div className="modal-title-wrap text-warning">
             <Lock className="modal-icon text-warning" size={20} />
@@ -51,7 +84,7 @@ export const SecurityModal = ({
             <div>
               <strong>🔒 Editing Controls are Locked</strong>
               <p className="mt-1" style={{ fontSize: '0.82rem', margin: 0, opacity: 0.9 }}>
-                To <strong>{actionTitle}</strong>, please enter your 6-digit Security Passcode below to unlock editing.
+                To <strong>{actionTitle}</strong>, enter your 6-digit Security Passcode below.
               </p>
             </div>
           </div>
@@ -67,21 +100,62 @@ export const SecurityModal = ({
               className="input-control code-input-lg"
               placeholder="XXXXXX"
               value={passcodeInput}
-              onChange={(e) => {
-                setPasscodeInput(e.target.value.replace(/[^0-9]/g, ''));
-                setErrorMsg('');
-              }}
+              onChange={(e) => handleInputChange(e.target.value)}
               style={{
                 letterSpacing: '0.3em',
                 textAlign: 'center',
-                fontSize: '1.25rem',
+                fontSize: '1.35rem',
                 fontWeight: 700,
-                padding: '0.75rem'
+                padding: '0.6rem'
               }}
             />
-            <p className="help-text mt-2" style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              Configured in Settings (Default: 050763).
-            </p>
+          </div>
+
+          {/* On-Screen Touch Keypad for Smartphones & Desktops */}
+          <div className="pin-keypad-grid" style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '8px',
+            marginTop: '12px',
+            marginBottom: '8px'
+          }}>
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(num => (
+              <button
+                key={num}
+                type="button"
+                className="btn btn-secondary btn-keypad"
+                onClick={() => handleKeypadPress(num)}
+                style={{ fontSize: '1.2rem', fontWeight: 600, padding: '0.55rem 0' }}
+              >
+                {num}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="btn btn-outline btn-keypad"
+              onClick={handleUseDefaultPin}
+              title="1-Tap Fill Default Passcode"
+              style={{ fontSize: '0.72rem', fontWeight: 600, padding: '0.55rem 0' }}
+            >
+              Default ({adminPin})
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-keypad"
+              onClick={() => handleKeypadPress('0')}
+              style={{ fontSize: '1.2rem', fontWeight: 600, padding: '0.55rem 0' }}
+            >
+              0
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-keypad"
+              onClick={handleKeypadBackspace}
+              title="Backspace"
+              style={{ fontSize: '1rem', padding: '0.55rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Delete size={18} />
+            </button>
           </div>
 
           {errorMsg && (
@@ -90,7 +164,7 @@ export const SecurityModal = ({
             </div>
           )}
 
-          <div className="modal-footer" style={{ marginTop: '1.25rem' }}>
+          <div className="modal-footer" style={{ marginTop: '1rem' }}>
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Cancel
             </button>
