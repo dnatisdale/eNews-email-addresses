@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Tag, Plus, Trash2, Edit2, Check, AlertCircle } from 'lucide-react';
+import { sortCategoriesAlphabetically } from '../App';
 
 export const CategoryManagerModal = ({ isOpen, onClose, masterCategories, setMasterCategories }) => {
   const [newCategory, setNewCategory] = useState('');
@@ -16,7 +17,7 @@ export const CategoryManagerModal = ({ isOpen, onClose, masterCategories, setMas
       alert('Category already exists!');
       return;
     }
-    setMasterCategories([...masterCategories, trimmed]);
+    setMasterCategories(sortCategoriesAlphabetically([...masterCategories, trimmed]));
     setNewCategory('');
   };
 

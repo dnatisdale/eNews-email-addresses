@@ -24,6 +24,15 @@ const FONT_SIZE_KEY = 'eNews_Font_Size_Preference';
 const MASTER_CATEGORIES_KEY = 'eNews_master_categories';
 const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000;
 
+export const sortCategoriesAlphabetically = (cats = []) => {
+  const cleaned = (cats || []).filter(c => c && c !== '*EXAMPLES*');
+  const withoutSpecial = cleaned.filter(c => c !== '*SAMPLE*');
+
+  withoutSpecial.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+  return [...withoutSpecial, '*SAMPLE*'];
+};
+
 export default function App() {
   // Theme state
   const [theme, setTheme] = useState(() => localStorage.getItem(THEME_KEY) || 'dark');
@@ -143,12 +152,13 @@ export default function App() {
     const saved = localStorage.getItem(MASTER_CATEGORIES_KEY);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        return sortCategoriesAlphabetically(parsed);
       } catch (e) {
         console.error('Failed to load master categories', e);
       }
     }
-    return ['*EXAMPLES*', 'Family', 'Close Friends', 'Newsletter', 'Holiday List'];
+    return sortCategoriesAlphabetically(['Close Friends', 'Family', 'Holiday List', 'Newsletter', '*SAMPLE*']);
   });
 
   // Security Lock & Authentication State
@@ -294,22 +304,38 @@ export default function App() {
     localStorage.setItem(MASTER_CATEGORIES_KEY, JSON.stringify(masterCategories));
   }, [masterCategories]);
 
-  // Auto-discover categories from imported or legacy contacts
+  // Auto-discover & clean categories from contacts
   useEffect(() => {
+    let modified = false;
     const uniqueCategories = new Set(masterCategories);
-    let added = false;
-    contacts.forEach(c => {
+
+    // Replace legacy *EXAMPLES* with *SAMPLE* in contacts if present
+    const cleanedContacts = contacts.map(c => {
+      if (Array.isArray(c.categories) && c.categories.includes('*EXAMPLES*')) {
+        modified = true;
+        const newCats = c.categories.map(cat => cat === '*EXAMPLES*' ? '*SAMPLE*' : cat);
+        return { ...c, categories: newCats };
+      }
+      return c;
+    });
+
+    if (modified) {
+      updateContactsState(cleanedContacts);
+    }
+
+    cleanedContacts.forEach(c => {
       if (Array.isArray(c.categories)) {
         c.categories.forEach(cat => {
-          if (cat && !uniqueCategories.has(cat)) {
+          if (cat && cat !== '*EXAMPLES*' && !uniqueCategories.has(cat)) {
             uniqueCategories.add(cat);
-            added = true;
           }
         });
       }
     });
-    if (added) {
-      setMasterCategories(Array.from(uniqueCategories));
+
+    const sorted = sortCategoriesAlphabetically(Array.from(uniqueCategories));
+    if (JSON.stringify(sorted) !== JSON.stringify(masterCategories)) {
+      setMasterCategories(sorted);
     }
   }, [contacts, masterCategories]);
 
@@ -430,8 +456,8 @@ export default function App() {
   };
 
   const handleAddNewMasterCategory = (newCat) => {
-    if (newCat && !masterCategories.includes(newCat)) {
-      setMasterCategories(prev => [...prev, newCat]);
+    if (newCat && newCat !== '*EXAMPLES*') {
+      setMasterCategories(prev => sortCategoriesAlphabetically([...prev, newCat]));
     }
   };
 
