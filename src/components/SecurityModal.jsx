@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, X, ShieldCheck, AlertCircle, Delete, RefreshCw } from 'lucide-react';
+import { Lock, X, ShieldCheck, AlertCircle, Delete, Info } from 'lucide-react';
 import { getAdminPIN } from '../services/authService';
 
 export const SecurityModal = ({
@@ -10,6 +10,7 @@ export const SecurityModal = ({
 }) => {
   const [passcodeInput, setPasscodeInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [showInfo, setShowInfo] = useState(false);
 
   const adminPin = getAdminPIN();
 
@@ -17,6 +18,7 @@ export const SecurityModal = ({
     if (isOpen) {
       setPasscodeInput('');
       setErrorMsg('');
+      setShowInfo(false);
     }
   }, [isOpen]);
 
@@ -67,11 +69,29 @@ export const SecurityModal = ({
 
   return (
     <div className="modal-backdrop">
-      <div className="modal-content security-modal" style={{ maxWidth: '420px' }}>
+      <div className="modal-content security-modal" style={{ maxWidth: '420px', overflowY: 'auto' }}>
         <div className="modal-header">
-          <div className="modal-title-wrap text-warning">
+          <div className="modal-title-wrap text-warning" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Lock className="modal-icon text-warning" size={20} />
-            <h2>App is Locked — Unlock Required</h2>
+            <h2 style={{ fontSize: '1.1rem', margin: 0 }}>App is Locked — Unlock Required</h2>
+            <button
+              type="button"
+              className="btn-icon"
+              onClick={() => setShowInfo(prev => !prev)}
+              title={showInfo ? 'Hide explanation' : 'Show explanation'}
+              aria-label="Toggle explanation"
+              style={{
+                color: showInfo ? 'var(--accent-primary)' : 'var(--text-muted)',
+                padding: '4px',
+                borderRadius: '50%',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginLeft: '4px'
+              }}
+            >
+              <Info size={18} />
+            </button>
           </div>
           <button className="icon-close-btn" onClick={onClose} aria-label="Close Security Modal">
             <X size={20} />
@@ -79,17 +99,19 @@ export const SecurityModal = ({
         </div>
 
         <form onSubmit={handleVerify} className="modal-body">
-          <div className="lock-alert-box">
-            <AlertCircle size={18} className="text-warning flex-shrink-0" />
-            <div>
-              <strong>🔒 Editing Controls are Locked</strong>
-              <p className="mt-1" style={{ fontSize: '0.82rem', margin: 0, opacity: 0.9 }}>
-                To <strong>{actionTitle}</strong>, enter your 6-digit Security Passcode below.
-              </p>
+          {showInfo && (
+            <div className="lock-alert-box" style={{ marginBottom: '12px', padding: '10px 14px' }}>
+              <AlertCircle size={18} className="text-warning flex-shrink-0" />
+              <div>
+                <strong style={{ fontSize: '0.88rem' }}>🔒 Editing Controls are Locked</strong>
+                <p style={{ fontSize: '0.82rem', margin: '2px 0 0', opacity: 0.9 }}>
+                  To <strong>{actionTitle}</strong>, enter your 6-digit Security Passcode below.
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="form-group mt-3">
+          <div className="form-group" style={{ marginTop: showInfo ? '0' : '4px' }}>
             <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
               Enter 6-Digit Security Passcode
             </label>
@@ -106,7 +128,7 @@ export const SecurityModal = ({
                 textAlign: 'center',
                 fontSize: '1.35rem',
                 fontWeight: 700,
-                padding: '0.6rem'
+                padding: '0.5rem'
               }}
             />
           </div>
@@ -116,8 +138,8 @@ export const SecurityModal = ({
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
             gap: '8px',
-            marginTop: '12px',
-            marginBottom: '8px'
+            marginTop: '10px',
+            marginBottom: '6px'
           }}>
             {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(num => (
               <button
@@ -125,7 +147,7 @@ export const SecurityModal = ({
                 type="button"
                 className="btn btn-secondary btn-keypad"
                 onClick={() => handleKeypadPress(num)}
-                style={{ fontSize: '1.2rem', fontWeight: 600, padding: '0.55rem 0' }}
+                style={{ fontSize: '1.2rem', fontWeight: 600, padding: '0.5rem 0' }}
               >
                 {num}
               </button>
@@ -135,7 +157,7 @@ export const SecurityModal = ({
               className="btn btn-secondary btn-keypad"
               onClick={handleClearInput}
               title="Clear input"
-              style={{ fontSize: '0.85rem', fontWeight: 600, padding: '0.55rem 0' }}
+              style={{ fontSize: '0.85rem', fontWeight: 600, padding: '0.5rem 0' }}
             >
               Clear
             </button>
@@ -143,7 +165,7 @@ export const SecurityModal = ({
               type="button"
               className="btn btn-secondary btn-keypad"
               onClick={() => handleKeypadPress('0')}
-              style={{ fontSize: '1.2rem', fontWeight: 600, padding: '0.55rem 0' }}
+              style={{ fontSize: '1.2rem', fontWeight: 600, padding: '0.5rem 0' }}
             >
               0
             </button>
@@ -152,7 +174,7 @@ export const SecurityModal = ({
               className="btn btn-secondary btn-keypad"
               onClick={handleKeypadBackspace}
               title="Backspace"
-              style={{ fontSize: '1rem', padding: '0.55rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ fontSize: '1rem', padding: '0.5rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               <Delete size={18} />
             </button>
@@ -164,7 +186,7 @@ export const SecurityModal = ({
             </div>
           )}
 
-          <div className="modal-footer" style={{ marginTop: '1rem' }}>
+          <div className="modal-footer" style={{ marginTop: '0.8rem' }}>
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Cancel
             </button>
