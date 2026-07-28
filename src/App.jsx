@@ -51,7 +51,17 @@ export default function App() {
       try {
         const parsed = JSON.parse(saved);
         const { cleanedContacts } = cleanDatabase(parsed);
-        if (cleanedContacts.length > 0) return cleanedContacts;
+        if (cleanedContacts.length > 0) {
+          // Migration: strip out ALL old *EXAMPLES* / *SAMPLE* placeholder contacts
+          const realContacts = cleanedContacts.filter(c => {
+            const cats = c.categories || [];
+            return !cats.includes('*EXAMPLES*') && !cats.includes('*SAMPLE*');
+          });
+          // If there are real contacts, keep only those
+          if (realContacts.length > 0) return realContacts;
+          // Otherwise (only samples existed), seed a single fresh sample
+          return generateSampleContacts();
+        }
       } catch (e) {
         console.error('Failed to load contacts from storage', e);
       }
@@ -150,12 +160,14 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return sortCategoriesAlphabetically(parsed);
+        // Strip out any legacy *EXAMPLES* or *SAMPLE* entries
+        const cleaned = parsed.filter(c => c !== '*EXAMPLES*' && c !== '*SAMPLE*');
+        return sortCategoriesAlphabetically(cleaned);
       } catch (e) {
         console.error('Failed to load master categories', e);
       }
     }
-    return sortCategoriesAlphabetically(['Close Friends', 'Family', 'Holiday List', 'Newsletter', '*SAMPLE*']);
+    return sortCategoriesAlphabetically(['Close Friends', 'Family', 'Holiday List', 'Newsletter']);
   });
 
   // Security Lock & Authentication State
