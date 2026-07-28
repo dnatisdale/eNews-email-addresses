@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { X, Settings, KeyRound, Save, Check, Lock, Unlock, Type, Mail, Phone, Tag } from 'lucide-react';
+import { X, Settings, KeyRound, Save, Check, Lock, Unlock, Type, Mail, Phone, Tag, ShieldCheck, RotateCcw, Download, Trash2, Plus } from 'lucide-react';
 import { getAdminPIN, setAdminPIN, isSecurityLockEnabled, setSecurityLockEnabled } from '../services/authService';
+import { getRollingBackups, downloadBackupFile, emailBackup, deleteRollingBackup, createRollingBackup } from '../services/backupService';
 
-export const SettingsModal = ({ isOpen, onClose, fontSize = 100, setFontSize }) => {
+export const SettingsModal = ({ isOpen, onClose, fontSize = 100, setFontSize, contacts = [], masterCategories = [], onRestoreBackup }) => {
   const [lockEnabled, setLockEnabledState] = useState(true);
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [backups, setBackups] = useState([]);
+
+  const loadBackups = () => {
+    setBackups(getRollingBackups());
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -18,12 +24,33 @@ export const SettingsModal = ({ isOpen, onClose, fontSize = 100, setFontSize }) 
       setConfirmPin('');
       setSavedSuccess(false);
       setErrorMsg('');
+      loadBackups();
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   const currentScale = typeof fontSize === 'number' ? fontSize : 100;
+
+  const handleCreateManualBackup = () => {
+    createRollingBackup(contacts, masterCategories, 'Manual User Backup');
+    loadBackups();
+  };
+
+  const handleDeleteBackupItem = (id) => {
+    deleteRollingBackup(id);
+    loadBackups();
+  };
+
+  const handleRestoreItem = (backup) => {
+    if (!backup || !backup.data) return;
+    if (window.confirm(`Are you sure you want to restore snapshot from ${backup.formattedDate} containing ${backup.contactCount} contacts? This will replace your current active list.`)) {
+      if (onRestoreBackup) {
+        onRestoreBackup(backup.data.contacts, backup.data.masterCategories);
+      }
+      onClose();
+    }
+  };
 
   const handleSaveSettings = (e) => {
     e.preventDefault();
@@ -77,6 +104,104 @@ export const SettingsModal = ({ isOpen, onClose, fontSize = 100, setFontSize }) 
           )}
 
           {errorMsg && <div className="error-alert">{errorMsg}</div>}
+
+          {/* 5-Version Rolling Backups Section */}
+          <div className="settings-section">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <h4 className="setting-title flex-align-gap" style={{ margin: 0 }}>
+                <ShieldCheck size={18} className="text-success" />
+                <span>5-Version Rolling Backups</span>
+              </h4>
+              <button
+                type="button"
+                className="btn btn-secondary btn-xs"
+                onClick={handleCreateManualBackup}
+                title="Create a new backup snapshot right now"
+              >
+                <Plus size={13} />
+                <span>Create Backup Now</span>
+              </button>
+            </div>
+            <p className="setting-desc mb-3">
+              The app automatically keeps your 5 most recent database snapshots. You can download, email, or restore any snapshot at any time.
+            </p>
+
+            {backups.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '16px', color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.02)', borderRadius: '8px', fontSize: '0.85rem' }}>
+                No backup snapshots stored yet. Click "Create Backup Now" above to save your first snapshot.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {backups.map((b, idx) => (
+                  <div
+                    key={b.id || idx}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: '8px'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.86rem', fontWeight: '600', color: 'var(--text-main)' }}>
+                        #{idx + 1} — {b.formattedDate || new Date(b.timestamp).toLocaleString()}
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                        <strong>{b.contactCount} contacts</strong> • {b.note || 'Automatic Backup'}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-xs"
+                        onClick={() => handleRestoreItem(b)}
+                        title="Restore active directory to this snapshot"
+                        style={{ color: '#60a5fa' }}
+                      >
+                        <RotateCcw size={12} />
+                        <span>Restore</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-xs"
+                        onClick={() => downloadBackupFile(b)}
+                        title="Download JSON backup file"
+                      >
+                        <Download size={12} />
+                        <span>JSON</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-xs"
+                        onClick={() => emailBackup(b)}
+                        title="Email or share backup"
+                      >
+                        <Mail size={12} />
+                        <span>Email</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn-icon btn-xs text-danger"
+                        onClick={() => handleDeleteBackupItem(b.id)}
+                        title="Delete snapshot from rolling history"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Font Size & Smartphone Range Slider Section */}
           <div className="settings-section">

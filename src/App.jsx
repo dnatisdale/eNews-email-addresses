@@ -11,10 +11,12 @@ import { SettingsModal } from './components/SettingsModal';
 import { TrashModal } from './components/TrashModal';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { CategoryManagerModal } from './components/CategoryManagerModal';
+import { BackupPromptModal } from './components/BackupPromptModal';
 import PWAPrompt from './components/PWAPrompt';
 import { generateSampleContacts } from './services/sampleData';
 import { findDuplicates, mergeContacts } from './services/deduplicator';
 import { cleanDatabase } from './services/dbCleaner';
+import { createRollingBackup } from './services/backupService';
 import { STANDARD_COLUMNS } from './components/ColumnSelector';
 import { isSecurityLockEnabled } from './services/authService';
 
@@ -282,6 +284,7 @@ export default function App() {
   // PWA Install Prompt State & Listener
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showPwaBanner, setShowPwaBanner] = useState(true);
+  const [activeBackupPrompt, setActiveBackupPrompt] = useState(null);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
@@ -474,6 +477,8 @@ export default function App() {
       const { cleanedContacts, stats } = cleanDatabase(contacts);
       updateContactsState(cleanedContacts);
       showToast('Cleaned & Repaired database records');
+      const snapshot = createRollingBackup(cleanedContacts, masterCategories, `Clean & Repair DB (${stats.removedCount} removed)`);
+      if (snapshot) setActiveBackupPrompt(snapshot);
       alert(
         `🧹 Database Cleanup Complete!\n\n` +
         `• Removed ${stats.removedCount} blank/invalid records.\n` +
@@ -499,9 +504,12 @@ export default function App() {
       onConfirm: () => {
         const timestamp = new Date().toISOString();
         const deletedRecords = blankContacts.map((c) => ({ ...c, deletedAt: timestamp }));
+        const remaining = contacts.filter((c) => c.email || (c.firstName && c.firstName !== 'Unnamed') || c.lastName || c.phone);
         setTrashContacts((prev) => [...deletedRecords, ...prev]);
-        updateContactsState(contacts.filter((c) => c.email || (c.firstName && c.firstName !== 'Unnamed') || c.lastName || c.phone));
+        updateContactsState(remaining);
         showToast(`Purged ${blankCount} blank records`);
+        const snapshot = createRollingBackup(remaining, masterCategories, `Purged ${blankCount} Blank Contacts`);
+        if (snapshot) setActiveBackupPrompt(snapshot);
       }
     });
   };
@@ -558,8 +566,12 @@ export default function App() {
       setIsDuplicateModalOpen(true);
     }
 
-    updateContactsState([...importedList, ...contacts]);
+    const updatedList = [...importedList, ...contacts];
+    updateContactsState(updatedList);
     showToast(`Imported ${importedList.length} contacts`);
+
+    const snapshot = createRollingBackup(updatedList, masterCategories, `Imported ${importedList.length} Contacts`);
+    if (snapshot) setActiveBackupPrompt(snapshot);
 
     if (collectionName) {
       alert(`Imported ${importedList.length} contacts into collection: "${collectionName}"!`);
@@ -765,6 +777,9 @@ export default function App() {
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
         onImport={handleImportContacts}
+        onExportCSV={handleExportCSV}
+        contacts={contacts}
+        masterCategories={masterCategories}
       />
 
       <MagicImportModal
@@ -817,6 +832,19 @@ export default function App() {
         onClose={() => setIsSettingsModalOpen(false)}
         fontSize={fontSize}
         setFontSize={setFontSize}
+        contacts={contacts}
+        masterCategories={masterCategories}
+        onRestoreBackup={(restoredContacts, restoredCategories) => {
+          updateContactsState(restoredContacts);
+          if (restoredCategories && restoredCategories.length > 0) setMasterCategories(restoredCategories);
+          showToast('Restored database snapshot');
+        }}
+      />
+
+      <BackupPromptModal
+        isOpen={!!activeBackupPrompt}
+        onClose={() => setActiveBackupPrompt(null)}
+        backup={activeBackupPrompt}
       />
 
       {isPrintViewOpen && (

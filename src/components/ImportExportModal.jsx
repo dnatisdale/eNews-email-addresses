@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, Upload, FileSpreadsheet, Check, FolderPlus, HelpCircle, Download, Copy, Mail } from 'lucide-react';
+import { X, Upload, FileSpreadsheet, Check, FolderPlus, HelpCircle, Download, Copy, Mail, ShieldCheck } from 'lucide-react';
 import { parseCSV } from '../services/csvParser';
+import { downloadBackupFile, createRollingBackup } from '../services/backupService';
 
 // Helper to convert filename to a clean Collection / Group title
 const formatFileNameToCollection = (fileName) => {
@@ -23,7 +24,8 @@ export const ImportExportModal = ({
   onImport,
   onExportCSV,
   onBulkCopyEmails,
-  contacts = []
+  contacts = [],
+  masterCategories = []
 }) => {
   const [activeTab, setActiveTab] = useState('import'); // 'import' or 'export'
   const [dragActive, setDragActive] = useState(false);
@@ -31,6 +33,7 @@ export const ImportExportModal = ({
   const [fileName, setFileName] = useState('');
   const [collectionName, setCollectionName] = useState('');
   const [copiedMsg, setCopiedMsg] = useState('');
+  const [isJsonBackup, setIsJsonBackup] = useState(false);
 
   if (!isOpen) return null;
 
@@ -46,8 +49,22 @@ export const ImportExportModal = ({
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      const csvText = event.target.result;
-      const results = parseCSV(csvText);
+      const text = event.target.result;
+      if (file.name.endsWith('.json') || text.trim().startsWith('{')) {
+        try {
+          const parsedJson = JSON.parse(text);
+          const rawContacts = parsedJson.data?.contacts || parsedJson.contacts || (Array.isArray(parsedJson) ? parsedJson : []);
+          if (Array.isArray(rawContacts) && rawContacts.length > 0) {
+            setParsedPreview(rawContacts);
+            setIsJsonBackup(true);
+            return;
+          }
+        } catch (e) {
+          console.warn('JSON parse fallback to CSV', e);
+        }
+      }
+      setIsJsonBackup(false);
+      const results = parseCSV(text);
       setParsedPreview(results);
     };
     reader.readAsText(file);
@@ -78,10 +95,10 @@ export const ImportExportModal = ({
 
       const updatedPreview = parsedPreview.map((contact) => {
         const existingCats = contact.categories || [];
-        const mergedCategories = [...new Set([...existingCats, finalCollection])];
+        const mergedCategories = isJsonBackup ? existingCats : [...new Set([...existingCats, finalCollection])];
         return {
           ...contact,
-          categories: mergedCategories
+          categories: mergedCategories.length > 0 ? mergedCategories : [finalCollection]
         };
       });
 
@@ -96,6 +113,16 @@ export const ImportExportModal = ({
     }
   };
 
+  const handleDownloadJsonBackup = () => {
+    const snapshot = {
+      timestamp: new Date().toISOString(),
+      contactCount: contacts.length,
+      note: 'Instant User Export',
+      data: { contacts, masterCategories }
+    };
+    downloadBackupFile(snapshot);
+  };
+
   const handleCopyFormattedEmails = (separator, label) => {
     const validContacts = contacts.filter(c => c.email && c.email.trim());
     if (validContacts.length === 0) {
@@ -104,7 +131,7 @@ export const ImportExportModal = ({
     }
 
     const formatted = validContacts
-      .map(c => `"${c.firstName || ''} ${c.lastName || ''}".trim() <${c.email.trim()}>`)
+      .map(c => `${(c.firstName || '' + ' ' + c.lastName || '').trim()} <${c.email.trim()}>`)
       .join(separator + ' ');
 
     navigator.clipboard.writeText(formatted);
@@ -114,7 +141,7 @@ export const ImportExportModal = ({
 
   return (
     <div className="modal-backdrop">
-      <div className="modal-content import-modal" style={{ maxWidth: '520px' }}>
+      <div className="modal-content import-modal" style={{ maxWidth: '540px' }}>
         <div className="modal-header">
           <div className="modal-title-wrap">
             <FileSpreadsheet className="modal-icon text-primary" size={20} />
@@ -147,7 +174,7 @@ export const ImportExportModal = ({
               cursor: 'pointer'
             }}
           >
-            📥 Import CSV
+            📥 Import CSV / JSON
           </button>
           <button
             type="button"
@@ -164,7 +191,7 @@ export const ImportExportModal = ({
               cursor: 'pointer'
             }}
           >
-            📤 Export CSV &amp; Copy Lists
+            📤 Export CSV / Backup
           </button>
         </div>
 
@@ -178,7 +205,7 @@ export const ImportExportModal = ({
                   <strong>Supported Import Formats:</strong>
                   <p>• <b>Google Gmail Contacts:</b> Export CSV from contacts.google.com</p>
                   <p>• <b>MS Outlook:</b> Export CSV from Outlook People/Contacts</p>
-                  <p>• <b>Custom Spreadsheet:</b> CSV file containing Name and Email headers</p>
+                  <p>• <b>eNews JSON Backup:</b> Import an eNews `.json` database backup file</p>
                 </div>
               </div>
 
@@ -192,11 +219,11 @@ export const ImportExportModal = ({
                   onDrop={handleDrop}
                 >
                   <Upload size={36} className="upload-icon" />
-                  <h3>Drop your CSV file here</h3>
+                  <h3>Drop CSV or JSON backup file here</h3>
                   <p>or click to browse from your computer</p>
                   <input 
                     type="file" 
-                    accept=".csv, text/csv, application/vnd.ms-excel" 
+                    accept=".csv, .json, text/csv, application/json, application/vnd.ms-excel" 
                     className="file-input-hidden"
                     onChange={handleFileChange}
                   />
@@ -205,32 +232,34 @@ export const ImportExportModal = ({
                 <div className="preview-container">
                   <div className="preview-header">
                     <div>
-                      <h4>Loaded: <code>{fileName}</code></h4>
+                      <h4>Loaded: <code>{fileName}</code> {isJsonBackup && <span className="badge badge-primary">JSON Backup</span>}</h4>
                       <span className="badge badge-success">{parsedPreview.length} Contacts Found</span>
                     </div>
-                    <button className="btn-link text-xs" onClick={() => setParsedPreview([])}>
+                    <button className="btn-link text-xs" onClick={() => { setParsedPreview([]); setIsJsonBackup(false); }}>
                       Choose Different File
                     </button>
                   </div>
 
                   {/* Collection Name */}
-                  <div className="collection-assign-box">
-                    <label className="form-group" style={{ marginBottom: 0 }}>
-                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
-                        Collection / Group Name
-                      </span>
-                      <div className="input-with-icon">
-                        <FolderPlus size={16} className="input-icon" />
-                        <input
-                          type="text"
-                          className="input-control"
-                          placeholder="Collection Name..."
-                          value={collectionName}
-                          onChange={(e) => setCollectionName(e.target.value)}
-                        />
-                      </div>
-                    </label>
-                  </div>
+                  {!isJsonBackup && (
+                    <div className="collection-assign-box">
+                      <label className="form-group" style={{ marginBottom: 0 }}>
+                        <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
+                          Collection / Group Name
+                        </span>
+                        <div className="input-with-icon">
+                          <FolderPlus size={16} className="input-icon" />
+                          <input
+                            type="text"
+                            className="input-control"
+                            placeholder="Collection Name..."
+                            value={collectionName}
+                            onChange={(e) => setCollectionName(e.target.value)}
+                          />
+                        </div>
+                      </label>
+                    </div>
+                  )}
 
                   {/* CSV Preview Table */}
                   <div className="preview-table-wrap">
@@ -280,10 +309,10 @@ export const ImportExportModal = ({
               }}>
                 <h4 style={{ margin: '0 0 0.25rem 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Download size={18} className="text-primary" />
-                  <span>Export Full Address Book CSV</span>
+                  <span>Export CSV Spreadsheet</span>
                 </h4>
                 <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0' }}>
-                  Download all <strong>{contacts.length}</strong> contacts as a standard CSV spreadsheet compatible with Excel, Google Sheets, or Apple Contacts.
+                  Download all <strong>{contacts.length}</strong> contacts as a CSV spreadsheet compatible with Excel or Google Sheets.
                 </p>
                 <button
                   type="button"
@@ -292,6 +321,29 @@ export const ImportExportModal = ({
                 >
                   <Download size={14} />
                   <span>Download CSV File</span>
+                </button>
+              </div>
+
+              <div style={{
+                padding: '1rem',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-sm)',
+                backgroundColor: 'var(--bg-card)'
+              }}>
+                <h4 style={{ margin: '0 0 0.25rem 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ShieldCheck size={18} className="text-success" />
+                  <span>Export Complete JSON Backup</span>
+                </h4>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem 0' }}>
+                  Save a full <strong>JSON Database Backup</strong> containing all <strong>{contacts.length}</strong> contacts, custom categories, notes, and metadata.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleDownloadJsonBackup}
+                >
+                  <Download size={14} />
+                  <span>Download JSON Backup (.json)</span>
                 </button>
               </div>
 
