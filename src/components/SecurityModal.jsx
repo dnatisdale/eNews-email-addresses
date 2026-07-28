@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, X, ShieldCheck, AlertCircle, Delete } from 'lucide-react';
+import { Lock, X, ShieldCheck, AlertCircle, Delete, RefreshCw } from 'lucide-react';
 import { getAdminPIN } from '../services/authService';
 
 export const SecurityModal = ({
@@ -28,7 +28,7 @@ export const SecurityModal = ({
       onUnlockSuccess();
       return true;
     } else {
-      setErrorMsg(`Incorrect passcode (${cleanPin}). Default passcode is ${adminPin}.`);
+      setErrorMsg('Incorrect passcode. Please try again.');
       return false;
     }
   };
@@ -60,9 +60,9 @@ export const SecurityModal = ({
     }
   };
 
-  const handleUseDefaultPin = () => {
-    setPasscodeInput(adminPin);
-    attemptVerify(adminPin);
+  const handleClearInput = () => {
+    setPasscodeInput('');
+    setErrorMsg('');
   };
 
   return (
@@ -111,7 +111,7 @@ export const SecurityModal = ({
             />
           </div>
 
-          {/* On-Screen Touch Keypad for Smartphones & Desktops */}
+          {/* On-Screen Touch Keypad */}
           <div className="pin-keypad-grid" style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
@@ -132,12 +132,12 @@ export const SecurityModal = ({
             ))}
             <button
               type="button"
-              className="btn btn-outline btn-keypad"
-              onClick={handleUseDefaultPin}
-              title="1-Tap Fill Default Passcode"
-              style={{ fontSize: '0.72rem', fontWeight: 600, padding: '0.55rem 0' }}
+              className="btn btn-secondary btn-keypad"
+              onClick={handleClearInput}
+              title="Clear input"
+              style={{ fontSize: '0.85rem', fontWeight: 600, padding: '0.55rem 0' }}
             >
-              Default ({adminPin})
+              Clear
             </button>
             <button
               type="button"
