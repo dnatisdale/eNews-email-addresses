@@ -25,12 +25,9 @@ const MASTER_CATEGORIES_KEY = 'eNews_master_categories';
 const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000;
 
 export const sortCategoriesAlphabetically = (cats = []) => {
-  const cleaned = (cats || []).filter(c => c && c !== '*EXAMPLES*');
-  const withoutSpecial = cleaned.filter(c => c !== '*SAMPLE*');
-
-  withoutSpecial.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
-
-  return [...withoutSpecial, '*SAMPLE*'];
+  const cleaned = (cats || []).filter(c => c && c !== '*EXAMPLES*' && c !== '*SAMPLE*');
+  cleaned.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  return cleaned;
 };
 
 export default function App() {

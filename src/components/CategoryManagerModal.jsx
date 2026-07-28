@@ -81,10 +81,10 @@ export const CategoryManagerModal = ({ isOpen, onClose, masterCategories, setMas
           </form>
 
           <div className="category-list" style={{ border: '1px solid var(--border)', borderRadius: '6px', overflow: 'hidden' }}>
-            {masterCategories.length === 0 ? (
+            {masterCategories.filter(cat => cat !== '*SAMPLE*' && cat !== '*EXAMPLES*').length === 0 ? (
               <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>No categories found.</div>
             ) : (
-              masterCategories.map(cat => (
+              masterCategories.filter(cat => cat !== '*SAMPLE*' && cat !== '*EXAMPLES*').map(cat => (
                 <div key={cat} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)' }}>
                   {editingCategory === cat ? (
                     <div style={{ display: 'flex', gap: '8px', flex: 1, marginRight: '1rem' }}>

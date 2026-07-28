@@ -166,7 +166,7 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
             <div className="form-group">
               <label>Categories (Select multiple)</label>
               <div className="categories-checkbox-list">
-                {masterCategories.map((cat) => (
+                {masterCategories.filter(cat => cat !== '*SAMPLE*' && cat !== '*EXAMPLES*').map((cat) => (
                   <label key={cat} className="category-checkbox-label">
                     <input
                       type="checkbox"
