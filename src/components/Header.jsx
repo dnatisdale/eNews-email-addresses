@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   Mail, Sun, Moon, Download, Plus, Users, Sparkles, Printer, FileText,
   ShieldAlert, Lock, Unlock, Settings, Wand2, Archive, Share2,
-  Menu, X, ChevronRight, Trash2, Tag, Type, RotateCcw, RotateCw
+  Menu, X, ChevronRight, Trash2, Tag, Type, RotateCcw, RotateCw, Smartphone
 } from 'lucide-react';
 
 export const Header = ({
@@ -263,6 +263,7 @@ export const Header = ({
 
                 <div className="hmenu-divider" />
                 <div className="hmenu-section-label">System &amp; Settings</div>
+                {deferredPrompt && menuItem(<Smartphone size={16} className="text-primary" />, 'Install App (PWA)', onInstallClick)}
                 {menuItem(<Tag size={16} />, 'Category Manager', onOpenCategoryManager)}
                 {menuItem(<Settings size={16} />, 'Settings', onOpenSettings)}
               </div>

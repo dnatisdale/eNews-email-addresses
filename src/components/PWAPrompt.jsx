@@ -36,7 +36,7 @@ export default function PWAPrompt({ installPrompt, onInstall, onClose }) {
         
         <div style={{ flex: '1' }}>
           <div style={{ fontSize: '0.92rem', fontWeight: '700', color: '#fff', marginBottom: '2px' }}>
-            Install Zenith Hub App
+            Install eNews Address Book App
           </div>
           <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
             Add to home screen for full offline support and instant loading.

@@ -11,6 +11,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { TrashModal } from './components/TrashModal';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { CategoryManagerModal } from './components/CategoryManagerModal';
+import PWAPrompt from './components/PWAPrompt';
 import { generateSampleContacts } from './services/sampleData';
 import { findDuplicates, mergeContacts } from './services/deduplicator';
 import { cleanDatabase } from './services/dbCleaner';
@@ -278,13 +279,15 @@ export default function App() {
     localStorage.setItem(FONT_SIZE_KEY, numScale.toString());
   }, [fontSize]);
 
-  // PWA Installation State
+  // PWA Install Prompt State & Listener
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showPwaBanner, setShowPwaBanner] = useState(true);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      setShowPwaBanner(true);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -294,8 +297,16 @@ export default function App() {
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
+    try {
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        showToast('eNews App installed successfully!');
+      }
+    } catch (e) {
+      console.error('Install prompt error:', e);
+    }
     setDeferredPrompt(null);
+    setShowPwaBanner(false);
   };
 
   // Sync contacts to LocalStorage
@@ -818,6 +829,12 @@ export default function App() {
           columnWidths={columnWidths}
         />
       )}
+
+      <PWAPrompt
+        installPrompt={showPwaBanner ? deferredPrompt : null}
+        onInstall={handleInstallClick}
+        onClose={() => setShowPwaBanner(false)}
+      />
     </div>
   );
 }
