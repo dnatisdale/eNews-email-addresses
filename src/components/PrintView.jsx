@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Printer, LayoutGrid, FileText, Sliders, Check, Eye } from 'lucide-react';
+import { X, Printer, LayoutGrid, FileText, Sliders, Eye, Check } from 'lucide-react';
 import { getContactAccuracy } from '../services/accuracyEvaluator';
 
 const DEFAULT_PRINT_WIDTHS = {
@@ -19,6 +19,26 @@ const DEFAULT_PRINT_WIDTHS = {
 
 const getColWidth = (id, localWidths) => localWidths[id] || DEFAULT_PRINT_WIDTHS[id] || 150;
 
+/**
+ * Formats a raw address string ensuring proper comma placement after City.
+ * e.g., "101 Elm Street, Springfield IL 62701" -> "101 Elm Street, Springfield, IL 62701"
+ * e.g., "Dallas TX" -> "Dallas, TX"
+ */
+export const formatAddressWithCityComma = (addressRaw) => {
+  if (!addressRaw) return '';
+  let addr = addressRaw.trim();
+
+  // Insert comma after City if missing before 2-letter uppercase State code (e.g. "Springfield IL" -> "Springfield, IL")
+  addr = addr.replace(/([a-zA-Z.]+)\s+([A-Z]{2})\b(?!\s*,)/g, (match, city, state) => {
+    if (city.endsWith(',')) return `${city} ${state}`;
+    return `${city}, ${state}`;
+  });
+
+  // Clean up any double commas
+  addr = addr.replace(/,\s*,/g, ',');
+  return addr;
+};
+
 export const PrintView = ({
   isOpen,
   onClose,
@@ -31,9 +51,10 @@ export const PrintView = ({
   const [orientation, setOrientation] = useState('portrait');
   const [textScale, setTextScale] = useState(100);
   const [widthMode, setWidthMode] = useState('proportional');
-  const [printLayoutMode, setPrintLayoutMode] = useState('table'); // 'table', 'labels2', 'labels3', 'cards'
+  const [printLayoutMode, setPrintLayoutMode] = useState('labels2'); // 'table', 'labels2', 'labels3', 'cards'
+  const [includeLabelDetails, setIncludeLabelDetails] = useState(false); // Clean address-only vs details
   const [pageMargins, setPageMargins] = useState(8);
-  const [printTitle, setPrintTitle] = useState('eNews Family & Friends Contact Directory');
+  const [printTitle, setPrintTitle] = useState('eNews Address Book & Mailing Labels');
   const [printSubtitle, setPrintSubtitle] = useState(`Generated on ${new Date().toLocaleDateString()} • Total Contacts: ${contacts.length}`);
   const [localColumnWidths, setLocalColumnWidths] = useState(columnWidths);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -87,8 +108,8 @@ export const PrintView = ({
           <div className="print-toolbar-title">
             <Printer className="text-primary" size={22} />
             <div>
-              <h3>Print & Save PDF</h3>
-              <p>{contacts.length} contacts selected for export</p>
+              <h3>Print & Mailing Labels</h3>
+              <p>{contacts.length} contacts ready for printing</p>
             </div>
           </div>
           <button className="icon-close-btn" onClick={onClose} aria-label="Close Print Preview">
@@ -109,14 +130,6 @@ export const PrintView = ({
           <div className="layout-preset-grid">
             <button
               type="button"
-              className={`preset-btn ${printLayoutMode === 'table' ? 'active' : ''}`}
-              onClick={() => setPrintLayoutMode('table')}
-            >
-              <FileText size={16} />
-              <span>📋 Table</span>
-            </button>
-            <button
-              type="button"
               className={`preset-btn ${printLayoutMode === 'labels2' ? 'active' : ''}`}
               onClick={() => setPrintLayoutMode('labels2')}
             >
@@ -133,14 +146,47 @@ export const PrintView = ({
             </button>
             <button
               type="button"
+              className={`preset-btn ${printLayoutMode === 'table' ? 'active' : ''}`}
+              onClick={() => setPrintLayoutMode('table')}
+            >
+              <FileText size={16} />
+              <span>📋 Table</span>
+            </button>
+            <button
+              type="button"
               className={`preset-btn ${printLayoutMode === 'cards' ? 'active' : ''}`}
               onClick={() => setPrintLayoutMode('cards')}
             >
               <Eye size={16} />
-              <span>📇 Pocket Cards</span>
+              <span>📇 Mini Cards</span>
             </button>
           </div>
         </div>
+
+        {/* Label Content Option (Only in Label & Card modes) */}
+        {printLayoutMode !== 'table' && (
+          <div className="print-setting-section">
+            <label className="setting-label">Mailing Label Content</label>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem' }}>
+              <button
+                type="button"
+                className={`btn btn-xs ${!includeLabelDetails ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ flex: 1 }}
+                onClick={() => setIncludeLabelDetails(false)}
+              >
+                Mailing Address Only
+              </button>
+              <button
+                type="button"
+                className={`btn btn-xs ${includeLabelDetails ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ flex: 1 }}
+                onClick={() => setIncludeLabelDetails(true)}
+              >
+                Include Email/Phone
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Paper Orientation & Text Scale */}
         <div className="print-setting-section">
@@ -546,7 +592,7 @@ export const PrintView = ({
           background: #f8fafc;
         }
 
-        /* ── Modes 2 & 3: Address Labels (2 & 3 Col) ── */
+        /* ── Modes 2, 3 & 4: Address Labels & Cards ── */
         .address-labels-grid {
           display: grid;
           gap: calc(0.75rem * ${scaleRatio});
@@ -566,13 +612,15 @@ export const PrintView = ({
         }
 
         .printable-card-item {
-          border: 1px solid #cbd5e1;
-          border-radius: 8px;
+          border: 1px dashed #cbd5e1;
+          border-radius: 6px;
           padding: calc(0.75rem * ${scaleRatio});
           background: #ffffff;
           display: flex;
           flex-direction: column;
-          gap: calc(0.35rem * ${scaleRatio});
+          gap: calc(0.3rem * ${scaleRatio});
+          min-height: calc(1.1in * ${scaleRatio});
+          justify-content: center;
           page-break-inside: avoid;
           break-inside: avoid;
         }
@@ -585,7 +633,7 @@ export const PrintView = ({
         }
 
         .printable-card-address {
-          font-size: calc(0.88rem * ${scaleRatio});
+          font-size: calc(0.9rem * ${scaleRatio});
           color: #334155;
           font-weight: 500;
           line-height: 1.35;
@@ -594,6 +642,7 @@ export const PrintView = ({
         .printable-card-detail {
           font-size: calc(0.82rem * ${scaleRatio});
           color: #475569;
+          margin-top: 2px;
         }
 
         .printable-card-tags {
@@ -671,6 +720,7 @@ export const PrintView = ({
           tfoot { display: table-footer-group; }
 
           .printable-card-item {
+            border-color: #cbd5e1 !important;
             break-inside: avoid !important;
             page-break-inside: avoid !important;
           }
@@ -743,6 +793,7 @@ export const PrintView = ({
                         );
                       }
                       else if (col.id === 'name') val = <strong>{formatContactName(c)}</strong>;
+                      else if (col.id === 'address') val = formatAddressWithCityComma(c.address) || '-';
                       else if (col.id === 'categories') {
                         const cats = Array.isArray(c.categories) ? [...c.categories] : [];
                         if (c.status && c.status !== 'Active' && !cats.includes(c.status)) {
@@ -776,27 +827,32 @@ export const PrintView = ({
               printLayoutMode === 'labels2' ? 'labels-grid-2' :
               printLayoutMode === 'labels3' ? 'labels-grid-3' : 'labels-grid-cards'
             }`}>
-              {contacts.map((c, idx) => (
-                <div key={c.id || idx} className="printable-card-item">
-                  <div className="printable-card-name">
-                    {formatContactName(c)}
-                  </div>
-                  <div className="printable-card-address">
-                    {c.address ? c.address : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No Address Listed</span>}
-                  </div>
-                  <div className="printable-card-detail">
-                    {c.email && <div>📧 {c.email}</div>}
-                    {c.phone && <div>📞 {c.phone}</div>}
-                  </div>
-                  {Array.isArray(c.categories) && c.categories.length > 0 && (
-                    <div className="printable-card-tags">
-                      {c.categories.map((cat, i) => (
-                        <span key={i} className="printable-tag-pill">{cat}</span>
-                      ))}
+              {contacts.map((c, idx) => {
+                const formattedAddress = formatAddressWithCityComma(c.address);
+                return (
+                  <div key={c.id || idx} className="printable-card-item">
+                    <div className="printable-card-name">
+                      {formatContactName(c)}
                     </div>
-                  )}
-                </div>
-              ))}
+                    <div className="printable-card-address">
+                      {formattedAddress ? formattedAddress : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No Address Listed</span>}
+                    </div>
+                    {includeLabelDetails && (
+                      <div className="printable-card-detail">
+                        {c.email && <div>📧 {c.email}</div>}
+                        {c.phone && <div>📞 {c.phone}</div>}
+                      </div>
+                    )}
+                    {includeLabelDetails && Array.isArray(c.categories) && c.categories.length > 0 && (
+                      <div className="printable-card-tags">
+                        {c.categories.map((cat, i) => (
+                          <span key={i} className="printable-tag-pill">{cat}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
