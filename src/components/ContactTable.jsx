@@ -101,6 +101,9 @@ export const ContactTable = ({
   // Range Selection (Shift+Click) State
   const [lastSelectedIndex, setLastSelectedIndex] = useState(null);
 
+  // Bulk Category Assign Modal State
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+
 
 
   // Column Widths State (Resizable Columns)
