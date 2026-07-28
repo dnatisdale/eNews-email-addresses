@@ -30,7 +30,14 @@ export const cleanDatabase = (contacts = []) => {
       const legacyGroup = (contact.group || '').trim();
       categories = legacyGroup ? [legacyGroup] : ['Friends & Family'];
     }
-    categories = [...new Set(categories.map(c => c.trim()).filter(Boolean))];
+    categories = [...new Set(
+      categories
+        .map(c => c.trim())
+        .filter(c => Boolean(c) && !c.toLowerCase().endsWith('.csv') && !c.toLowerCase().endsWith('.xlsx'))
+    )];
+    if (categories.length === 0) {
+      categories = ['Friends & Family'];
+    }
     const status = (contact.status || '').trim() || 'Active';
     const address = (contact.address || '').trim();
     const notes = (contact.notes || '').trim();

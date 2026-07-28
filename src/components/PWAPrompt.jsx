@@ -5,14 +5,7 @@ export default function PWAPrompt({ installPrompt, onInstall, onClose }) {
   if (!installPrompt) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      bottom: '20px',
-      right: '20px',
-      zIndex: '99',
-      maxWidth: '380px',
-      width: 'calc(100% - 40px)'
-    }} className="animate-fade-in">
+    <div className="pwa-prompt-container animate-fade-in">
       <div className="glass-card" style={{
         padding: '16px 20px',
         background: 'rgba(15, 23, 42, 0.95)',

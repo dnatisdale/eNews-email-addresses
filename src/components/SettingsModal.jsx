@@ -88,7 +88,7 @@ export const SettingsModal = ({ isOpen, onClose, fontSize = 100, setFontSize, co
         <div className="modal-header">
           <div className="modal-title-wrap text-primary">
             <Settings className="modal-icon text-primary" />
-            <h2>Security &amp; Display Settings</h2>
+            <h2>Security & Display Settings</h2>
           </div>
           <button className="icon-close-btn" onClick={onClose}>
             <X size={20} />
@@ -207,7 +207,7 @@ export const SettingsModal = ({ isOpen, onClose, fontSize = 100, setFontSize, co
           <div className="settings-section">
             <h4 className="setting-title flex-align-gap">
               <Type size={16} className="text-primary" />
-              <span>Font Size &amp; Smartphone Scaling</span>
+              <span>Font Size & Smartphone Scaling</span>
             </h4>
             <p className="setting-desc mb-3">
               Drag the slider below to adjust text scaling across the app for smartphone or desktop viewing.
@@ -258,7 +258,7 @@ export const SettingsModal = ({ isOpen, onClose, fontSize = 100, setFontSize, co
               <div>
                 <h4 className="setting-title flex-align-gap">
                   {lockEnabled ? <Lock size={16} className="text-danger" /> : <Unlock size={16} className="text-success" />}
-                  <span>Require Security Passcode for Editing &amp; Deleting</span>
+                  <span>Require Security Passcode for Editing & Deleting</span>
                 </h4>
                 <p className="setting-desc">
                   When enabled, visitors must enter a 6-digit passcode to edit, add, delete, or import contacts.

@@ -9,7 +9,7 @@ export const STANDARD_COLUMNS = [
   { id: 'email', label: 'Email', default: true },
   { id: 'secondaryEmail', label: 'Secondary Email', default: false },
   { id: 'phone', label: 'Phone Number', default: true },
-  { id: 'categories', label: 'Categories', default: true },
+  { id: 'categories', label: 'Tags', default: true },
   { id: 'address', label: 'Physical Address', default: false },
   { id: 'notes', label: 'Notes', default: false },
   { id: 'actions', label: 'Actions', default: true }

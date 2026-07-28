@@ -94,11 +94,12 @@ export const ImportExportModal = ({
       const finalCollection = collectionName.trim() || 'Imported List';
 
       const updatedPreview = parsedPreview.map((contact) => {
-        const existingCats = contact.categories || [];
-        const mergedCategories = isJsonBackup ? existingCats : [...new Set([...existingCats, finalCollection])];
+        const existingCats = Array.isArray(contact.categories) && contact.categories.length > 0 
+          ? contact.categories.filter(c => Boolean(c) && !c.toLowerCase().endsWith('.csv') && !c.toLowerCase().endsWith('.xlsx'))
+          : ['Friends & Family'];
         return {
           ...contact,
-          categories: mergedCategories.length > 0 ? mergedCategories : [finalCollection]
+          categories: existingCats
         };
       });
 
@@ -145,7 +146,7 @@ export const ImportExportModal = ({
         <div className="modal-header">
           <div className="modal-title-wrap">
             <FileSpreadsheet className="modal-icon text-primary" size={20} />
-            <h2>Import &amp; Export Center</h2>
+            <h2>Import & Export Center</h2>
           </div>
           <button className="icon-close-btn" onClick={onClose} aria-label="Close">
             <X size={20} />

@@ -192,7 +192,7 @@ export const SecurityModal = ({
             </button>
             <button type="submit" className="btn btn-primary" style={{ minWidth: 160 }}>
               <ShieldCheck size={18} />
-              <span>Verify &amp; Unlock</span>
+              <span>Verify & Unlock</span>
             </button>
           </div>
         </form>

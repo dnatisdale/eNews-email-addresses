@@ -38,9 +38,18 @@ export const Header = ({
   canUndo = false,
   canRedo = false,
   undoCount = 0,
-  redoCount = 0
+  redoCount = 0,
+  isMenuOpen: propMenuOpen,
+  setIsMenuOpen: propSetMenuOpen
 }) => {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [internalMenuOpen, setInternalMenuOpen] = useState(false);
+  const menuOpen = propMenuOpen !== undefined ? propMenuOpen : internalMenuOpen;
+  const setMenuOpen = (val) => {
+    const nextVal = typeof val === 'function' ? val(menuOpen) : val;
+    setInternalMenuOpen(nextVal);
+    if (propSetMenuOpen) propSetMenuOpen(nextVal);
+  };
+
   const [fontPopoverOpen, setFontPopoverOpen] = useState(false);
   const menuRef = useRef(null);
   const fontRef = useRef(null);
@@ -76,6 +85,7 @@ export const Header = ({
 
   const menuItem = (icon, label, onClick, badge, danger) => (
     <button
+      type="button"
       className={`hmenu-item${danger ? ' hmenu-item-danger' : ''}`}
       onClick={() => { setMenuOpen(false); onClick(); }}
     >
@@ -97,7 +107,7 @@ export const Header = ({
           </div>
           <div>
             <h1 className="brand-title">eNews Address Book</h1>
-            <p className="brand-subtitle">Family &amp; Friends Directory</p>
+            <p className="brand-subtitle">Family & Friends Directory</p>
           </div>
         </div>
 
@@ -239,33 +249,39 @@ export const Header = ({
 
             {menuOpen && (
               <div className="hmenu-dropdown">
-                <div className="hmenu-section-label">Import &amp; Export</div>
+                {/* ── Section 1: Data & Transfer ── */}
+                <div className="hmenu-section-header">
+                  <span className="hmenu-section-title">Data & Transfer</span>
+                </div>
                 {menuItem(<Wand2 size={16} className="text-primary" />, 'Smart Text Import', onOpenMagicImport)}
-                {menuItem(<Download size={16} />, 'Import CSV', onOpenImportModal)}
-                {menuItem(<Printer size={16} />, 'Print / Save PDF', onPrintDirectory)}
-                {menuItem(<FileText size={16} />, 'Export CSV', onExportCSV)}
-                {menuItem(<Share2 size={16} />, 'Share', handleShareApp)}
+                {menuItem(<Download size={16} />, 'Import CSV File', onOpenImportModal)}
+                {menuItem(<FileText size={16} />, 'Export CSV File', onExportCSV)}
+                {menuItem(<Printer size={16} />, 'Print & Save PDF', onPrintDirectory)}
 
                 <div className="hmenu-divider" />
-                <div className="hmenu-section-label">Maintenance</div>
+
+                {/* ── Section 2: Directory Management ── */}
+                <div className="hmenu-section-header">
+                  <span className="hmenu-section-title">Directory Management</span>
+                </div>
+                {menuItem(<Tag size={16} />, 'Category Manager', onOpenCategoryManager)}
                 {contactsCount > 0 && menuItem(<Wand2 size={16} />, 'Clean & Repair DB', onCleanDatabase)}
-                {contactsCount === 0 && menuItem(<Sparkles size={16} />, 'Load Sample Contacts', onLoadSampleData)}
-                {menuItem(<Trash2 size={16} />, 'Clear Sample Data', onClearSampleData)}
-
-                <div className="hmenu-divider" />
-                <div className="hmenu-section-label">Trash &amp; Recovery</div>
-                {menuItem(
-                  <Archive size={16} className={trashCount > 0 ? 'text-warning' : ''} />,
-                  '60-Day Trash Bin',
-                  onOpenTrashModal,
-                  trashCount
+                {menuItem(<Archive size={16} className={trashCount > 0 ? 'text-warning' : ''} />, '60-Day Trash Bin', onOpenTrashModal, trashCount)}
+                {contactsCount === 0 ? (
+                  menuItem(<Sparkles size={16} />, 'Load Sample Contacts', onLoadSampleData)
+                ) : (
+                  menuItem(<RotateCcw size={16} />, 'Clear Sample Data', onClearSampleData)
                 )}
 
                 <div className="hmenu-divider" />
-                <div className="hmenu-section-label">System &amp; Settings</div>
+
+                {/* ── Section 3: App & System ── */}
+                <div className="hmenu-section-header">
+                  <span className="hmenu-section-title">App & System</span>
+                </div>
                 {deferredPrompt && menuItem(<Smartphone size={16} className="text-primary" />, 'Install App (PWA)', onInstallClick)}
-                {menuItem(<Tag size={16} />, 'Category Manager', onOpenCategoryManager)}
-                {menuItem(<Settings size={16} />, 'Settings', onOpenSettings)}
+                {menuItem(<Share2 size={16} />, 'Share App Link', handleShareApp)}
+                {menuItem(<Settings size={16} />, 'Settings & Passcode', onOpenSettings)}
               </div>
             )}
           </div>

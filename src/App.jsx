@@ -12,6 +12,7 @@ import { TrashModal } from './components/TrashModal';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { CategoryManagerModal } from './components/CategoryManagerModal';
 import { BackupPromptModal } from './components/BackupPromptModal';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import PWAPrompt from './components/PWAPrompt';
 import { generateSampleContacts } from './services/sampleData';
 import { findDuplicates, mergeContacts } from './services/deduplicator';
@@ -268,9 +269,16 @@ export default function App() {
   const [duplicates, setDuplicates] = useState([]);
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
 
-  // Sync theme attribute to HTML tag
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Sync theme attribute to HTML tag & theme-color meta tag
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeColorMeta) {
+      themeColorMeta.setAttribute('content', theme === 'dark' ? '#0f172a' : '#f8fafc');
+    }
   }, [theme]);
 
   useEffect(() => {
@@ -724,6 +732,8 @@ export default function App() {
         canRedo={futureHistory.length > 0}
         undoCount={pastHistory.length}
         redoCount={futureHistory.length}
+        isMenuOpen={isMobileMenuOpen}
+        setIsMenuOpen={setIsMobileMenuOpen}
       />
 
       {/* Main Address Book Table & Mobile Card View */}
@@ -760,8 +770,35 @@ export default function App() {
           canRedo={futureHistory.length > 0}
           undoCount={pastHistory.length}
           redoCount={futureHistory.length}
+          showFilters={showMobileFilters}
+          setShowFilters={setShowMobileFilters}
         />
       </main>
+
+      {/* Mobile Bottom Action Bar (Thumb Navigation for Smartphones) */}
+      <MobileBottomNav
+        selectedCount={selectedIds.length}
+        selectedIds={selectedIds}
+        showFilters={showMobileFilters}
+        onToggleFilters={() => setShowMobileFilters(!showMobileFilters)}
+        onOpenAddModal={() => requireAuth(() => {
+          setContactToEdit(null);
+          setIsAddEditModalOpen(true);
+        }, 'Add New Contact')}
+        onOpenMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        onAssignCategories={() => {
+          if (selectedIds.length > 0) {
+            requireAuth(() => {
+              handleBulkAssignCategories(selectedIds, []);
+            }, 'Assign Categories');
+          }
+        }}
+        onBulkDelete={(ids) => requireAuth(() => handleBulkDelete(ids), 'Delete Selected Contacts')}
+        onDeselectAll={() => setSelectedIds([])}
+        onResetFilters={() => {
+          setShowMobileFilters(false);
+        }}
+      />
 
       {/* Modals & Popups */}
       <ContactModal

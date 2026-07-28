@@ -145,7 +145,7 @@ export const DeleteConfirmModal = ({
 
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose}>
-              Cancel &amp; Keep Contacts
+              Cancel & Keep Contacts
             </button>
             <button 
               type="submit" 

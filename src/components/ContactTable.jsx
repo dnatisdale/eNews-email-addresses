@@ -9,13 +9,15 @@ import {
   ArrowUpDown, 
   UserCheck, 
   Mail, 
+  Phone,
   Sparkles,
   FolderPlus,
   Pin,
   ShieldCheck,
   SlidersHorizontal,
   RotateCcw,
-  RotateCw
+  RotateCw,
+  X
 } from 'lucide-react';
 import { ColumnSelector, STANDARD_COLUMNS } from './ColumnSelector';
 import { getContactAccuracy } from '../services/accuracyEvaluator';
@@ -59,6 +61,29 @@ const DEFAULT_WIDTHS = {
   actions: 100
 };
 
+export const getInitials = (firstName, lastName) => {
+  const f = (firstName || '').trim()[0] || '';
+  const l = (lastName || '').trim()[0] || '';
+  const initials = (f + l).toUpperCase();
+  return initials || '?';
+};
+
+export const getAvatarGradient = (name = '') => {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const gradients = [
+    'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
+    'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+    'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+    'linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)',
+    'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+    'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)'
+  ];
+  return gradients[Math.abs(hash) % gradients.length];
+};
+
 export const ContactTable = ({
   contacts = [],
   masterCategories = [],
@@ -83,7 +108,10 @@ export const ContactTable = ({
   canUndo = false,
   canRedo = false,
   undoCount = 0,
-  redoCount = 0
+  redoCount = 0,
+  showFilters: propShowFilters,
+  setShowFilters: propSetShowFilters,
+  onResetFilters: propResetFilters
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -91,7 +119,19 @@ export const ContactTable = ({
   const [accuracyFilter, setAccuracyFilter] = useState('All');
   const [activeLetter, setActiveLetter] = useState('All');
   const [sortField, setSortField] = useState('score'); // Default sort by Score!
-  const [showFilters, setShowFilters] = useState(false);
+  const [internalShowFilters, setInternalShowFilters] = useState(false);
+
+  const showFilters = propShowFilters !== undefined ? propShowFilters : internalShowFilters;
+  const setShowFilters = propSetShowFilters || setInternalShowFilters;
+
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setSelectedCategory('All');
+    setSelectedStatus('All');
+    setAccuracyFilter('All');
+    setActiveLetter('All');
+    if (propResetFilters) propResetFilters();
+  };
   const [sortAsc, setSortAsc] = useState(false); // Default Green -> Yellow -> Red
   const [copiedId, setCopiedId] = useState(null);
 
@@ -387,11 +427,18 @@ export const ContactTable = ({
       {/* Bulk Action Strip (When items selected) */}
       {selectedIds.length > 0 && (
         <div className="bulk-actions-strip">
-          <span className="bulk-count">
-            <strong>{selectedIds.length}</strong> contacts highlighted (Hold <code>Shift</code> + Click to range-select)
-          </span>
+          <div className="bulk-count-wrap">
+            <span className="bulk-count">
+              <strong>{selectedIds.length}</strong> {selectedIds.length === 1 ? 'contact' : 'contacts'} selected
+              <span className="desktop-only" style={{ marginLeft: '6px', fontWeight: 'normal', opacity: 0.8 }}>
+                (Hold <code>Shift</code> + Click to range-select)
+              </span>
+            </span>
+          </div>
+
           <div className="bulk-btn-group">
             <button 
+              type="button"
               className="btn btn-primary btn-sm"
               onClick={handleAssignCategories}
               title="Add selected contacts to Categories"
@@ -400,11 +447,21 @@ export const ContactTable = ({
               <span>Assign Categories</span>
             </button>
             <button 
+              type="button"
               className="btn btn-danger btn-sm"
               onClick={() => onBulkDelete(selectedIds)}
             >
               <Trash2 size={14} />
               <span>Delete</span>
+            </button>
+            <button 
+              type="button"
+              className="btn btn-secondary btn-sm deselect-btn"
+              onClick={() => setSelectedIds([])}
+              title="Deselect all and hide selection toolbar"
+            >
+              <X size={14} />
+              <span>Deselect</span>
             </button>
           </div>
         </div>
@@ -508,7 +565,7 @@ export const ContactTable = ({
                       case 'categories':
                         return (
                           <th key="categories" style={{ width: columnWidths.categories || 180 }} className="resizable-th">
-                            <div className="th-content"><span>Categories & Tags</span></div>
+                            <div className="th-content"><span>Tags</span></div>
                             <div className="col-resizer" onMouseDown={(e) => startResizing('categories', e)} />
                           </th>
                         );
@@ -695,12 +752,14 @@ export const ContactTable = ({
             </table>
           </div>
 
-          {/* Mobile Cards View */}
+          {/* Mobile Cards View — Optimized for Smartphone Portrait Layout */}
           <div className="mobile-cards-view">
             {sortedContacts.map((contact, idx) => {
               const isSelected = selectedIds.includes(contact.id);
               const accuracy = getContactAccuracy(contact);
               const formattedPhone = cleanAndFormatPhone(contact.phone);
+              const initials = getInitials(contact.firstName, contact.lastName);
+              const avatarStyle = { background: getAvatarGradient(`${contact.firstName} ${contact.lastName}`) };
 
               return (
                 <div 
@@ -708,30 +767,39 @@ export const ContactTable = ({
                   className={`contact-card ${isSelected ? 'card-selected' : ''}`}
                   onClick={(e) => handleRowSelect(contact.id, idx, e)}
                 >
+                  {/* Top Header Row of Card */}
                   <div className="card-top">
                     <div className="card-user">
                       {visibleColumns.includes('checkbox') && (
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(e) => handleRowSelect(contact.id, idx, e)}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      )}
-                      <div>
-                        <h4 className="card-name">{contact.firstName} {contact.lastName}</h4>
-                        <div className="card-badges-wrap">
-                          {visibleColumns.includes('score') && (
-                            <AccuracyBoxes accuracy={accuracy} />
-                          )}
+                        <div className="card-checkbox-wrap" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            className="card-checkbox"
+                            checked={isSelected}
+                            onChange={(e) => handleRowSelect(contact.id, idx, e)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
                         </div>
+                      )}
+                      <div className="card-avatar-circle" style={avatarStyle}>
+                        {initials}
+                      </div>
+                      <div className="card-user-info">
+                        <h4 className="card-name">{contact.firstName} {contact.lastName}</h4>
+                        {visibleColumns.includes('score') && (
+                          <div className="card-badges-wrap">
+                            <AccuracyBoxes accuracy={accuracy} />
+                          </div>
+                        )}
                       </div>
                     </div>
-                    {visibleColumns.includes('actions') && (
-                      <div className="card-actions" onClick={(e) => e.stopPropagation()}>
+
+                    {/* Top Quick Actions on Card */}
+                    <div className="card-quick-actions" onClick={(e) => e.stopPropagation()}>
+                      {visibleColumns.includes('actions') && (
                         <button
                           type="button"
-                          className="icon-action-btn"
+                          className="icon-action-btn action-btn-edit"
                           onClick={(e) => {
                             e.stopPropagation();
                             onEditContact(contact);
@@ -740,40 +808,75 @@ export const ContactTable = ({
                         >
                           <Edit2 size={16} />
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
 
+                  {/* Card Body & Fields */}
                   <div className="card-body">
-                    {visibleColumns.includes('email') && (
-                      <div className="card-field">
-                        <Mail size={14} className="field-icon" />
-                        <a href={`mailto:${contact.email}`} className="email-link" onClick={(e) => e.stopPropagation()}>
+                    {/* Email Row */}
+                    {visibleColumns.includes('email') && contact.email && (
+                      <div className="card-field card-field-email">
+                        <Mail size={15} className="field-icon text-primary" />
+                        <a 
+                          href={`mailto:${contact.email}`} 
+                          className="email-link card-email-link" 
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           {contact.email}
                         </a>
                         <button
+                          type="button"
                           className="copy-badge-btn"
                           onClick={(e) => handleCopyEmail(contact, e)}
+                          title="Copy Name & Email"
                         >
-                          {copiedId === contact.id ? <Check size={12} /> : <Copy size={12} />}
+                          {copiedId === contact.id ? <Check size={13} className="text-success" /> : <Copy size={13} />}
                         </button>
                       </div>
                     )}
 
+                    {/* Secondary Email Row */}
+                    {visibleColumns.includes('secondaryEmail') && contact.secondaryEmail && (
+                      <div className="card-field card-field-email">
+                        <Mail size={15} className="field-icon text-muted" />
+                        <a 
+                          href={`mailto:${contact.secondaryEmail}`} 
+                          className="email-link card-email-link text-muted" 
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {contact.secondaryEmail}
+                        </a>
+                      </div>
+                    )}
+
+                    {/* Phone & Quick Call Row */}
                     {visibleColumns.includes('phone') && contact.phone && (
-                      <div className="card-field">
+                      <div className="card-field card-field-phone">
+                        <Phone size={15} className="field-icon text-success" />
                         <button 
-                          className="btn-phone-call"
+                          type="button"
+                          className="btn-phone-call card-phone-btn"
                           onClick={(e) => handlePhoneClick(contact, e)}
+                          title="Call via Phone, WhatsApp, Skype, or FaceTime"
                         >
                           <span>{formattedPhone}</span>
                         </button>
                       </div>
                     )}
 
+                    {/* Address Row */}
+                    {visibleColumns.includes('address') && contact.address && (
+                      <div className="card-field card-field-address">
+                        <span className="field-icon">📍</span>
+                        <span className="card-address-text">{contact.address}</span>
+                      </div>
+                    )}
+
+                    {/* Categories & Tags */}
                     {visibleColumns.includes('categories') && ((Array.isArray(contact.categories) && contact.categories.length > 0) || (contact.status && contact.status !== 'Active')) && (
-                      <div className="card-field">
-                        <div className="td-categories" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                      <div className="card-field card-field-tags">
+                        <div className="category-pill-group">
                           {Array.isArray(contact.categories) && contact.categories.map((cat, i) => (
                             <span key={i} className={`tag-badge tag-${cat.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}>
                               {cat}
@@ -788,8 +891,11 @@ export const ContactTable = ({
                       </div>
                     )}
 
+                    {/* Notes Preview */}
                     {visibleColumns.includes('notes') && contact.notes && (
-                      <p className="card-notes">📝 {contact.notes}</p>
+                      <div className="card-notes-wrap">
+                        <p className="card-notes">📝 {contact.notes}</p>
+                      </div>
                     )}
                   </div>
                 </div>
