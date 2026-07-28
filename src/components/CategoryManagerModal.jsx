@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { X, Tag, Plus, Trash2, Edit2, Check, AlertCircle } from 'lucide-react';
+import { X, Tag, Plus, Trash2, Edit2, Check, AlertCircle, Lock } from 'lucide-react';
 import { sortCategoriesAlphabetically } from '../App';
+
+const BUILT_IN_CATEGORIES = ['Close Friends', 'Family', 'Holiday List', 'Newsletter'];
 
 export const CategoryManagerModal = ({ isOpen, onClose, masterCategories, setMasterCategories }) => {
   const [newCategory, setNewCategory] = useState('');
@@ -9,10 +11,16 @@ export const CategoryManagerModal = ({ isOpen, onClose, masterCategories, setMas
 
   if (!isOpen) return null;
 
+  const isBuiltIn = (cat) => BUILT_IN_CATEGORIES.includes(cat);
+
   const handleAddCategory = (e) => {
     e.preventDefault();
     const trimmed = newCategory.trim();
     if (!trimmed) return;
+    if (trimmed === '*EXAMPLES*' || trimmed === '*SAMPLE*') {
+      alert('That name is reserved and cannot be used.');
+      return;
+    }
     if (masterCategories.includes(trimmed)) {
       alert('Category already exists!');
       return;
@@ -47,6 +55,8 @@ export const CategoryManagerModal = ({ isOpen, onClose, masterCategories, setMas
     setEditingCategory(null);
   };
 
+  const visibleCategories = masterCategories.filter(cat => cat !== '*SAMPLE*' && cat !== '*EXAMPLES*');
+
   return (
     <div className="modal-backdrop">
       <div className="modal-content settings-modal" style={{ maxWidth: '500px' }}>
@@ -63,7 +73,7 @@ export const CategoryManagerModal = ({ isOpen, onClose, masterCategories, setMas
         <div className="modal-body">
           <div className="info-alert" style={{ marginBottom: '1rem', backgroundColor: 'var(--bg-accent)', padding: '0.75rem', borderRadius: '6px', fontSize: '0.9rem' }}>
             <AlertCircle size={16} style={{ display: 'inline-block', marginRight: '8px', verticalAlign: 'text-bottom' }} />
-            Categories let you tag and organize your contacts. Add new categories here, or delete ones you no longer need.
+            Categories let you tag and organize your contacts. Built-in categories (🔒) cannot be edited or deleted. Add your own custom categories below.
           </div>
 
           <form onSubmit={handleAddCategory} className="add-category-form" style={{ display: 'flex', gap: '8px', marginBottom: '1.5rem' }}>
@@ -81,12 +91,12 @@ export const CategoryManagerModal = ({ isOpen, onClose, masterCategories, setMas
           </form>
 
           <div className="category-list" style={{ border: '1px solid var(--border)', borderRadius: '6px', overflow: 'hidden' }}>
-            {masterCategories.filter(cat => cat !== '*SAMPLE*' && cat !== '*EXAMPLES*').length === 0 ? (
+            {visibleCategories.length === 0 ? (
               <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>No categories found.</div>
             ) : (
-              masterCategories.filter(cat => cat !== '*SAMPLE*' && cat !== '*EXAMPLES*').map(cat => (
+              visibleCategories.map(cat => (
                 <div key={cat} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderBottom: '1px solid var(--border)' }}>
-                  {editingCategory === cat ? (
+                  {editingCategory === cat && !isBuiltIn(cat) ? (
                     <div style={{ display: 'flex', gap: '8px', flex: 1, marginRight: '1rem' }}>
                       <input 
                         type="text"
@@ -102,24 +112,31 @@ export const CategoryManagerModal = ({ isOpen, onClose, masterCategories, setMas
                     </div>
                   ) : (
                     <>
-                      <span style={{ fontWeight: 500 }}>{cat}</span>
+                      <span style={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {isBuiltIn(cat) && <Lock size={13} className="text-muted" />}
+                        {cat}
+                      </span>
                       <div style={{ display: 'flex', gap: '4px' }}>
-                        <button 
-                          className="icon-btn-subtle" 
-                          onClick={() => startEditing(cat)}
-                          title="Rename Category"
-                          style={{ padding: '4px' }}
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button 
-                          className="icon-btn-subtle text-danger" 
-                          onClick={() => handleDeleteCategory(cat)}
-                          title="Delete Category"
-                          style={{ padding: '4px' }}
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        {!isBuiltIn(cat) && (
+                          <>
+                            <button 
+                              className="icon-btn-subtle" 
+                              onClick={() => startEditing(cat)}
+                              title="Rename Category"
+                              style={{ padding: '4px' }}
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button 
+                              className="icon-btn-subtle text-danger" 
+                              onClick={() => handleDeleteCategory(cat)}
+                              title="Delete Category"
+                              style={{ padding: '4px' }}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </>
                   )}

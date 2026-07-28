@@ -121,7 +121,7 @@ export const SettingsModal = ({ isOpen, onClose, fontSize = 100, setFontSize }) 
                 </div>
                 <div className="example-detail-row">
                   <Tag size={14} className="text-warning" />
-                  <span className="example-category-badge">*EXAMPLES*</span>
+                  <span className="example-category-badge">Family</span>
                 </div>
               </div>
             </div>

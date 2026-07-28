@@ -313,38 +313,25 @@ export default function App() {
     localStorage.setItem(MASTER_CATEGORIES_KEY, JSON.stringify(masterCategories));
   }, [masterCategories]);
 
-  // Auto-discover & clean categories from contacts
+  // Auto-discover categories from imported or legacy contacts
   useEffect(() => {
-    let modified = false;
     const uniqueCategories = new Set(masterCategories);
+    let added = false;
 
-    // Replace legacy *EXAMPLES* with *SAMPLE* in contacts if present
-    const cleanedContacts = contacts.map(c => {
-      if (Array.isArray(c.categories) && c.categories.includes('*EXAMPLES*')) {
-        modified = true;
-        const newCats = c.categories.map(cat => cat === '*EXAMPLES*' ? '*SAMPLE*' : cat);
-        return { ...c, categories: newCats };
-      }
-      return c;
-    });
-
-    if (modified) {
-      updateContactsState(cleanedContacts);
-    }
-
-    cleanedContacts.forEach(c => {
+    contacts.forEach(c => {
       if (Array.isArray(c.categories)) {
         c.categories.forEach(cat => {
-          if (cat && cat !== '*EXAMPLES*' && !uniqueCategories.has(cat)) {
+          // Never auto-add *EXAMPLES* or *SAMPLE* to master list
+          if (cat && cat !== '*EXAMPLES*' && cat !== '*SAMPLE*' && !uniqueCategories.has(cat)) {
             uniqueCategories.add(cat);
+            added = true;
           }
         });
       }
     });
 
-    const sorted = sortCategoriesAlphabetically(Array.from(uniqueCategories));
-    if (JSON.stringify(sorted) !== JSON.stringify(masterCategories)) {
-      setMasterCategories(sorted);
+    if (added) {
+      setMasterCategories(sortCategoriesAlphabetically(Array.from(uniqueCategories)));
     }
   }, [contacts, masterCategories]);
 

@@ -164,44 +164,69 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
 
             {/* Side-by-Side: Categories & Status */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 180px', gap: '1rem', alignItems: 'start' }} className="full-width">
-              {/* Categories */}
+              {/* Categories — Dropdown Multi-Select */}
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label>Categories (Select multiple)</label>
-                <div className="categories-checkbox-list">
-                  {masterCategories.filter(cat => cat !== '*SAMPLE*' && cat !== '*EXAMPLES*').map((cat) => (
-                    <label key={cat} className="category-checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={(formData.categories || []).includes(cat)}
-                        onChange={() => toggleCategory(cat)}
-                      />
-                      <span>{cat}</span>
-                    </label>
-                  ))}
-                </div>
+                <label>Categories</label>
                 
-                <div className="add-category-inline">
-                  {!showCustomCategory ? (
-                    <button 
-                      type="button" 
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => setShowCustomCategory(true)}
-                    >
-                      + Add New Category
-                    </button>
-                  ) : (
-                    <div className="input-with-button">
-                      <input
-                        type="text"
-                        autoFocus
-                        className="input-control"
-                        placeholder="Type new category..."
-                        value={customCategory}
-                        onChange={(e) => setCustomCategory(e.target.value)}
-                      />
-                    </div>
-                  )}
-                </div>
+                {/* Selected pills */}
+                {(formData.categories || []).filter(c => c !== '*SAMPLE*' && c !== '*EXAMPLES*').length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
+                    {(formData.categories || []).filter(c => c !== '*SAMPLE*' && c !== '*EXAMPLES*').map(cat => (
+                      <span key={cat} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                        padding: '2px 8px', borderRadius: '12px', fontSize: '0.78rem', fontWeight: 500,
+                        backgroundColor: 'var(--accent-primary)', color: '#fff'
+                      }}>
+                        {cat}
+                        <button type="button" onClick={() => toggleCategory(cat)} style={{
+                          background: 'none', border: 'none', color: '#fff', cursor: 'pointer',
+                          padding: 0, fontSize: '0.9rem', lineHeight: 1, fontWeight: 700
+                        }}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Dropdown select */}
+                <select
+                  className="input-control"
+                  value=""
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val && val !== '__add_new__') {
+                      toggleCategory(val);
+                    } else if (val === '__add_new__') {
+                      setShowCustomCategory(true);
+                    }
+                    e.target.value = '';
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <option value="" disabled>Select a category…</option>
+                  {masterCategories.filter(cat => cat !== '*SAMPLE*' && cat !== '*EXAMPLES*').map(cat => {
+                    const isSelected = (formData.categories || []).includes(cat);
+                    return (
+                      <option key={cat} value={cat}>
+                        {isSelected ? '✓ ' : '   '}{cat}
+                      </option>
+                    );
+                  })}
+                  <option value="__add_new__">+ Add New Category…</option>
+                </select>
+
+                {/* Inline add new category input */}
+                {showCustomCategory && (
+                  <div className="input-with-button" style={{ marginTop: '6px' }}>
+                    <input
+                      type="text"
+                      autoFocus
+                      className="input-control"
+                      placeholder="Type new category..."
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Status */}
