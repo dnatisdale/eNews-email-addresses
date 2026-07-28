@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, X, ShieldCheck } from 'lucide-react';
-import { getAdminPIN, generateVerificationCode } from '../services/authService';
+import { Lock, X, ShieldCheck, AlertCircle } from 'lucide-react';
+import { getAdminPIN } from '../services/authService';
 
 export const SecurityModal = ({
   isOpen,
   onClose,
   onUnlockSuccess,
-  actionTitle = 'Modify Contacts'
+  actionTitle = 'Edit Contact'
 }) => {
   const [passcodeInput, setPasscodeInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -36,9 +36,9 @@ export const SecurityModal = ({
     <div className="modal-backdrop">
       <div className="modal-content security-modal" style={{ maxWidth: '440px' }}>
         <div className="modal-header">
-          <div className="modal-title-wrap text-primary">
-            <Lock className="modal-icon text-primary" size={20} />
-            <h2>Security Verification Required</h2>
+          <div className="modal-title-wrap text-warning">
+            <Lock className="modal-icon text-warning" size={20} />
+            <h2>App is Locked — Unlock Required</h2>
           </div>
           <button className="icon-close-btn" onClick={onClose} aria-label="Close Security Modal">
             <X size={20} />
@@ -46,9 +46,15 @@ export const SecurityModal = ({
         </div>
 
         <form onSubmit={handleVerify} className="modal-body">
-          <p className="security-notice">
-            Passcode required to <strong>{actionTitle}</strong>.
-          </p>
+          <div className="lock-alert-box">
+            <AlertCircle size={18} className="text-warning flex-shrink-0" />
+            <div>
+              <strong>🔒 Editing Controls are Locked</strong>
+              <p className="mt-1" style={{ fontSize: '0.82rem', margin: 0, opacity: 0.9 }}>
+                To <strong>{actionTitle}</strong>, please enter your 6-digit Security Passcode below to unlock editing.
+              </p>
+            </div>
+          </div>
 
           <div className="form-group mt-3">
             <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
@@ -74,7 +80,7 @@ export const SecurityModal = ({
               }}
             />
             <p className="help-text mt-2" style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              Enter your 6-digit passcode to authorize this action (configured in Settings).
+              Configured in Settings (Default: 050763).
             </p>
           </div>
 

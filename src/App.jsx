@@ -176,12 +176,14 @@ export default function App() {
       pendingActionRef.current = callback;
       setSecurityActionTitle(title);
       setIsSecurityModalOpen(true);
+      showToast('🔒 App is Locked — Enter passcode to edit');
     }
   };
 
   const handleUnlockSuccess = () => {
     setIsEditingUnlocked(true);
     setIsSecurityModalOpen(false);
+    showToast('🔓 Editing Unlocked!');
     if (pendingActionRef.current) {
       const actionToRun = pendingActionRef.current;
       pendingActionRef.current = null;
