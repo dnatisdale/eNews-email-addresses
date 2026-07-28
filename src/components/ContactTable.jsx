@@ -430,9 +430,6 @@ export const ContactTable = ({
           <div className="bulk-count-wrap">
             <span className="bulk-count">
               <strong>{selectedIds.length}</strong> {selectedIds.length === 1 ? 'contact' : 'contacts'} selected
-              <span className="desktop-only" style={{ marginLeft: '6px', fontWeight: 'normal', opacity: 0.8 }}>
-                (Hold <code>Shift</code> + Click to range-select)
-              </span>
             </span>
           </div>
 
