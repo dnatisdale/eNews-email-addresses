@@ -285,28 +285,6 @@ export const ContactTable = ({
         </div>
 
         <div className="toolbar-controls">
-          {/* Quick Undo & Redo Controls */}
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm toolbar-undo-btn"
-            onClick={onUndo}
-            disabled={!canUndo}
-            title={canUndo ? `Undo (${undoCount} left) [Ctrl+Z]` : 'Nothing to undo'}
-          >
-            <RotateCcw size={14} />
-            <span className="desktop-only">Undo</span>
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm toolbar-undo-btn"
-            onClick={onRedo}
-            disabled={!canRedo}
-            title={canRedo ? `Redo (${redoCount} left) [Ctrl+Y]` : 'Nothing to redo'}
-          >
-            <RotateCw size={14} />
-            <span className="desktop-only">Redo</span>
-          </button>
-
           <button 
             className={`btn btn-sm ${showFilters ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setShowFilters(!showFilters)}
@@ -581,6 +559,8 @@ export const ContactTable = ({
                       key={contact.id} 
                       className={isSelected ? 'row-selected' : ''}
                       onClick={(e) => handleRowSelect(contact.id, idx, e)}
+                      onDoubleClick={(e) => { e.stopPropagation(); onEditContact(contact); }}
+                      title="Double-click to edit contact"
                     >
                       {/* Dynamic Reorderable Body Cells */}
                       {availableColumns.filter(c => visibleColumns.includes(c.id)).map(col => {
@@ -698,8 +678,12 @@ export const ContactTable = ({
                               <td key="actions" className="td-actions" onClick={(e) => e.stopPropagation()}>
                                 <div className="action-row">
                                   <button
+                                    type="button"
                                     className="icon-action-btn"
-                                    onClick={() => onEditContact(contact)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onEditContact(contact);
+                                    }}
                                     title="Edit Contact"
                                   >
                                     <Edit2 size={15} />
@@ -770,8 +754,13 @@ export const ContactTable = ({
                     {visibleColumns.includes('actions') && (
                       <div className="card-actions" onClick={(e) => e.stopPropagation()}>
                         <button
+                          type="button"
                           className="icon-action-btn"
-                          onClick={() => onEditContact(contact)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditContact(contact);
+                          }}
+                          title="Edit Contact"
                         >
                           <Edit2 size={16} />
                         </button>
