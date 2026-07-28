@@ -202,19 +202,22 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
               </div>
             </div>
 
-            {/* Status */}
+            {/* Status & Exception Tags */}
             <div className="form-group">
-              <label>Status</label>
+              <label>Delivery State & Exception Tags</label>
               <select
                 className="input-control"
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
               >
-                <option value="Active">Active (Receives eNews)</option>
-                <option value="Inactive">Inactive</option>
-                <option value="Unsubscribed">Unsubscribed</option>
-                <option value="Bounced">Bounced / Undeliverable</option>
+                <option value="Active">🟢 Active (Normal Subscriber • Implied by default)</option>
+                <option value="Inactive">💤 Inactive (Adds Inactive Tag)</option>
+                <option value="Unsubscribed">🚫 Unsubscribed (Adds Unsubscribed Tag)</option>
+                <option value="Bounced">⚠️ Bounced / Undeliverable (Adds Bounced Tag)</option>
               </select>
+              <small className="field-hint" style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '4px', display: 'block' }}>
+                Non-active selections display as distinct warning tags in the Categories & Tags column.
+              </small>
             </div>
 
             {/* Address */}

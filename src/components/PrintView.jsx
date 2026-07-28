@@ -309,8 +309,13 @@ export const PrintView = ({ isOpen, onClose, contacts = [], availableColumns = [
                     val = <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: accuracy.color }}>{accuracy.displayScore}</span>;
                   }
                   else if (col.id === 'name') val = <strong>{c.firstName} {c.lastName}</strong>;
-                  else if (col.id === 'email') val = <span style={{ color: '#0369a1' }}>{c.email}</span>;
-                  else if (col.id === 'categories') val = c.categories ? c.categories.join(', ') : '';
+                  else if (col.id === 'categories') {
+                    const cats = Array.isArray(c.categories) ? [...c.categories] : [];
+                    if (c.status && c.status !== 'Active' && !cats.includes(c.status)) {
+                      cats.push(`[${c.status.toUpperCase()}]`);
+                    }
+                    val = cats.join(', ') || '-';
+                  }
                   else if (c.customFields && c.customFields[col.id]) val = c.customFields[col.id];
                   else val = c[col.id] || '-';
                   

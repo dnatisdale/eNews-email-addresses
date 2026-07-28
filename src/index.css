@@ -815,6 +815,52 @@ html, body, #root {
   font-weight: 600;
   background: rgba(59, 130, 246, 0.15);
   color: var(--accent-primary);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Exception Tags in Categories Column */
+.tag-exception {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.tag-unsubscribed {
+  background: rgba(239, 68, 68, 0.18) !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+}
+
+.tag-bounced,
+.tag-bounced---undeliverable {
+  background: rgba(245, 158, 11, 0.18) !important;
+  color: #d97706 !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+}
+[data-theme='dark'] .tag-bounced,
+[data-theme='dark'] .tag-bounced---undeliverable {
+  color: #fbbf24 !important;
+}
+
+.tag-inactive {
+  background: rgba(148, 163, 184, 0.18) !important;
+  color: #64748b !important;
+  border: 1px solid rgba(148, 163, 184, 0.4) !important;
+}
+[data-theme='dark'] .tag-inactive {
+  color: #94a3b8 !important;
+}
+
+/* Exception Filter Pills */
+.pill-exception {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.pill-exception.pill-active {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  border-color: #dc2626 !important;
 }
 
 .status-badge {

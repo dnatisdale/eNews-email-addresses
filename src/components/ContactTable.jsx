@@ -138,10 +138,12 @@ export const ContactTable = ({
       notes.includes(query) ||
       customVals.includes(query);
 
-    // Category filter
+    // Category & Tag filter
     let matchesCategory = true;
     if (selectedCategory !== 'All') {
-      matchesCategory = Array.isArray(contact.categories) && contact.categories.includes(selectedCategory);
+      const isInCategory = Array.isArray(contact.categories) && contact.categories.includes(selectedCategory);
+      const isStatusMatch = contact.status && contact.status.toLowerCase().includes(selectedCategory.toLowerCase());
+      matchesCategory = isInCategory || isStatusMatch;
     }
     const matchesStatus = selectedStatus === 'All' || contact.status === selectedStatus;
 
@@ -330,6 +332,20 @@ export const ContactTable = ({
                 </button>
               );
             })}
+            {['Unsubscribed', 'Bounced', 'Inactive'].map((tag) => {
+              const tagCount = contacts.filter((c) => c.status && c.status.toLowerCase().includes(tag.toLowerCase())).length;
+              if (tagCount === 0) return null;
+              const badgeIcon = tag === 'Unsubscribed' ? '🚫' : tag === 'Bounced' ? '⚠️' : '💤';
+              return (
+                <button 
+                  key={tag}
+                  className={`pill pill-exception ${selectedCategory === tag ? 'pill-active' : ''}`}
+                  onClick={() => setSelectedCategory(tag)}
+                >
+                  {badgeIcon} {tag} ({tagCount})
+                </button>
+              );
+            })}
           </div>
 
           <div style={{ display: 'flex', gap: '1rem', marginLeft: 'auto' }}>
@@ -345,20 +361,6 @@ export const ContactTable = ({
                 <option value="green">🟢 Complete (99)</option>
                 <option value="yellow">🟡 Partial (65% - 98%)</option>
                 <option value="red">🔴 Incomplete (1% - 64%)</option>
-              </select>
-            </div>
-
-            <div className="status-filter-wrap" style={{ margin: 0 }}>
-              <Filter size={14} className="filter-icon" />
-              <select 
-                className="select-control-sm"
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-              >
-                <option value="All">All Statuses</option>
-                <option value="Active">Active Only</option>
-                <option value="Inactive">Inactive</option>
-                <option value="Unsubscribed">Unsubscribed</option>
               </select>
             </div>
           </div>
@@ -504,19 +506,9 @@ export const ContactTable = ({
                         );
                       case 'categories':
                         return (
-                          <th key="categories" style={{ width: columnWidths.categories || 160 }} className="resizable-th">
-                            <div className="th-content"><span>Categories</span></div>
+                          <th key="categories" style={{ width: columnWidths.categories || 180 }} className="resizable-th">
+                            <div className="th-content"><span>Categories & Tags</span></div>
                             <div className="col-resizer" onMouseDown={(e) => startResizing('categories', e)} />
-                          </th>
-                        );
-                      case 'status':
-                        return (
-                          <th key="status" style={{ width: columnWidths.status || 120 }} className="sortable resizable-th">
-                            <div className="th-content" onClick={() => handleSort('status')}>
-                              <span>Status</span>
-                              <ArrowUpDown size={12} className="sort-icon" />
-                            </div>
-                            <div className="col-resizer" onMouseDown={(e) => startResizing('status', e)} />
                           </th>
                         );
                       case 'address':
@@ -645,30 +637,30 @@ export const ContactTable = ({
                                 )}
                               </td>
                             );
-                          case 'categories':
+                          case 'categories': {
+                            const isExceptionStatus = contact.status && contact.status !== 'Active';
+                            const hasCategories = Array.isArray(contact.categories) && contact.categories.length > 0;
                             return (
                               <td key="categories" className="td-categories">
-                                {Array.isArray(contact.categories) && contact.categories.length > 0 ? (
+                                {(hasCategories || isExceptionStatus) ? (
                                   <div className="category-pill-group">
-                                    {contact.categories.map((cat, i) => (
+                                    {hasCategories && contact.categories.map((cat, i) => (
                                       <span key={i} className={`tag-badge tag-${cat.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}>
                                         {cat}
                                       </span>
                                     ))}
+                                    {isExceptionStatus && (
+                                      <span className={`tag-badge tag-exception tag-${contact.status.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}>
+                                        {contact.status.includes('Bounced') ? '⚠️ Bounced' : contact.status.includes('Unsubscribed') ? '🚫 Unsubscribed' : `💤 ${contact.status}`}
+                                      </span>
+                                    )}
                                   </div>
                                 ) : (
                                   <span className="text-muted">-</span>
                                 )}
                               </td>
                             );
-                          case 'status':
-                            return (
-                              <td key="status">
-                                <span className={`status-badge status-${contact.status.toLowerCase()}`}>
-                                  {contact.status}
-                                </span>
-                              </td>
-                            );
+                          }
                           case 'address':
                             return <td key="address" className="td-address">{contact.address || <span className="text-muted">-</span>}</td>;
                           case 'notes':
@@ -734,11 +726,6 @@ export const ContactTable = ({
                       <div>
                         <h4 className="card-name">{contact.firstName} {contact.lastName}</h4>
                         <div className="card-badges-wrap">
-                          {visibleColumns.includes('status') && (
-                            <span className={`status-badge status-${contact.status.toLowerCase()}`}>
-                              {contact.status}
-                            </span>
-                          )}
                           {visibleColumns.includes('score') && (
                             <div 
                               className="score-badge"
@@ -795,14 +782,19 @@ export const ContactTable = ({
                       </div>
                     )}
 
-                    {visibleColumns.includes('categories') && Array.isArray(contact.categories) && contact.categories.length > 0 && (
+                    {visibleColumns.includes('categories') && ((Array.isArray(contact.categories) && contact.categories.length > 0) || (contact.status && contact.status !== 'Active')) && (
                       <div className="card-field">
-                        <div className="td-categories">
-                          {contact.categories.map((cat, i) => (
+                        <div className="td-categories" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                          {Array.isArray(contact.categories) && contact.categories.map((cat, i) => (
                             <span key={i} className={`tag-badge tag-${cat.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}>
                               {cat}
                             </span>
                           ))}
+                          {contact.status && contact.status !== 'Active' && (
+                            <span className={`tag-badge tag-exception tag-${contact.status.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}>
+                              {contact.status.includes('Bounced') ? '⚠️ Bounced' : contact.status.includes('Unsubscribed') ? '🚫 Unsubscribed' : `💤 ${contact.status}`}
+                            </span>
+                          )}
                         </div>
                       </div>
                     )}
