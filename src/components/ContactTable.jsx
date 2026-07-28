@@ -397,22 +397,6 @@ export const ContactTable = ({
               <span>Assign Categories</span>
             </button>
             <button 
-              className="btn btn-secondary btn-sm"
-              onClick={() => onBulkCopyEmails(',', selectedIds)}
-              title="Copy emails as comma-separated list for Gmail"
-            >
-              <Copy size={14} />
-              <span>Copy Gmail (,)</span>
-            </button>
-            <button 
-              className="btn btn-secondary btn-sm"
-              onClick={() => onBulkCopyEmails(';', selectedIds)}
-              title="Copy emails as semicolon-separated list for Outlook"
-            >
-              <Copy size={14} />
-              <span>Copy Outlook (;)</span>
-            </button>
-            <button 
               className="btn btn-danger btn-sm"
               onClick={() => onBulkDelete(selectedIds)}
             >
