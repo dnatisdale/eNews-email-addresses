@@ -780,16 +780,26 @@ export const PrintView = ({
                       if (col.id === 'index') val = idx + 1;
                       else if (col.id === 'score') {
                         const accuracy = getContactAccuracy(c);
+                        const count = typeof accuracy.count === 'number' ? accuracy.count : 0;
+                        const badgeColor = count === 4 ? '#10b981' : count === 3 ? '#2563eb' : count === 2 ? '#d97706' : '#dc2626';
+                        const badgeBg = count === 4 ? '#ecfdf5' : count === 3 ? '#eff6ff' : count === 2 ? '#fffbeb' : '#fef2f2';
                         val = (
-                          <div className="accuracy-boxes-grid" title={accuracy.tooltip} style={{ display: 'inline-flex', verticalAlign: 'middle', gap: `${boxGap}px`, padding: '2px' }}>
-                            {(accuracy.boxes || []).map((b) => (
-                              <div 
-                                key={b.key} 
-                                className={`accuracy-box ${b.present ? 'filled' : 'empty'}`}
-                                style={{ width: `${boxWidth}px`, height: `${boxHeight}px` }}
-                              />
-                            ))}
-                          </div>
+                          <span style={{ 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            width: `${Math.max(16, Math.round(20 * scaleRatio))}px`, 
+                            height: `${Math.max(16, Math.round(20 * scaleRatio))}px`, 
+                            borderRadius: '50%', 
+                            fontSize: `${Math.max(0.7, 0.8 * scaleRatio)}rem`, 
+                            fontWeight: 700, 
+                            color: badgeColor, 
+                            backgroundColor: badgeBg,
+                            border: `1.5px solid ${badgeColor}`,
+                            lineHeight: 1 
+                          }} title={accuracy.tooltip}>
+                            {count}
+                          </span>
                         );
                       }
                       else if (col.id === 'name') val = <strong>{formatContactName(c)}</strong>;

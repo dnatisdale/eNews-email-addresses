@@ -24,20 +24,53 @@ import { getContactAccuracy } from '../services/accuracyEvaluator';
 import { BulkCategoryAssignModal } from './BulkCategoryAssignModal';
 
 export const AccuracyBoxes = ({ accuracy }) => {
-  if (!accuracy || !accuracy.boxes) return null;
+  if (!accuracy) return null;
+  const count = typeof accuracy.count === 'number' ? accuracy.count : 0;
+
+  let badgeColor = 'var(--text-muted)';
+  let bgStyle = 'rgba(100, 116, 139, 0.15)';
+
+  if (count === 4) {
+    badgeColor = '#10b981'; // 4: Green (All 4 present: Name, Email, Address, Phone)
+    bgStyle = 'rgba(16, 185, 129, 0.18)';
+  } else if (count === 3) {
+    badgeColor = '#3b82f6'; // 3: Blue
+    bgStyle = 'rgba(59, 130, 246, 0.18)';
+  } else if (count === 2) {
+    badgeColor = '#f59e0b'; // 2: Amber
+    bgStyle = 'rgba(245, 158, 11, 0.18)';
+  } else {
+    badgeColor = '#ef4444'; // 1 or 0: Red
+    bgStyle = 'rgba(239, 68, 68, 0.18)';
+  }
+
   return (
     <div 
-      className="accuracy-boxes-grid" 
-      title={accuracy.tooltip}
-      aria-label={accuracy.tooltip}
+      className="score-number-badge-wrap" 
+      title={accuracy.tooltip || `Completeness: ${count}/4 items present (Name, Email, Address, Phone)`}
+      aria-label={`Completeness Score: ${count} of 4`}
+      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
     >
-      {accuracy.boxes.map((b) => (
-        <div 
-          key={b.key}
-          className={`accuracy-box ${b.present ? 'filled' : 'empty'}`}
-          title={`${b.label}: ${b.present ? 'Present' : 'Missing'}`}
-        />
-      ))}
+      <span
+        className="score-number-badge"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '22px',
+          height: '22px',
+          borderRadius: '50%',
+          fontSize: '0.82rem',
+          fontWeight: 700,
+          color: badgeColor,
+          backgroundColor: bgStyle,
+          border: `1.5px solid ${badgeColor}`,
+          lineHeight: 1,
+          textAlign: 'center'
+        }}
+      >
+        {count}
+      </span>
     </div>
   );
 };
@@ -538,8 +571,8 @@ export const ContactTable = ({
                       case 'score':
                         return (
                           <th key="score" style={{ width: columnWidths.score || 60 }} className="sortable resizable-th th-score">
-                            <div className="th-content" onClick={() => handleSort('score')} title="Click to sort by Completeness %">
-                              <span>%</span>
+                            <div className="th-content" onClick={() => handleSort('score')} title="Click to sort by Completeness Score (1 to 4 items: Name, Email, Address, Phone)">
+                              <span>Score</span>
                               <ArrowUpDown size={12} className="sort-icon" />
                             </div>
                             <div className="col-resizer" onMouseDown={(e) => startResizing('score', e)} />
