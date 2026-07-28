@@ -93,11 +93,14 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
           <div className="form-grid">
             {/* First Name */}
             <div className="form-group">
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                <span style={{ color: '#ef4444', fontWeight: 700, marginRight: '3px' }}>*</span>First Name
+              </label>
               <input
                 type="text"
                 required
                 className="input-control"
-                placeholder="First Name *"
+                placeholder="First Name"
                 value={formData.firstName}
                 onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
               />
@@ -105,8 +108,12 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
 
             {/* Last Name */}
             <div className="form-group">
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                <span style={{ color: '#ef4444', fontWeight: 700, marginRight: '3px' }}>*</span>Last Name
+              </label>
               <input
                 type="text"
+                required
                 className="input-control"
                 placeholder="Last Name"
                 value={formData.lastName}
@@ -116,13 +123,16 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
 
             {/* Email */}
             <div className="form-group">
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                <span style={{ color: '#ef4444', fontWeight: 700, marginRight: '3px' }}>*</span>Email
+              </label>
               <div className="input-with-icon">
                 <Mail size={16} className="input-icon" />
                 <input
                   type="email"
                   required
                   className="input-control"
-                  placeholder="Email *"
+                  placeholder="Email Address"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
@@ -131,6 +141,9 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
 
             {/* Secondary Email */}
             <div className="form-group">
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                Secondary Email
+              </label>
               <div className="input-with-icon">
                 <Mail size={16} className="input-icon" />
                 <input
@@ -145,6 +158,9 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
 
             {/* Phone */}
             <div className="form-group">
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                Phone Number
+              </label>
               <div className="input-with-icon">
                 <Phone size={16} className="input-icon" />
                 <input
@@ -247,12 +263,15 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
 
             {/* Address */}
             <div className="form-group full-width">
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                Physical Address
+              </label>
               <div className="input-with-icon">
                 <MapPin size={16} className="input-icon" />
                 <input
                   type="text"
                   className="input-control"
-                  placeholder="Physical Address (Street, City, State Zip)"
+                  placeholder="Street, City, State Zip"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 />
@@ -261,10 +280,13 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
 
             {/* Notes */}
             <div className="form-group full-width">
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
+                Notes
+              </label>
               <textarea
                 rows={2}
                 className="input-control textarea-control"
-                placeholder="Notes (Holiday card notes, relationship details, preferred greeting...)"
+                placeholder="Holiday card notes, relationship details, preferred greeting..."
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               />
