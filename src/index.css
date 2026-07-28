@@ -2821,15 +2821,17 @@ html[data-font-size="xlarge"] {
   cursor: not-allowed;
 }
 
-/* ==========================================================================
-   Typewriter Monospace Font for All Editable & Input Data Boxes
-   ========================================================================== */
-input,
+/* Typewriter Monospace Font ONLY for Typing Inputs & Textareas */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="password"],
+input[type="search"],
+input[type="number"],
+input:not([type]),
 textarea,
-select,
-.input-control,
 .search-input,
-.modal-body input,
+.modal-body input:not(select),
 .modal-body textarea,
 [contenteditable="true"] {
   font-family: 'JetBrains Mono', 'Courier Prime', 'Courier New', Courier, monospace !important;
@@ -2908,7 +2910,7 @@ select,
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   padding: 0.35rem 0.65rem;
-  font-family: 'JetBrains Mono', 'Courier Prime', 'Courier New', Courier, monospace !important;
+  font-family: var(--font-body), 'Plus Jakarta Sans', sans-serif !important;
 }
 
 select option,
