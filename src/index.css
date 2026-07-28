@@ -2718,10 +2718,12 @@ html[data-font-size="xlarge"] {
   outline: none;
   cursor: pointer;
   -webkit-appearance: none;
+  appearance: none;
 }
 
 .font-popover-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
+  appearance: none;
   width: 16px;
   height: 16px;
   border-radius: 50%;
