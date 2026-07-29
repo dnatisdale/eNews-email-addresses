@@ -415,7 +415,13 @@ export default function App() {
     }
   };
 
+  const isSampleRecord = (c) => Boolean(c && ((c.categories || []).includes('*SAMPLE*') || (c.id && String(c.id).startsWith('sample_'))));
+
   const handleEditContact = (contact) => {
+    if (isSampleRecord(contact)) {
+      showToast('🔒 The *SAMPLE* contact is sealed and protected');
+      return;
+    }
     requireAuth(() => {
       setContactToEdit(contact);
       setIsAddEditModalOpen(true);
@@ -427,6 +433,10 @@ export default function App() {
     requireAuth(() => {
       const target = contacts.find((c) => c.id === id);
       if (!target) return;
+      if (isSampleRecord(target)) {
+        alert('🔒 The *SAMPLE* contact is sealed and protected from deletion.');
+        return;
+      }
 
       setDeleteModalState({
         isOpen: true,

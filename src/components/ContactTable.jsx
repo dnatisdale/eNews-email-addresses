@@ -17,7 +17,8 @@ import {
   SlidersHorizontal,
   RotateCcw,
   RotateCw,
-  X
+  X,
+  Lock
 } from 'lucide-react';
 import { ColumnSelector, STANDARD_COLUMNS } from './ColumnSelector';
 import { getContactAccuracy } from '../services/accuracyEvaluator';
@@ -674,7 +675,15 @@ export const ContactTable = ({
                       key={contact.id} 
                       className={isSelected ? 'row-selected' : ''}
                       onClick={(e) => handleRowSelect(contact.id, idx, e)}
-                      onDoubleClick={(e) => { e.stopPropagation(); onEditContact(contact); }}
+                      onDoubleClick={(e) => { 
+                        e.stopPropagation(); 
+                        const isSample = Boolean(contact && ((contact.categories || []).includes('*SAMPLE*') || (contact.id && String(contact.id).startsWith('sample_'))));
+                        if (isSample) {
+                          alert('🔒 The *SAMPLE* contact is sealed and protected from alterations.');
+                          return;
+                        }
+                        onEditContact(contact); 
+                      }}
                       title="Double-click to edit contact"
                     >
                       {/* Dynamic Reorderable Body Cells */}
@@ -782,24 +791,32 @@ export const ContactTable = ({
                             return <td key="address" className="td-address">{contact.address || <span className="text-muted">-</span>}</td>;
                           case 'notes':
                             return <td key="notes" className="td-notes">{contact.notes || <span className="text-muted">-</span>}</td>;
-                          case 'actions':
+                          case 'actions': {
+                            const isSample = Boolean(contact && ((contact.categories || []).includes('*SAMPLE*') || (contact.id && String(contact.id).startsWith('sample_'))));
                             return (
                               <td key="actions" className="td-actions" onClick={(e) => e.stopPropagation()}>
                                 <div className="action-row">
-                                  <button
-                                    type="button"
-                                    className="icon-action-btn"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onEditContact(contact);
-                                    }}
-                                    title="Edit Contact"
-                                  >
-                                    <Edit2 size={15} />
-                                  </button>
+                                  {isSample ? (
+                                    <span className="sealed-badge" title="🔒 Sealed Sample Contact (Protected from alterations)" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '12px', background: 'rgba(100, 116, 139, 0.2)', color: 'var(--text-secondary)', fontSize: '0.75rem', fontWeight: 600 }}>
+                                      <Lock size={12} /> Sealed
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      className="icon-action-btn"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onEditContact(contact);
+                                      }}
+                                      title="Edit Contact"
+                                    >
+                                      <Edit2 size={15} />
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             );
+                          }
                           default:
                             return (
                               <td key={col.id}>

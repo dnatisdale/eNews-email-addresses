@@ -152,27 +152,35 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
 
         <form onSubmit={handleSubmit} className="modal-body">
           <div className="form-grid">
-            {/* First Name & Last Name (No external labels) */}
+            {/* First Name & Last Name (No external labels, Bright RED * required indicator) */}
             <div className="form-group">
-              <input
-                type="text"
-                required
-                className="input-control"
-                placeholder="* First Name"
-                value={formData.firstName}
-                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-              />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <span style={{ color: '#ef4444', fontWeight: 800, fontSize: '1rem', position: 'absolute', left: '12px', zIndex: 2, pointerEvents: 'none' }}>*</span>
+                <input
+                  type="text"
+                  required
+                  className="input-control"
+                  placeholder="First Name"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  style={{ paddingLeft: '26px' }}
+                />
+              </div>
             </div>
 
             <div className="form-group">
-              <input
-                type="text"
-                required
-                className="input-control"
-                placeholder="* Last Name"
-                value={formData.lastName}
-                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-              />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <span style={{ color: '#ef4444', fontWeight: 800, fontSize: '1rem', position: 'absolute', left: '12px', zIndex: 2, pointerEvents: 'none' }}>*</span>
+                <input
+                  type="text"
+                  required
+                  className="input-control"
+                  placeholder="Last Name"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  style={{ paddingLeft: '26px' }}
+                />
+              </div>
             </div>
 
             {/* Email & Secondary Email (No external labels) */}

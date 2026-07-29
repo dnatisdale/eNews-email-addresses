@@ -10,7 +10,7 @@ export const generateSampleContacts = () => {
     secondaryEmail: 'eleanor.tisdale@work.com',
     phone: '(555) 234-5678',
     status: 'Active',
-    address: '101 Elm Street, Suite 1, Springfield, IL',
+    address: '101 Elm Street, Suite 1, Springfield, IL 62701',
     notes: 'Sends annual holiday card & eNews'
   };
 
