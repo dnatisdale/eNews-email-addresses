@@ -380,14 +380,35 @@ export const PrintView = ({
 
         .print-toolbar-header {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           justify-content: space-between;
+          width: 100%;
+          gap: 1rem;
         }
 
         .print-toolbar-title {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           gap: 0.75rem;
+          flex: 1;
+        }
+
+        .print-toolbar-header .icon-close-btn {
+          margin-left: auto;
+          margin-top: 2px;
+          color: var(--text-muted);
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-sm);
+          padding: 4px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .print-toolbar-header .icon-close-btn:hover {
+          color: #fff;
+          background: rgba(239, 68, 68, 0.2);
+          border-color: #ef4444;
         }
 
         .print-toolbar-title h3 {
