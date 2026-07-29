@@ -197,6 +197,7 @@ export default function App() {
   const [isCategoryManagerModalOpen, setIsCategoryManagerModalOpen] = useState(false);
   const [isTrashModalOpen, setIsTrashModalOpen] = useState(false);
   const pendingActionRef = useRef(null);
+  const unlockTimerRef = useRef(null); // Ref to hold the 15-minute timeout
   const [securityActionTitle, setSecurityActionTitle] = useState('Edit Contacts');
 
   // Delete Confirmation Modal State
@@ -222,7 +223,20 @@ export default function App() {
   const handleUnlockSuccess = () => {
     setIsEditingUnlocked(true);
     setIsSecurityModalOpen(false);
-    showToast('🔓 Editing Unlocked!');
+    showToast('🔓 Editing Unlocked for 15 minutes!');
+    
+    // Clear any existing timer
+    if (unlockTimerRef.current) {
+      clearTimeout(unlockTimerRef.current);
+    }
+    
+    // Start 15-minute (900,000 ms) auto-lock timer
+    unlockTimerRef.current = setTimeout(() => {
+      setIsEditingUnlocked(false);
+      showToast('🔒 Session expired — App is Locked');
+      unlockTimerRef.current = null;
+    }, 15 * 60 * 1000);
+
     if (pendingActionRef.current) {
       const actionToRun = pendingActionRef.current;
       pendingActionRef.current = null;
@@ -232,7 +246,13 @@ export default function App() {
 
   const handleToggleLock = () => {
     if (isEditingUnlocked) {
+      // Manual Lock
       setIsEditingUnlocked(false);
+      if (unlockTimerRef.current) {
+        clearTimeout(unlockTimerRef.current);
+        unlockTimerRef.current = null;
+      }
+      showToast('🔒 App is Locked manually');
     } else {
       requireAuth(() => setIsEditingUnlocked(true), 'Unlock Editing Controls');
     }
