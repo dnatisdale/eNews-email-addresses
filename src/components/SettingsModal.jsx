@@ -3,7 +3,7 @@ import { X, Settings, KeyRound, Save, Check, Lock, Unlock, Type, Mail, Phone, Ta
 import { getAdminPIN, setAdminPIN, isSecurityLockEnabled, setSecurityLockEnabled } from '../services/authService';
 import { getRollingBackups, downloadBackupFile, emailBackup, deleteRollingBackup, createRollingBackup } from '../services/backupService';
 
-export const SettingsModal = ({ isOpen, onClose, fontSize = 100, setFontSize, contacts = [], masterCategories = [], nameSortOrder = 'last', onSetNameSortOrder, onRestoreBackup }) => {
+export const SettingsModal = ({ isOpen, onClose, fontSize = 100, setFontSize, contacts = [], masterCategories = [], nameSortOrder = 'last', onSetNameSortOrder, onRestoreBackup, onFactoryReset }) => {
   const [lockEnabled, setLockEnabledState] = useState(true);
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
@@ -352,6 +352,36 @@ export const SettingsModal = ({ isOpen, onClose, fontSize = 100, setFontSize, co
                 />
               </div>
             )}
+          </div>
+
+          {/* Danger Zone */}
+          <div className="settings-section" style={{ border: '1px solid var(--danger)', background: 'rgba(239, 68, 68, 0.05)' }}>
+            <h4 className="setting-title flex-align-gap text-danger">
+              <ShieldAlert size={16} />
+              <span>Danger Zone</span>
+            </h4>
+            <p className="setting-desc mb-3 text-danger" style={{ opacity: 0.9 }}>
+              Irreversible actions. Please be certain before proceeding.
+            </p>
+            <button
+              type="button"
+              className="btn btn-outline-danger btn-block"
+              onClick={() => {
+                if (window.confirm('⚠️ WARNING: This will permanently delete ALL contacts and tags from your cloud database across all devices. This cannot be undone. Are you absolutely sure?')) {
+                  if (window.confirm('Are you REALLY sure? Type "YES" to proceed... well, just click OK.')) {
+                    if (onFactoryReset) {
+                      onFactoryReset();
+                      onClose();
+                    } else {
+                      alert('Please use the "Clean & Repair DB" button in the menu, or select all contacts and delete them.');
+                    }
+                  }
+                }
+              }}
+            >
+              <Trash2 size={16} />
+              <span>Factory Reset Database</span>
+            </button>
           </div>
 
           <div className="modal-footer">

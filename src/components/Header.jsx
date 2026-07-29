@@ -307,20 +307,11 @@ export const Header = ({
                 </div>
                 {deferredPrompt && menuItem(<Smartphone size={16} className="text-primary" />, 'Install App (PWA)', onInstallClick)}
                 {menuItem(<Share2 size={16} />, 'Share App Link', handleShareApp)}
-
+                {menuItem(<Settings size={16} />, 'Settings & Passcode', onOpenSettings)}
               </div>
             )}
           </div>
 
-          <button
-            className="theme-toggle-btn"
-            style={{ marginRight: '8px' }}
-            onClick={onOpenSettings}
-            aria-label="Settings"
-            title="Settings & Passcode"
-          >
-            <Settings size={18} />
-          </button>
 
           {/* Theme Toggle Button */}
           <button

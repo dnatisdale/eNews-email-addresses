@@ -948,6 +948,11 @@ export default function App() {
           if (restoredCategories && restoredCategories.length > 0) setMasterCategories(restoredCategories);
           showToast('Restored database snapshot');
         }}
+        onFactoryReset={() => requireAuth(() => {
+          updateContactsState([]);
+          setMasterCategories([]);
+          showToast('Database wiped successfully.');
+        }, 'Factory Reset Database')}
       />
 
       <BackupPromptModal
