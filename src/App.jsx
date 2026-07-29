@@ -82,6 +82,22 @@ export default function App() {
     return generateSampleContacts();
   });
 
+  // Auto-healing effect: Enforce sealed *SAMPLE* contact with Zip Code 62701
+  useEffect(() => {
+    setContacts(prev => {
+      const sampleExists = prev.some(c => isSampleRecord(c));
+      if (!sampleExists) {
+        return [...generateSampleContacts(), ...prev];
+      }
+      return prev.map(c => {
+        if (isSampleRecord(c) && (!c.address || !c.address.includes('62701'))) {
+          return { ...c, address: '101 Elm Street, Suite 1, Springfield, IL 62701' };
+        }
+        return c;
+      });
+    });
+  }, []);
+
   // Undo / Redo 30-Step History Stacks
   const [pastHistory, setPastHistory] = useState([]);
   const [futureHistory, setFutureHistory] = useState([]);
@@ -458,27 +474,36 @@ export default function App() {
 
   // Bulk Contact Deletion
   const handleBulkDelete = (idsToDelete) => {
-    if (idsToDelete.length === 0) return;
+    // Filter out sealed sample contact from deletion
+    const safeIds = idsToDelete.filter((id) => {
+      const c = contacts.find((item) => item.id === id);
+      return !isSampleRecord(c);
+    });
+
+    if (safeIds.length === 0) {
+      alert('🔒 The *SAMPLE* contact is sealed and protected from deletion.');
+      return;
+    }
 
     requireAuth(() => {
       const targetNames = contacts
-        .filter((c) => idsToDelete.includes(c.id))
+        .filter((c) => safeIds.includes(c.id))
         .map((c) => `${c.firstName} ${c.lastName}`);
 
       setDeleteModalState({
         isOpen: true,
-        targetCount: idsToDelete.length,
+        targetCount: safeIds.length,
         targetNames,
         onConfirm: () => {
           const timestamp = new Date().toISOString();
           const deletedRecords = contacts
-            .filter((c) => idsToDelete.includes(c.id))
+            .filter((c) => safeIds.includes(c.id))
             .map((c) => ({ ...c, deletedAt: timestamp }));
 
           setTrashContacts((prev) => [...deletedRecords, ...prev]);
-          updateContactsState(contacts.filter((c) => !idsToDelete.includes(c.id)));
+          updateContactsState(contacts.filter((c) => !safeIds.includes(c.id)));
           setSelectedIds([]);
-          showToast(`Moved ${idsToDelete.length} contacts to Trash`);
+          showToast(`Moved ${safeIds.length} contacts to Trash`);
         }
       });
     }, 'Bulk Delete Contacts');

@@ -318,22 +318,29 @@ export const ContactTable = ({
     }
   };
 
-  // Selection toggle with Shift+Click Range Selection
-  const isAllSelected = sortedContacts.length > 0 && sortedContacts.every((c) => selectedIds.includes(c.id));
+  const isSampleRecord = (c) => Boolean(c && ((c.categories || []).includes('*SAMPLE*') || (c.id && String(c.id).startsWith('sample_'))));
+
+  // Selection toggle with Shift+Click Range Selection (Sample contact is sealed & excluded)
+  const selectableContacts = sortedContacts.filter(c => !isSampleRecord(c));
+  const isAllSelected = selectableContacts.length > 0 && selectableContacts.every((c) => selectedIds.includes(c.id));
 
   const toggleSelectAll = () => {
     if (isAllSelected) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(sortedContacts.map((c) => c.id));
+      setSelectedIds(selectableContacts.map((c) => c.id));
     }
   };
 
   const handleRowSelect = (contactId, index, e) => {
+    const targetContact = sortedContacts.find(c => c.id === contactId);
+    if (isSampleRecord(targetContact)) {
+      return; // Block sample contact selection
+    }
     if (e.shiftKey && lastSelectedIndex !== null) {
       const start = Math.min(lastSelectedIndex, index);
       const end = Math.max(lastSelectedIndex, index);
-      const rangeIds = sortedContacts.slice(start, end + 1).map((c) => c.id);
+      const rangeIds = sortedContacts.slice(start, end + 1).filter(c => !isSampleRecord(c)).map((c) => c.id);
 
       const newSelection = Array.from(new Set([...selectedIds, ...rangeIds]));
       setSelectedIds(newSelection);
@@ -689,17 +696,25 @@ export const ContactTable = ({
                       {/* Dynamic Reorderable Body Cells */}
                       {availableColumns.filter(c => visibleColumns.includes(c.id)).map(col => {
                         switch(col.id) {
-                          case 'checkbox':
+                          case 'checkbox': {
+                            const isSample = isSampleRecord(contact);
                             return (
                               <td key="checkbox" className="td-checkbox">
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={(e) => handleRowSelect(contact.id, idx, e)}
-                                  onClick={(e) => e.stopPropagation()}
-                                />
+                                {isSample ? (
+                                  <span title="🔒 Sealed Sample Contact (Protected from selection/deletion)" style={{ opacity: 0.6, cursor: 'not-allowed', display: 'inline-flex', padding: '2px' }}>
+                                    <Lock size={14} className="text-muted" />
+                                  </span>
+                                ) : (
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={(e) => handleRowSelect(contact.id, idx, e)}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                )}
                               </td>
                             );
+                          }
                           case 'index':
                             return (
                               <td key="index" className="td-index" style={{ color: 'var(--text-muted)' }}>
