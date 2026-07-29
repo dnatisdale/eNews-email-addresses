@@ -67,36 +67,14 @@ export default function App() {
       try {
         const parsed = JSON.parse(saved);
         const { cleanedContacts } = cleanDatabase(parsed);
-        if (cleanedContacts.length > 0) {
-          const hasSample = cleanedContacts.some(c => Array.isArray(c.categories) && c.categories.includes('*SAMPLE*'));
-          if (!hasSample) {
-            const samples = generateSampleContacts();
-            return [...samples, ...cleanedContacts];
-          }
-          return cleanedContacts;
-        }
+        // Filter out legacy sample rows from table
+        return cleanedContacts.filter(c => !isSampleRecord(c));
       } catch (e) {
         console.error('Failed to load contacts from storage', e);
       }
     }
-    return generateSampleContacts();
+    return [];
   });
-
-  // Auto-healing effect: Enforce sealed *SAMPLE* contact with Zip Code 62701
-  useEffect(() => {
-    setContacts(prev => {
-      const sampleExists = prev.some(c => isSampleRecord(c));
-      if (!sampleExists) {
-        return [...generateSampleContacts(), ...prev];
-      }
-      return prev.map(c => {
-        if (isSampleRecord(c) && (!c.address || !c.address.includes('62701'))) {
-          return { ...c, address: '101 Elm Street, Suite 1, Springfield, IL 62701' };
-        }
-        return c;
-      });
-    });
-  }, []);
 
   // Undo / Redo 30-Step History Stacks
   const [pastHistory, setPastHistory] = useState([]);

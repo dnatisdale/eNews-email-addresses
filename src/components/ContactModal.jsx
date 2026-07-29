@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Mail, Phone, MapPin } from 'lucide-react';
+import { X, Save, User, Mail, Phone, MapPin, Info, Sparkles } from 'lucide-react';
 
 export const parseAddressToFields = (fullAddressStr = '') => {
   if (!fullAddressStr) return { street: '', city: '', state: '', zip: '' };
@@ -62,6 +62,8 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
   const [customCategory, setCustomCategory] = useState('');
   const [showCustomCategory, setShowCustomCategory] = useState(false);
 
+  const [showSampleGuide, setShowSampleGuide] = useState(false);
+
   useEffect(() => {
     if (contactToEdit) {
       const addrFields = parseAddressToFields(contactToEdit.address || '');
@@ -97,6 +99,7 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
     }
     setShowCustomCategory(false);
     setCustomCategory('');
+    setShowSampleGuide(false);
   }, [contactToEdit, isOpen]);
 
   if (!isOpen) return null;
@@ -145,12 +148,167 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
             <User className="modal-icon" />
             <h2>{contactToEdit ? 'Edit Contact' : 'Add New eNews Contact'}</h2>
           </div>
-          <button className="icon-close-btn" onClick={onClose} aria-label="Close Modal">
-            <X size={20} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              className="icon-info-btn"
+              onClick={() => setShowSampleGuide(!showSampleGuide)}
+              title="View Filled Sample Contact Layout Guide"
+              style={{
+                background: showSampleGuide ? 'var(--accent-primary)' : 'rgba(255,255,255,0.08)',
+                color: showSampleGuide ? '#ffffff' : 'var(--text-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Info size={18} />
+            </button>
+            <button className="icon-close-btn" onClick={onClose} aria-label="Close Modal">
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="modal-body">
+          {/* Sample Contact Field Guide (Toggled via (i) Info icon in header) */}
+          {showSampleGuide && (
+            <div className="sample-guide-overlay">
+              <div className="sample-guide-header">
+                <h3>
+                  <Sparkles size={16} style={{ color: 'var(--accent-primary)' }} />
+                  <span>Sample Contact Field Guide (Hover for Details)</span>
+                </h3>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      setFormData({
+                        firstName: 'Eleanor',
+                        lastName: 'Tisdale',
+                        email: 'eleanor.tisdale@example.com',
+                        secondaryEmail: 'eleanor.tisdale@work.com',
+                        phone: '(555) 234-5678',
+                        street: '101 Elm Street, Suite 1',
+                        city: 'Springfield',
+                        state: 'IL',
+                        zip: '62701',
+                        notes: 'Sends annual holiday card & eNews',
+                        categories: ['Christmas', 'eNewsletter', 'Family'],
+                        status: 'Active'
+                      });
+                    }}
+                    title="Autofill form with sample contact data"
+                  >
+                    Fill Form with Sample
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-close-btn"
+                    onClick={() => setShowSampleGuide(false)}
+                    title="Close Sample Guide"
+                    style={{ width: '26px', height: '26px' }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                💡 Hover over any sample field below to inspect formatting rules:
+              </p>
+
+              <div className="form-grid sample-guide-grid">
+                {/* First & Last Name */}
+                <div className="sample-field-wrap">
+                  <span className="sample-hover-label">First Name (Required)</span>
+                  <div className="sample-input-preview">
+                    <span style={{ color: '#ef4444', fontWeight: 800 }}>*</span> Eleanor
+                  </div>
+                </div>
+
+                <div className="sample-field-wrap">
+                  <span className="sample-hover-label">Last Name (Required)</span>
+                  <div className="sample-input-preview">
+                    <span style={{ color: '#ef4444', fontWeight: 800 }}>*</span> Tisdale
+                  </div>
+                </div>
+
+                {/* Email & Secondary Email */}
+                <div className="sample-field-wrap">
+                  <span className="sample-hover-label">Primary Email (Optional)</span>
+                  <div className="sample-input-preview">
+                    <Mail size={14} className="text-muted" /> eleanor.tisdale@example.com
+                  </div>
+                </div>
+
+                <div className="sample-field-wrap">
+                  <span className="sample-hover-label">Secondary / Work Email</span>
+                  <div className="sample-input-preview">
+                    <Mail size={14} className="text-muted" /> eleanor.tisdale@work.com
+                  </div>
+                </div>
+
+                {/* Phone */}
+                <div className="sample-field-wrap full-width">
+                  <span className="sample-hover-label">Formatted Phone Number</span>
+                  <div className="sample-input-preview">
+                    <Phone size={14} className="text-muted" /> (555) 234-5678
+                  </div>
+                </div>
+
+                {/* Physical Address */}
+                <div className="sample-field-wrap full-width">
+                  <span className="sample-hover-label">Street Address Line 1</span>
+                  <div className="sample-input-preview">
+                    <MapPin size={14} className="text-muted" /> 101 Elm Street, Suite 1
+                  </div>
+                </div>
+
+                <div className="full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 90px 110px', gap: '0.5rem' }}>
+                  <div className="sample-field-wrap">
+                    <span className="sample-hover-label">City Name</span>
+                    <div className="sample-input-preview">Springfield</div>
+                  </div>
+                  <div className="sample-field-wrap">
+                    <span className="sample-hover-label">State Code</span>
+                    <div className="sample-input-preview">IL</div>
+                  </div>
+                  <div className="sample-field-wrap">
+                    <span className="sample-hover-label">5-Digit Zip Code</span>
+                    <div className="sample-input-preview">62701</div>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div className="sample-field-wrap full-width">
+                  <span className="sample-hover-label">Personal Notes & Greetings</span>
+                  <div className="sample-input-preview">Sends annual holiday card & eNews</div>
+                </div>
+
+                {/* Tags & Status */}
+                <div className="sample-field-wrap">
+                  <span className="sample-hover-label">Category Tags</span>
+                  <div className="sample-input-preview" style={{ gap: '4px', flexWrap: 'wrap' }}>
+                    <span className="tag-badge" style={{ background: 'var(--accent-primary)', color: '#fff', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem' }}>Christmas</span>
+                    <span className="tag-badge" style={{ background: 'var(--accent-primary)', color: '#fff', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem' }}>eNewsletter</span>
+                  </div>
+                </div>
+
+                <div className="sample-field-wrap">
+                  <span className="sample-hover-label">Activity Status</span>
+                  <div className="sample-input-preview">🟢 Active</div>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="form-grid">
             {/* First Name & Last Name (No external labels, Bright RED * required indicator) */}
             <div className="form-group">

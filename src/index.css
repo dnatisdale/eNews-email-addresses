@@ -3325,6 +3325,70 @@ select option,
   margin-bottom: 0.85rem;
 }
 
+/* Sample Guide Overlay & Hover Labels */
+.sample-guide-overlay {
+  background: var(--bg-card);
+  border: 1.5px solid var(--accent-primary);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-md);
+  position: relative;
+  transition: all 0.25s ease;
+}
+
+.sample-guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sample-field-wrap {
+  position: relative;
+  cursor: pointer;
+}
+
+.sample-field-wrap:hover .sample-hover-label {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.sample-hover-label {
+  position: absolute;
+  top: -12px;
+  right: 8px;
+  background: var(--accent-primary);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition: all 0.2s ease;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.sample-input-preview {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px dashed var(--accent-primary);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 
 
 
