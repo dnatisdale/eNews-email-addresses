@@ -181,9 +181,9 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
                 </label>
                 
                 {/* Selected pills */}
-                {(formData.categories || []).filter(c => c !== '*SAMPLE*' && c !== '*EXAMPLES*').length > 0 && (
+                {(formData.categories || []).filter(c => c !== '*EXAMPLES*').length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
-                    {(formData.categories || []).filter(c => c !== '*SAMPLE*' && c !== '*EXAMPLES*').map(cat => (
+                    {(formData.categories || []).filter(c => c !== '*EXAMPLES*').map(cat => (
                       <span key={cat} style={{
                         display: 'inline-flex', alignItems: 'center', gap: '4px',
                         padding: '2px 8px', borderRadius: '12px', fontSize: '0.78rem', fontWeight: 500,
@@ -215,7 +215,7 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
                   style={{ cursor: 'pointer' }}
                 >
                   <option value="" disabled>Add Tags…</option>
-                  {masterCategories.filter(cat => cat !== '*SAMPLE*' && cat !== '*EXAMPLES*').map(cat => {
+                  {masterCategories.filter(cat => cat !== '*EXAMPLES*').map(cat => {
                     const isSelected = (formData.categories || []).includes(cat);
                     return (
                       <option key={cat} value={cat}>

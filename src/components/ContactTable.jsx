@@ -430,7 +430,7 @@ export const ContactTable = ({
             >
               All Tags ({contacts.length})
             </button>
-            {masterCategories.filter(cat => cat !== '*EXAMPLES*' && cat !== '*SAMPLE*').map((cat) => {
+            {masterCategories.filter(cat => cat !== '*EXAMPLES*').map((cat) => {
               const catCount = contacts.filter((c) => Array.isArray(c.categories) && c.categories.includes(cat)).length;
               return (
                 <button 

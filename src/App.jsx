@@ -30,7 +30,7 @@ const NAME_SORT_ORDER_KEY = 'eNews_Name_Sort_Order';
 const SIXTY_DAYS_MS = 60 * 24 * 60 * 60 * 1000;
 
 export const sortCategoriesAlphabetically = (cats = []) => {
-  const cleaned = (cats || []).filter(c => c && c !== '*EXAMPLES*' && c !== '*SAMPLE*');
+  const cleaned = (cats || []).filter(c => c && c !== '*EXAMPLES*');
   cleaned.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
   return cleaned;
 };
@@ -68,15 +68,12 @@ export default function App() {
         const parsed = JSON.parse(saved);
         const { cleanedContacts } = cleanDatabase(parsed);
         if (cleanedContacts.length > 0) {
-          // Migration: strip out ALL old *EXAMPLES* / *SAMPLE* placeholder contacts
-          const realContacts = cleanedContacts.filter(c => {
-            const cats = c.categories || [];
-            return !cats.includes('*EXAMPLES*') && !cats.includes('*SAMPLE*');
-          });
-          // If there are real contacts, keep only those
-          if (realContacts.length > 0) return realContacts;
-          // Otherwise (only samples existed), seed a single fresh sample
-          return generateSampleContacts();
+          const hasSample = cleanedContacts.some(c => Array.isArray(c.categories) && c.categories.includes('*SAMPLE*'));
+          if (!hasSample) {
+            const samples = generateSampleContacts();
+            return [...samples, ...cleanedContacts];
+          }
+          return cleanedContacts;
         }
       } catch (e) {
         console.error('Failed to load contacts from storage', e);
@@ -186,7 +183,7 @@ export default function App() {
           if (c === 'Newsletter') return 'eNewsletter';
           return c;
         }).filter(c => {
-          if (!c || c === '*EXAMPLES*' || c === '*SAMPLE*' || c === 'Family & Household' || c === 'Friends & Family') return false;
+          if (!c || c === '*EXAMPLES*' || c === 'Family & Household' || c === 'Friends & Family') return false;
           const lower = c.toLowerCase();
           if (lower.includes('this is the new') || lower.includes('sheet1') || lower.endsWith('.csv') || lower.endsWith('.xlsx')) return false;
           return true;
@@ -368,8 +365,8 @@ export default function App() {
     contacts.forEach(c => {
       if (Array.isArray(c.categories)) {
         c.categories.forEach(cat => {
-          // Never auto-add *EXAMPLES* or *SAMPLE* to master list
-          if (cat && cat !== '*EXAMPLES*' && cat !== '*SAMPLE*' && !uniqueCategories.has(cat)) {
+          // Never auto-add *EXAMPLES* to master list
+          if (cat && cat !== '*EXAMPLES*' && !uniqueCategories.has(cat)) {
             uniqueCategories.add(cat);
             added = true;
           }
