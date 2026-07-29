@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Printer, LayoutGrid, FileText, Sliders, Eye, Check } from 'lucide-react';
+import { X, Printer, LayoutGrid, FileText, Sliders, Eye, Check, Mail, Phone } from 'lucide-react';
 import { getContactAccuracy } from '../services/accuracyEvaluator';
 
 const DEFAULT_PRINT_WIDTHS = {
@@ -183,7 +183,7 @@ export const PrintView = ({
               onClick={() => setPrintLayoutMode('labels2')}
             >
               <LayoutGrid size={16} />
-              <span>🏷️ 2-Col Labels</span>
+              <span>2-Col Labels</span>
             </button>
             <button
               type="button"
@@ -191,7 +191,7 @@ export const PrintView = ({
               onClick={() => setPrintLayoutMode('labels3')}
             >
               <LayoutGrid size={16} />
-              <span>🏷️ 3-Col Labels</span>
+              <span>3-Col Labels</span>
             </button>
             <button
               type="button"
@@ -199,7 +199,7 @@ export const PrintView = ({
               onClick={() => setPrintLayoutMode('table')}
             >
               <FileText size={16} />
-              <span>📋 Table</span>
+              <span>Table</span>
             </button>
             <button
               type="button"
@@ -207,7 +207,7 @@ export const PrintView = ({
               onClick={() => setPrintLayoutMode('cards')}
             >
               <Eye size={16} />
-              <span>📇 Mini Cards</span>
+              <span>Mini Cards</span>
             </button>
           </div>
         </div>
@@ -937,8 +937,8 @@ export const PrintView = ({
                     )}
                     {includeLabelDetails && (
                       <div className="printable-card-detail">
-                        {c.email && <div>📧 {c.email}</div>}
-                        {c.phone && <div>📞 {c.phone}</div>}
+                        {c.email && <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Mail size={12} /> {c.email}</div>}
+                        {c.phone && <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Phone size={12} /> {c.phone}</div>}
                       </div>
                     )}
                     {includeLabelDetails && Array.isArray(c.categories) && c.categories.length > 0 && (
