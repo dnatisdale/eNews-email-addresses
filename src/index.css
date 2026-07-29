@@ -3404,11 +3404,40 @@ select option,
 .login-modal {
   width: 100%;
   max-width: 400px;
-  padding: 2.5rem 2rem;
-  border-radius: var(--radius-lg);
+  padding: 3rem 2.5rem;
+  border-radius: 24px;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-xl);
+}
+
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.input-with-icon .input-icon {
+  position: absolute;
+  left: 1rem;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.input-with-icon .form-control {
+  padding-left: 2.75rem;
+  border-radius: 12px;
+  height: 3.25rem;
+  font-size: 1rem;
+}
+
+.login-form .btn-primary {
+  border-radius: 12px;
+  height: 3.25rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 1rem;
 }
 
 .login-header {
