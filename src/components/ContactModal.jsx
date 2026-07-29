@@ -26,18 +26,37 @@ export const parseAddressToFields = (fullAddressStr = '') => {
   return { street: remainder, city: '', state, zip };
 };
 
+export const US_STATES = [
+  { code: '—', label: '— Skip / Int\'l' },
+  { code: 'AL', label: 'AL' }, { code: 'AK', label: 'AK' }, { code: 'AZ', label: 'AZ' }, { code: 'AR', label: 'AR' },
+  { code: 'CA', label: 'CA' }, { code: 'CO', label: 'CO' }, { code: 'CT', label: 'CT' }, { code: 'DE', label: 'DE' },
+  { code: 'FL', label: 'FL' }, { code: 'GA', label: 'GA' }, { code: 'HI', label: 'HI' }, { code: 'ID', label: 'ID' },
+  { code: 'IL', label: 'IL' }, { code: 'IN', label: 'IN' }, { code: 'IA', label: 'IA' }, { code: 'KS', label: 'KS' },
+  { code: 'KY', label: 'KY' }, { code: 'LA', label: 'LA' }, { code: 'ME', label: 'ME' }, { code: 'MD', label: 'MD' },
+  { code: 'MA', label: 'MA' }, { code: 'MI', label: 'MI' }, { code: 'MN', label: 'MN' }, { code: 'MS', label: 'MS' },
+  { code: 'MO', label: 'MO' }, { code: 'MT', label: 'MT' }, { code: 'NE', label: 'NE' }, { code: 'NV', label: 'NV' },
+  { code: 'NH', label: 'NH' }, { code: 'NJ', label: 'NJ' }, { code: 'NM', label: 'NM' }, { code: 'NY', label: 'NY' },
+  { code: 'NC', label: 'NC' }, { code: 'ND', label: 'ND' }, { code: 'OH', label: 'OH' }, { code: 'OK', label: 'OK' },
+  { code: 'OR', label: 'OR' }, { code: 'PA', label: 'PA' }, { code: 'RI', label: 'RI' }, { code: 'SC', label: 'SC' },
+  { code: 'SD', label: 'SD' }, { code: 'TN', label: 'TN' }, { code: 'TX', label: 'TX' }, { code: 'UT', label: 'UT' },
+  { code: 'VT', label: 'VT' }, { code: 'VA', label: 'VA' }, { code: 'WA', label: 'WA' }, { code: 'WV', label: 'WV' },
+  { code: 'WI', label: 'WI' }, { code: 'WY', label: 'WY' }, { code: 'DC', label: 'DC' }, { code: 'PR', label: 'PR' },
+  { code: 'VI', label: 'VI' }, { code: 'GU', label: 'GU' }, { code: 'MP', label: 'MP' }, { code: 'AS', label: 'AS' }
+];
+
 export const joinAddressFields = (street, city, state, zip) => {
   const s = (street || '').trim();
   const c = (city || '').trim();
-  const st = (state || '').trim().toUpperCase();
+  const st = (state || '').trim();
+  const validState = (st && st !== '—') ? st.toUpperCase() : '';
   const z = (zip || '').trim();
 
   let cityStateZip = '';
-  if (c && st && z) cityStateZip = `${c}, ${st} ${z}`;
-  else if (c && st) cityStateZip = `${c}, ${st}`;
+  if (c && validState && z) cityStateZip = `${c}, ${validState} ${z}`;
+  else if (c && validState) cityStateZip = `${c}, ${validState}`;
   else if (c && z) cityStateZip = `${c} ${z}`;
-  else if (st && z) cityStateZip = `${st} ${z}`;
-  else cityStateZip = c || st || z;
+  else if (validState && z) cityStateZip = `${validState} ${z}`;
+  else cityStateZip = c || validState || z;
 
   if (s && cityStateZip) return `${s}, ${cityStateZip}`;
   return s || cityStateZip;
@@ -188,29 +207,6 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
                     type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => {
-                      setFormData({
-                        firstName: 'Eleanor',
-                        lastName: 'Tisdale',
-                        email: 'eleanor.tisdale@example.com',
-                        secondaryEmail: 'eleanor.tisdale@work.com',
-                        phone: '(555) 234-5678',
-                        street: '101 Elm Street, Suite 1',
-                        city: 'Springfield',
-                        state: 'IL',
-                        zip: '62701',
-                        notes: 'Sends annual holiday card & eNews',
-                        categories: ['Christmas', 'eNewsletter', 'Family'],
-                        status: 'Active'
-                      });
-                    }}
-                    title="Autofill form with sample contact data"
-                  >
-                    Fill Form with Sample
-                  </button>
-                  <button
-                    type="button"
                     className="icon-close-btn"
                     onClick={() => setShowSampleGuide(false)}
                     title="Close Sample Guide"
@@ -272,18 +268,18 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
                   </div>
                 </div>
 
-                <div className="full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 90px 110px', gap: '0.5rem' }}>
+                <div className="full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 125px 150px', gap: '0.5rem' }}>
                   <div className="sample-field-wrap">
                     <span className="sample-hover-label">City Name</span>
                     <div className="sample-input-preview">Springfield</div>
                   </div>
                   <div className="sample-field-wrap">
-                    <span className="sample-hover-label">State Code</span>
+                    <span className="sample-hover-label">State (Dropdown / Long Dash)</span>
                     <div className="sample-input-preview">IL</div>
                   </div>
                   <div className="sample-field-wrap">
-                    <span className="sample-hover-label">5-Digit Zip Code</span>
-                    <div className="sample-input-preview">62701</div>
+                    <span className="sample-hover-label">Zip Code (5-Digit or ZIP+4)</span>
+                    <div className="sample-input-preview">62701-1234</div>
                   </div>
                 </div>
 
@@ -396,7 +392,7 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
               </div>
             </div>
 
-            <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 90px 110px', gap: '0.5rem' }}>
+            <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 125px 150px', gap: '0.5rem' }}>
               <input
                 type="text"
                 className="input-control"
@@ -404,13 +400,20 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
               />
-              <input
-                type="text"
+              <select
                 className="input-control"
-                placeholder="State"
                 value={formData.state}
                 onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-              />
+                style={{ cursor: 'pointer' }}
+                title="Select State or long dash (—) for International"
+              >
+                <option value="" disabled>State</option>
+                {US_STATES.map((s) => (
+                  <option key={s.code} value={s.code}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
               <input
                 type="text"
                 className="input-control"
