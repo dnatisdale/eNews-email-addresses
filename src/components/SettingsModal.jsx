@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Settings, KeyRound, Save, Check, Lock, Unlock, Type, Mail, Phone, Tag, ShieldCheck, RotateCcw, Download, Trash2, Plus } from 'lucide-react';
+import { X, Settings, KeyRound, Save, Check, Lock, Unlock, Type, Mail, Phone, Tag, ShieldCheck, ShieldAlert, RotateCcw, Download, Trash2, Plus } from 'lucide-react';
 import { getAdminPIN, setAdminPIN, isSecurityLockEnabled, setSecurityLockEnabled } from '../services/authService';
 import { getRollingBackups, downloadBackupFile, emailBackup, deleteRollingBackup, createRollingBackup } from '../services/backupService';
 
