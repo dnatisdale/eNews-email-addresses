@@ -48,8 +48,8 @@ export const AccuracyBoxes = ({ accuracy }) => {
   return (
     <div 
       className="score-number-badge-wrap" 
-      title={accuracy.tooltip || `Completeness: ${count}/4 items present (Name, Email, Address, Phone)`}
-      aria-label={`Completeness Score: ${count} of 4`}
+      title={accuracy.tooltip || `Completeness Rank: ${count}/4 items present (Name, Email, Address, Phone)`}
+      aria-label={`Completeness Rank: ${count} of 4`}
       style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
     >
       <span
@@ -572,8 +572,8 @@ export const ContactTable = ({
                       case 'score':
                         return (
                           <th key="score" style={{ width: columnWidths.score || 60 }} className="sortable resizable-th th-score">
-                            <div className="th-content" onClick={() => handleSort('score')} title="Click to sort by Completeness Score (1 to 4 items: Name, Email, Address, Phone)">
-                              <span>Score</span>
+                            <div className="th-content" onClick={() => handleSort('score')} title="Click to sort by Completeness Rank (1 to 4 items: Name, Email, Address, Phone)">
+                              <span>Rank</span>
                               <ArrowUpDown size={12} className="sort-icon" />
                             </div>
                             <div className="col-resizer" onMouseDown={(e) => startResizing('score', e)} />
