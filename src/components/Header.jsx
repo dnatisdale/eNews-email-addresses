@@ -269,11 +269,6 @@ export const Header = ({
                 {menuItem(<Tag size={16} />, 'Tag Manager', onOpenCategoryManager)}
                 {contactsCount > 0 && menuItem(<Wand2 size={16} />, 'Clean & Repair DB', onCleanDatabase)}
                 {menuItem(<Archive size={16} className={trashCount > 0 ? 'text-warning' : ''} />, '60-Day Trash Bin', onOpenTrashModal, trashCount)}
-                {contactsCount === 0 ? (
-                  menuItem(<Sparkles size={16} />, 'Load Sample Contacts', onLoadSampleData)
-                ) : (
-                  menuItem(<RotateCcw size={16} />, 'Clear Sample Data', onClearSampleData)
-                )}
 
                 <div className="hmenu-divider" />
 

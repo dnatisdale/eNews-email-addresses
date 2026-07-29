@@ -738,11 +738,6 @@ export default function App() {
         }, 'Add New Contact')}
         onOpenImportModal={() => requireAuth(() => setIsImportModalOpen(true), 'Import CSV File')}
         onOpenMagicImport={() => requireAuth(() => setIsMagicImportModalOpen(true), 'Smart Text Import')}
-        onLoadSampleData={() => requireAuth(() => {
-          const samples = generateSampleContacts();
-          updateContactsState(samples);
-          showToast('Loaded sample contacts');
-        }, 'Load Sample Contacts')}
         onPrintDirectory={() => setIsPrintViewOpen(true)}
         onExportCSV={handleExportCSV}
         onScanDuplicates={() => {
@@ -758,7 +753,6 @@ export default function App() {
         onOpenTrashModal={() => setIsTrashModalOpen(true)}
         onCleanDatabase={handleCleanDatabase}
         duplicateCount={findDuplicates(contacts, contacts).length}
-        onClearSampleData={handleClearSampleData}
         deferredPrompt={deferredPrompt}
         onInstallClick={handleInstallClick}
         onUndo={handleUndo}
@@ -796,11 +790,6 @@ export default function App() {
             setContactToEdit(null);
             setIsAddEditModalOpen(true);
           }, 'Add New Contact')}
-          onLoadSampleData={() => requireAuth(() => {
-            const samples = generateSampleContacts();
-            updateContactsState(samples);
-            showToast('Loaded sample contacts');
-          }, 'Load Sample Contacts')}
           onUndo={handleUndo}
           onRedo={handleRedo}
           canUndo={pastHistory.length > 0}

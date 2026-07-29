@@ -532,12 +532,6 @@ export const ContactTable = ({
           <h3>No contacts found</h3>
           <p>{searchTerm || activeLetter !== 'All' ? 'Try adjusting your search query, letter filter, or score filters.' : 'Your eNews address book is currently empty.'}</p>
           <div className="empty-actions">
-            {contacts.length === 0 && (
-              <button className="btn btn-secondary" onClick={onLoadSampleData}>
-                <Sparkles size={16} />
-                <span>Load Sample Contacts</span>
-              </button>
-            )}
             <button className="btn btn-primary" onClick={onOpenAddModal}>
               <Mail size={16} />
               <span>Add Your First Contact</span>
