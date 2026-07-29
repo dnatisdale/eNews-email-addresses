@@ -529,8 +529,11 @@ export const ContactTable = ({
       {sortedContacts.length === 0 ? (
         <div className="empty-state">
           <UserCheck size={48} className="empty-icon" />
-          <h3>No contacts found</h3>
-          <p>{searchTerm || activeLetter !== 'All' ? 'Try adjusting your search query, letter filter, or score filters.' : 'Your eNews address book is currently empty.'}</p>
+          <h3>
+            {searchTerm || activeLetter !== 'All' 
+              ? 'No contacts match your current filter' 
+              : 'Your eNews address book is currently empty.'}
+          </h3>
           <div className="empty-actions">
             <button className="btn btn-primary" onClick={onOpenAddModal}>
               <Mail size={16} />
