@@ -1,5 +1,47 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Mail, Phone, Tag, MapPin, FileText, CheckCircle, Info } from 'lucide-react';
+import { X, Save, User, Mail, Phone, MapPin } from 'lucide-react';
+
+export const parseAddressToFields = (fullAddressStr = '') => {
+  if (!fullAddressStr) return { street: '', city: '', state: '', zip: '' };
+  const str = fullAddressStr.trim();
+
+  const zipMatch = str.match(/\b(\d{5}(?:-\d{4})?)\b/);
+  const zip = zipMatch ? zipMatch[1] : '';
+
+  let remainder = str.replace(zip, '').trim().replace(/,\s*$/, '');
+
+  const stateMatch = remainder.match(/\b([A-Z]{2})\b$/i);
+  const state = stateMatch ? stateMatch[1].toUpperCase() : '';
+  if (state) {
+    remainder = remainder.replace(new RegExp(`\\b${state}\\b$`, 'i'), '').trim().replace(/,\s*$/, '');
+  }
+
+  const parts = remainder.split(',').map(p => p.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    const city = parts[parts.length - 1];
+    const street = parts.slice(0, parts.length - 1).join(', ');
+    return { street, city, state, zip };
+  }
+
+  return { street: remainder, city: '', state, zip };
+};
+
+export const joinAddressFields = (street, city, state, zip) => {
+  const s = (street || '').trim();
+  const c = (city || '').trim();
+  const st = (state || '').trim().toUpperCase();
+  const z = (zip || '').trim();
+
+  let cityStateZip = '';
+  if (c && st && z) cityStateZip = `${c}, ${st} ${z}`;
+  else if (c && st) cityStateZip = `${c}, ${st}`;
+  else if (c && z) cityStateZip = `${c} ${z}`;
+  else if (st && z) cityStateZip = `${st} ${z}`;
+  else cityStateZip = c || st || z;
+
+  if (s && cityStateZip) return `${s}, ${cityStateZip}`;
+  return s || cityStateZip;
+};
 
 export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCategories = [] }) => {
   const [formData, setFormData] = useState({
@@ -8,9 +50,12 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
     email: '',
     secondaryEmail: '',
     phone: '',
+    street: '',
+    city: '',
+    state: '',
+    zip: '',
     categories: ['Family'],
     status: 'Active',
-    address: '',
     notes: ''
   });
 
@@ -19,15 +64,19 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
 
   useEffect(() => {
     if (contactToEdit) {
+      const addrFields = parseAddressToFields(contactToEdit.address || '');
       setFormData({
         firstName: contactToEdit.firstName || '',
         lastName: contactToEdit.lastName || '',
         email: contactToEdit.email || '',
         secondaryEmail: contactToEdit.secondaryEmail || '',
         phone: contactToEdit.phone || '',
+        street: addrFields.street,
+        city: addrFields.city,
+        state: addrFields.state,
+        zip: addrFields.zip,
         categories: contactToEdit.categories && contactToEdit.categories.length > 0 ? contactToEdit.categories : ['Family'],
         status: contactToEdit.status || 'Active',
-        address: contactToEdit.address || '',
         notes: contactToEdit.notes || ''
       });
     } else {
@@ -37,9 +86,12 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
         email: '',
         secondaryEmail: '',
         phone: '',
+        street: '',
+        city: '',
+        state: '',
+        zip: '',
         categories: ['Family'],
         status: 'Active',
-        address: '',
         notes: ''
       });
     }
@@ -57,9 +109,18 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
         finalCategories.push(customCategory.trim());
       }
     }
+    const fullAddress = joinAddressFields(formData.street, formData.city, formData.state, formData.zip);
+
     onSave({
-      ...formData,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      secondaryEmail: formData.secondaryEmail,
+      phone: formData.phone,
+      address: fullAddress,
+      notes: formData.notes,
       categories: finalCategories,
+      status: formData.status,
       id: contactToEdit ? contactToEdit.id : undefined
     });
     onClose();
@@ -91,41 +152,31 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
 
         <form onSubmit={handleSubmit} className="modal-body">
           <div className="form-grid">
-            {/* First Name */}
+            {/* First Name & Last Name (No external labels) */}
             <div className="form-group">
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                <span style={{ color: '#ef4444', fontWeight: 700, marginRight: '3px' }}>*</span>First Name
-              </label>
               <input
                 type="text"
                 required
                 className="input-control"
-                placeholder="First Name"
+                placeholder="* First Name"
                 value={formData.firstName}
                 onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
               />
             </div>
 
-            {/* Last Name */}
             <div className="form-group">
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                <span style={{ color: '#ef4444', fontWeight: 700, marginRight: '3px' }}>*</span>Last Name
-              </label>
               <input
                 type="text"
                 required
                 className="input-control"
-                placeholder="Last Name"
+                placeholder="* Last Name"
                 value={formData.lastName}
                 onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
               />
             </div>
 
-            {/* Email */}
+            {/* Email & Secondary Email (No external labels) */}
             <div className="form-group">
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                Email
-              </label>
               <div className="input-with-icon">
                 <Mail size={16} className="input-icon" />
                 <input
@@ -138,11 +189,7 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
               </div>
             </div>
 
-            {/* Secondary Email */}
             <div className="form-group">
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                Secondary Email
-              </label>
               <div className="input-with-icon">
                 <Mail size={16} className="input-icon" />
                 <input
@@ -155,11 +202,8 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
               </div>
             </div>
 
-            {/* Phone */}
-            <div className="form-group">
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                Phone Number
-              </label>
+            {/* Phone Number (No external label) */}
+            <div className="form-group full-width">
               <div className="input-with-icon">
                 <Phone size={16} className="input-icon" />
                 <input
@@ -172,14 +216,63 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
               </div>
             </div>
 
-            {/* Side-by-Side: Categories & Status */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 170px', gap: '0.75rem', alignItems: 'start' }} className="full-width">
-              {/* Categories — Dropdown Multi-Select */}
+            {/* Separate Physical Address Fields (Street, City, State, Zip) */}
+            <div className="form-group full-width">
+              <div className="input-with-icon">
+                <MapPin size={16} className="input-icon" />
+                <input
+                  type="text"
+                  className="input-control"
+                  placeholder="Street Address (e.g. 101 Elm St, Suite 1)"
+                  value={formData.street}
+                  onChange={(e) => setFormData({ ...formData, street: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 90px 110px', gap: '0.5rem' }}>
+              <input
+                type="text"
+                className="input-control"
+                placeholder="City"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+              />
+              <input
+                type="text"
+                className="input-control"
+                placeholder="State"
+                value={formData.state}
+                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+              />
+              <input
+                type="text"
+                className="input-control"
+                placeholder="Zip Code"
+                value={formData.zip}
+                onChange={(e) => setFormData({ ...formData, zip: e.target.value })}
+              />
+            </div>
+
+            {/* Notes (No external label) */}
+            <div className="form-group full-width">
+              <textarea
+                rows={2}
+                className="input-control textarea-control"
+                placeholder="Notes, relationship details, preferred greeting..."
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              />
+            </div>
+
+            {/* Tags & Status — Under Notes (Labels Kept!) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 170px', gap: '0.75rem', alignItems: 'start' }} className="full-width mt-2">
+              {/* Tags — Multi-Select */}
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
                   Tags
                 </label>
-                
+
                 {/* Selected pills */}
                 {(formData.categories || []).filter(c => c !== '*EXAMPLES*').length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
@@ -258,37 +351,6 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
                   <option value="Bounced">⚠️ Bounced</option>
                 </select>
               </div>
-            </div>
-
-            {/* Address */}
-            <div className="form-group full-width">
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                Physical Address
-              </label>
-              <div className="input-with-icon">
-                <MapPin size={16} className="input-icon" />
-                <input
-                  type="text"
-                  className="input-control"
-                  placeholder="Street, City, State Zip"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                />
-              </div>
-            </div>
-
-            {/* Notes */}
-            <div className="form-group full-width">
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                Notes
-              </label>
-              <textarea
-                rows={2}
-                className="input-control textarea-control"
-                placeholder="Holiday card notes, relationship details, preferred greeting..."
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              />
             </div>
           </div>
 
