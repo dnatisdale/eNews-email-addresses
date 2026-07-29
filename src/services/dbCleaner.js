@@ -28,7 +28,7 @@ export const cleanDatabase = (contacts = []) => {
     let categories = contact.categories;
     if (!categories || !Array.isArray(categories)) {
       const legacyGroup = (contact.group || '').trim();
-      categories = legacyGroup ? [legacyGroup] : ['Family'];
+      categories = legacyGroup ? [legacyGroup] : [];
     }
     categories = categories.flatMap(c => {
       const trimmed = c.trim();
@@ -49,9 +49,7 @@ export const cleanDatabase = (contacts = []) => {
           return true;
         })
     )];
-    if (categories.length === 0) {
-      categories = ['Family'];
-    }
+
     const status = (contact.status || '').trim() || 'Active';
     const address = (contact.address || '').trim();
     const notes = (contact.notes || '').trim();

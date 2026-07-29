@@ -96,7 +96,7 @@ export const ImportExportModal = ({
       const updatedPreview = parsedPreview.map((contact) => {
         const existingCats = Array.isArray(contact.categories) && contact.categories.length > 0 
           ? contact.categories.filter(c => Boolean(c) && !c.toLowerCase().endsWith('.csv') && !c.toLowerCase().endsWith('.xlsx'))
-          : ['Friends & Family'];
+          : [];
         return {
           ...contact,
           categories: existingCats

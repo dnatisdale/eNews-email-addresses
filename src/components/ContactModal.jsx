@@ -73,7 +73,7 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
     city: '',
     state: '',
     zip: '',
-    categories: ['Family'],
+    categories: [],
     status: 'Active',
     notes: ''
   });
@@ -96,7 +96,7 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
         city: addrFields.city,
         state: addrFields.state,
         zip: addrFields.zip,
-        categories: contactToEdit.categories && contactToEdit.categories.length > 0 ? contactToEdit.categories : ['Family'],
+        categories: contactToEdit.categories || [],
         status: contactToEdit.status || 'Active',
         notes: contactToEdit.notes || ''
       });
@@ -111,7 +111,7 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
         city: '',
         state: '',
         zip: '',
-        categories: ['Family'],
+        categories: [],
         status: 'Active',
         notes: ''
       });

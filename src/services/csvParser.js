@@ -166,9 +166,7 @@ const normalizeImportedContacts = (records) => {
         }).filter(Boolean);
       }
       
-      if (categories.length === 0) {
-        categories = ['Family'];
-      }
+
 
       // 5. Address & Notes
       const address = getVal('address 1 - formatted', 'home street', 'business street', 'address', 'street address');
