@@ -20,23 +20,72 @@ const DEFAULT_PRINT_WIDTHS = {
 const getColWidth = (id, localWidths) => localWidths[id] || DEFAULT_PRINT_WIDTHS[id] || 150;
 
 /**
- * Formats a raw address string ensuring proper comma placement after City.
- * e.g., "101 Elm Street, Springfield IL 62701" -> "101 Elm Street, Springfield, IL 62701"
- * e.g., "Dallas TX" -> "Dallas, TX"
+ * Smart physical address formatter for mailing labels & directory tables.
+ * Ensures:
+ * - Comma AFTER City before State (e.g., "Springfield, IL")
+ * - NO comma before Zip Code (e.g., "IL 78960" NOT "IL, 78960")
  */
 export const formatAddressWithCityComma = (addressRaw) => {
-  if (!addressRaw) return '';
-  let addr = addressRaw.trim();
+  if (!addressRaw || !addressRaw.trim()) return '';
+  let str = addressRaw.trim();
 
-  // Insert comma after City if missing before 2-letter uppercase State code (e.g. "Springfield IL" -> "Springfield, IL")
-  addr = addr.replace(/([a-zA-Z.]+)\s+([A-Z]{2})\b(?!\s*,)/g, (match, city, state) => {
+  // Normalize newlines to comma separator
+  str = str.replace(/[\r\n]+/g, ', ');
+
+  // Fix comma before ZIP code (e.g., "IL, 78960" -> "IL 78960")
+  str = str.replace(/([A-Z]{2}),\s*(\d{5}(?:-\d{4})?)\b/g, '$1 $2');
+
+  // Fix missing comma after City before State (e.g., "Springfield IL" -> "Springfield, IL")
+  str = str.replace(/([a-zA-Z.]+)\s+([A-Z]{2})\b/g, (match, city, state) => {
     if (city.endsWith(',')) return `${city} ${state}`;
     return `${city}, ${state}`;
   });
 
-  // Clean up any double commas
-  addr = addr.replace(/,\s*,/g, ',');
-  return addr;
+  // Clean double commas
+  str = str.replace(/,\s*,/g, ',').trim();
+  return str;
+};
+
+/**
+ * Formats mailing label name strictly as First Name Last Name (e.g., "Dan Tisdale" / "Eleanor Tisdale")
+ * regardless of table sorting mode.
+ */
+export const formatMailingLabelName = (c) => {
+  const first = (c.firstName || '').trim();
+  const last = (c.lastName || '').trim();
+  if (first && last) return `${first} ${last}`;
+  return first || last || 'Unnamed Contact';
+};
+
+/**
+ * Splits formatted physical address into Street line and City, State Zip line for mailing labels.
+ */
+export const formatMailingLabelAddressLines = (addressRaw) => {
+  if (!addressRaw) return { street: '', cityStateZip: '' };
+  const cleaned = formatAddressWithCityComma(addressRaw);
+
+  const parts = cleaned.split(',').map(p => p.trim()).filter(Boolean);
+  if (parts.length <= 1) {
+    return { street: parts[0] || '', cityStateZip: '' };
+  }
+
+  // Last part or last 2 parts contain City, State Zip
+  const lastPart = parts[parts.length - 1]; // e.g., "IL 78960" or "IL"
+  const secondLastPart = parts[parts.length - 2]; // e.g., "Springfield"
+
+  if (/^[A-Z]{2}(?:\s+\d{5}(?:-\d{4})?)?$/i.test(lastPart)) {
+    const street = parts.slice(0, parts.length - 2).join(', ');
+    const cityStateZip = `${secondLastPart}, ${lastPart}`;
+    return {
+      street: street || parts[0],
+      cityStateZip
+    };
+  }
+
+  return {
+    street: parts.slice(0, -1).join(', '),
+    cityStateZip: parts.slice(-1)[0] || ''
+  };
 };
 
 export const PrintView = ({
@@ -87,8 +136,8 @@ export const PrintView = ({
   const boxHeight = Math.max(6, Math.round(14 * scaleRatio));
   const boxGap = Math.max(1, Math.round(3 * scaleRatio));
 
-  // Helper to format contact name according to nameSortOrder preference
-  const formatContactName = (c) => {
+  // Table View name formatting (follows table preference or First Last)
+  const formatTableContactName = (c) => {
     const first = (c.firstName || '').trim();
     const last = (c.lastName || '').trim();
     if (nameSortOrder === 'last') {
@@ -639,6 +688,17 @@ export const PrintView = ({
           line-height: 1.35;
         }
 
+        .label-street-line {
+          font-size: calc(0.88rem * ${scaleRatio});
+          color: #1e293b;
+        }
+
+        .label-city-line {
+          font-size: calc(0.88rem * ${scaleRatio});
+          color: #334155;
+          font-weight: 600;
+        }
+
         .printable-card-detail {
           font-size: calc(0.82rem * ${scaleRatio});
           color: #475569;
@@ -802,7 +862,7 @@ export const PrintView = ({
                           </span>
                         );
                       }
-                      else if (col.id === 'name') val = <strong>{formatContactName(c)}</strong>;
+                      else if (col.id === 'name') val = <strong>{formatTableContactName(c)}</strong>;
                       else if (col.id === 'address') val = formatAddressWithCityComma(c.address) || '-';
                       else if (col.id === 'categories') {
                         const cats = Array.isArray(c.categories) ? [...c.categories] : [];
@@ -838,15 +898,22 @@ export const PrintView = ({
               printLayoutMode === 'labels3' ? 'labels-grid-3' : 'labels-grid-cards'
             }`}>
               {contacts.map((c, idx) => {
-                const formattedAddress = formatAddressWithCityComma(c.address);
+                const addrBlock = formatMailingLabelAddressLines(c.address);
                 return (
                   <div key={c.id || idx} className="printable-card-item">
                     <div className="printable-card-name">
-                      {formatContactName(c)}
+                      {formatMailingLabelName(c)}
                     </div>
-                    <div className="printable-card-address">
-                      {formattedAddress ? formattedAddress : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No Address Listed</span>}
-                    </div>
+                    {c.address ? (
+                      <div className="printable-card-address">
+                        {addrBlock.street && <div className="label-street-line">{addrBlock.street}</div>}
+                        {addrBlock.cityStateZip && <div className="label-city-line">{addrBlock.cityStateZip}</div>}
+                      </div>
+                    ) : (
+                      <div className="printable-card-address">
+                        <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>No Address Listed</span>
+                      </div>
+                    )}
                     {includeLabelDetails && (
                       <div className="printable-card-detail">
                         {c.email && <div>📧 {c.email}</div>}

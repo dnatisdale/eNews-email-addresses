@@ -124,13 +124,12 @@ export const ContactModal = ({ isOpen, onClose, onSave, contactToEdit, masterCat
             {/* Email */}
             <div className="form-group">
               <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                <span style={{ color: '#ef4444', fontWeight: 700, marginRight: '3px' }}>*</span>Email
+                Email
               </label>
               <div className="input-with-icon">
                 <Mail size={16} className="input-icon" />
                 <input
                   type="email"
-                  required
                   className="input-control"
                   placeholder="Email Address"
                   value={formData.email}
