@@ -368,13 +368,16 @@ export const SettingsModal = ({ isOpen, onClose, fontSize = 100, setFontSize, co
               className="btn btn-outline-danger btn-block"
               onClick={() => {
                 if (window.confirm('⚠️ WARNING: This will permanently delete ALL contacts and tags from your cloud database across all devices. This cannot be undone. Are you absolutely sure?')) {
-                  if (window.confirm('Are you REALLY sure? Type "YES" to proceed... well, just click OK.')) {
+                  const input = window.prompt('To confirm, type "sey" ("yes" backwards) below:');
+                  if (input && input.trim().toLowerCase() === 'sey') {
                     if (onFactoryReset) {
                       onFactoryReset();
                       onClose();
                     } else {
                       alert('Please use the "Clean & Repair DB" button in the menu, or select all contacts and delete them.');
                     }
+                  } else {
+                    alert('Factory reset cancelled.');
                   }
                 }
               }}
