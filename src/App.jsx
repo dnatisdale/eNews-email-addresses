@@ -19,7 +19,13 @@ import { findDuplicates, mergeContacts } from './services/deduplicator';
 import { cleanDatabase } from './services/dbCleaner';
 import { createRollingBackup } from './services/backupService';
 import { STANDARD_COLUMNS } from './components/ColumnSelector';
-import { isSecurityLockEnabled } from './services/authService';
+import { getAdminPIN, isSecurityLockEnabled } from './services/authService';
+import { auth } from './firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { LoginScreen } from './components/LoginScreen';
+import { 
+  syncDatabase, cloudSaveDatabase, migrateLocalToCloud 
+} from './services/cloudSync';
 
 const STORAGE_KEY = 'eNews_Contacts_List_v1';
 const TRASH_STORAGE_KEY = 'eNews_Trash_Contacts_v1';
@@ -36,6 +42,9 @@ export const sortCategoriesAlphabetically = (cats = []) => {
 };
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authInitialized, setAuthInitialized] = useState(false);
+
   // Theme state
   const [theme, setTheme] = useState(() => localStorage.getItem(THEME_KEY) || 'dark');
 
@@ -61,21 +70,54 @@ export default function App() {
   };
 
   // Contacts state
-  const [contacts, setContacts] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        const { cleanedContacts } = cleanDatabase(parsed);
-        // Filter out legacy sample rows from table
-        return cleanedContacts.filter(c => !isSampleRecord(c));
-      } catch (e) {
-        console.error('Failed to load contacts from storage', e);
-      }
-    }
-    return [];
-  });
+  const [contacts, setContacts] = useState([]);
 
+  // Master Categories State
+  const [masterCategories, setMasterCategories] = useState([]);
+  const [isCloudLoaded, setIsCloudLoaded] = useState(false);
+
+  // Firebase Auth & Sync Initialization
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+      setAuthInitialized(true);
+
+      if (user) {
+        // Grab legacy local data for migration
+        const savedContacts = localStorage.getItem(STORAGE_KEY);
+        const savedCats = localStorage.getItem(MASTER_CATEGORIES_KEY);
+        
+        let localContacts = [];
+        let localCats = [];
+        
+        if (savedContacts) {
+          try {
+            const parsed = JSON.parse(savedContacts);
+            const { cleanedContacts } = cleanDatabase(parsed);
+            localContacts = cleanedContacts.filter(c => !isSampleRecord(c));
+          } catch(e) {}
+        }
+        
+        if (savedCats) {
+          try { localCats = JSON.parse(savedCats); } catch(e) {}
+        }
+
+        // Run one-time migration
+        await migrateLocalToCloud(localContacts, localCats);
+
+        // Subscribe to real-time cloud data
+        const unsubDb = syncDatabase((syncedContacts, syncedCats) => {
+          setContacts(syncedContacts);
+          setMasterCategories(sortCategoriesAlphabetically(syncedCats));
+          setIsCloudLoaded(true);
+        });
+
+        return () => unsubDb();
+      }
+    });
+
+    return () => unsubscribeAuth();
+  }, []);
   // Undo / Redo 30-Step History Stacks
   const [pastHistory, setPastHistory] = useState([]);
   const [futureHistory, setFutureHistory] = useState([]);
@@ -161,34 +203,7 @@ export default function App() {
     return [];
   });
 
-  const OFFICIAL_BUILTIN = ['Christmas', 'eNewsletter', 'Family', 'Friends'];
 
-  // Master Categories State
-  const [masterCategories, setMasterCategories] = useState(() => {
-    const saved = localStorage.getItem(MASTER_CATEGORIES_KEY);
-    let cats = OFFICIAL_BUILTIN;
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        const cleaned = parsed.map(c => {
-          if (c === 'Friends & Family' || c === 'Family & Household') return 'Family';
-          if (c === 'Close Friends') return 'Friends';
-          if (c === 'Holiday List') return 'Christmas';
-          if (c === 'Newsletter') return 'eNewsletter';
-          return c;
-        }).filter(c => {
-          if (!c || c === '*EXAMPLES*' || c === 'Family & Household' || c === 'Friends & Family') return false;
-          const lower = c.toLowerCase();
-          if (lower.includes('this is the new') || lower.includes('sheet1') || lower.endsWith('.csv') || lower.endsWith('.xlsx')) return false;
-          return true;
-        });
-        cats = Array.from(new Set([...OFFICIAL_BUILTIN, ...cleaned]));
-      } catch (e) {
-        console.error('Failed to load master categories', e);
-      }
-    }
-    return sortCategoriesAlphabetically(cats);
-  });
 
   // Security Lock & Authentication State
   const [isEditingUnlocked, setIsEditingUnlocked] = useState(false);
@@ -356,20 +371,17 @@ export default function App() {
     setShowPwaBanner(false);
   };
 
-  // Sync contacts to LocalStorage
+  // Sync database to Cloud (runs whenever contacts or categories change locally)
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(contacts));
-  }, [contacts]);
+    if (isCloudLoaded) {
+      cloudSaveDatabase(contacts, masterCategories);
+    }
+  }, [contacts, masterCategories, isCloudLoaded]);
 
-  // Sync trashContacts to LocalStorage
+  // Sync trashContacts to LocalStorage (Keeping trash local for now)
   useEffect(() => {
     localStorage.setItem(TRASH_STORAGE_KEY, JSON.stringify(trashContacts));
   }, [trashContacts]);
-
-  // Sync masterCategories to LocalStorage
-  useEffect(() => {
-    localStorage.setItem(MASTER_CATEGORIES_KEY, JSON.stringify(masterCategories));
-  }, [masterCategories]);
 
   // Auto-discover categories from imported or legacy contacts
   useEffect(() => {
@@ -727,6 +739,17 @@ export default function App() {
     link.click();
     URL.revokeObjectURL(url);
   };
+  if (!authInitialized) {
+    return (
+      <div className="app-layout" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+        <h2>Loading Secure Cloud Sync...</h2>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return <LoginScreen />;
+  }
 
   return (
     <div className="app-layout">
